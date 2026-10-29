@@ -33,14 +33,17 @@ class PoolTiruan {
   on() {}
   async query(sql, params) {
     PoolTiruan.n += 1;
+    PoolTiruan.sql = sql;
     PoolTiruan.params = params;
     if (PoolTiruan.gagal) throw new Error("connect ECONNREFUSED");
+    // Query mode uji mendapat baris dari gudang & tahun lama.
+    const uji = /LIMIT/.test(sql);
     return {
       rows: [
         {
-          tanggal: "2026-10-30",
+          tanggal: uji ? "2025-11-21" : "2026-10-30",
           waktu: "09:10:00",
-          channel: "MAIN IMPERFECT WAREHOUS 2026",
+          channel: uji ? params[0] : "MAIN IMPERFECT WAREHOUS 2026",
           invoice: "A",
           qty: "1",
           total_harga_barang: "100000",
@@ -55,6 +58,7 @@ class PoolTiruan {
 }
 
 const ENV_DB = {
+  UJI_WAREHOUSE: "off",
   DATABASE_HOST: "db",
   DATABASE_NAME: "we_data_store",
   CACHE_SECONDS: "60",
@@ -82,6 +86,36 @@ test("Postgres: parameter event dikirim ke query, dibaca sekali per CACHE_SECOND
     "2026-10-30",
     "2026-11-01",
   ]);
+});
+
+test("mode uji (bawaan): N baris pertama gudang 2025, Day 1 = tanggal pertamanya", async () => {
+  PoolTiruan.gagal = false;
+  const env = { ...ENV_DB };
+  delete env.UJI_WAREHOUSE;
+  const app = createApp(env, { Pool: PoolTiruan });
+  const info = await panggil(app, { url: "/api/app" });
+  assert.deepEqual(info.json.uji, {
+    warehouse: "MAIN STAGE IMPERFECT SALE 2025",
+    limit: 20,
+  });
+  const p = await panggil(app, { url: "/api/pivot" });
+  assert.deepEqual(PoolTiruan.params, ["MAIN STAGE IMPERFECT SALE 2025", 20]);
+  assert.match(PoolTiruan.sql, /LIMIT \$2/);
+  assert.deepEqual(
+    p.json.columns.map((c) => c.key),
+    ["MAIN STAGE IMPERFECT SALE 2025"],
+  );
+  assert.equal(p.json.kesegaran.uji.limit, 20);
+  assert.equal(p.json.options.hari[0].label, "Day 1 · 21 Nov");
+  assert.equal(p.json.rows[0].label, "Day 1 | Sesi 1 (09.00-10.00)");
+  assert.equal(p.json.total.gmv, 100000);
+});
+
+test("UJI_LIMIT mengatur jumlah baris uji", async () => {
+  const env = { ...ENV_DB, UJI_WAREHOUSE: "GUDANG LAMA", UJI_LIMIT: "50" };
+  const app = createApp(env, { Pool: PoolTiruan });
+  await panggil(app, { url: "/api/pivot" });
+  assert.deepEqual(PoolTiruan.params, ["GUDANG LAMA", 50]);
 });
 
 test("database gagal sejak awal: 503 dengan pesan aslinya, bukan data contoh", async () => {

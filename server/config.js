@@ -22,6 +22,14 @@ const daftar = (v) =>
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/**
+ * Mode uji: sebelum event 2026 punya transaksi, dashboard membaca sebagian
+ * kecil data gudang event lama supaya tampilannya bisa dicek dengan data asli.
+ * Aktif sampai UJI_WAREHOUSE diisi `off` (atau bawaan ini dikosongkan).
+ */
+const UJI_WAREHOUSE_BAWAAN = "MAIN STAGE IMPERFECT SALE 2025";
+const UJI_MATI = /^(off|false|0|-)?$/i;
+
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);
 
@@ -67,6 +75,7 @@ function loadConfig(env) {
       ssl: flag(env.PG_SSL, false),
       sslRejectUnauthorized: flag(env.PG_SSL_REJECT_UNAUTHORIZED, true),
     },
+    uji: bacaUji(env),
     auth: {
       password: env.DASHBOARD_PASSWORD || "",
       secret: env.SESSION_SECRET || "",
@@ -75,6 +84,18 @@ function loadConfig(env) {
     // sama sekali; database yang gagal dibaca TIDAK diganti data contoh.
     demo:
       flag(env.DEMO_MODE, false) || !(env.DATABASE_URL || env.DATABASE_HOST),
+  };
+}
+
+function bacaUji(env) {
+  const warehouse = (
+    env.UJI_WAREHOUSE === undefined ? UJI_WAREHOUSE_BAWAAN : env.UJI_WAREHOUSE
+  ).trim();
+  if (UJI_MATI.test(warehouse)) return null;
+  const limit = parseInt(env.UJI_LIMIT || "20", 10);
+  return {
+    warehouse,
+    limit: Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 5000) : 20,
   };
 }
 

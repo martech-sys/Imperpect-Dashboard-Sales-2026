@@ -67,7 +67,7 @@ function createApp(env, deps = {}) {
   const { event } = config;
   const source = config.demo
     ? createDemoSource(event)
-    : createPostgresSource(config.pg, event, deps);
+    : createPostgresSource(config.pg, event, deps, config.uji);
   const store = createStore(source, event, {
     cacheSeconds: config.cacheSeconds,
   });
@@ -105,6 +105,7 @@ function createApp(env, deps = {}) {
             kolomChannel: event.kolomChannel,
           },
           mode: config.demo ? "demo" : "postgres",
+          uji: config.demo || config.pg.query ? null : config.uji,
           refreshSeconds: Math.max(30, config.cacheSeconds),
           auth: { aktif: auth.aktif, masuk: sudahMasuk },
           bolehLihatHpp: hpp,
@@ -191,8 +192,8 @@ function createApp(env, deps = {}) {
         const d = await data(res);
         if (!d) return undefined;
         return json(res, 200, {
-          ...report.pivot(d.rows, event, query),
-          options: report.opsiFilter(d.rows, event),
+          ...report.pivot(d.rows, d.event, query),
+          options: report.opsiFilter(d.rows, d.event),
           kesegaran: d.kesegaran,
         });
       }
@@ -201,8 +202,8 @@ function createApp(env, deps = {}) {
         const d = await data(res);
         if (!d) return undefined;
         return json(res, 200, {
-          ...report.transactions(d.rows, event, query, { hpp }),
-          options: report.opsiFilter(d.rows, event),
+          ...report.transactions(d.rows, d.event, query, { hpp }),
+          options: report.opsiFilter(d.rows, d.event),
           kesegaran: d.kesegaran,
         });
       }
@@ -215,9 +216,9 @@ function createApp(env, deps = {}) {
         res.setHeader("Cache-Control", "no-store");
         res.setHeader(
           "Content-Disposition",
-          `attachment; filename="rincian-imperfect-sale_${event.dari}_${event.sampai}.csv"`,
+          `attachment; filename="rincian-imperfect-sale_${d.event.dari}_${d.event.sampai}.csv"`,
         );
-        return res.end(report.transactionsCsv(d.rows, event, query, { hpp }));
+        return res.end(report.transactionsCsv(d.rows, d.event, query, { hpp }));
       }
 
       return json(res, 404, {

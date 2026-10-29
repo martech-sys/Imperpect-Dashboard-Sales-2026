@@ -4,6 +4,7 @@ Dashboard penjualan event Imperfect Sale, dua halaman:
 
 | Alamat          | Halaman                                                                                  |
 | --------------- | ---------------------------------------------------------------------------------------- |
+| `/ringkasan`    | **Ringkasan All** — internal (warehouse) + eksternal (Sheet brand) digabung, per sumber dan per brand |
 | `/`             | **Penjualan per Sesi × Channel** — Unit sold, TRX, dan GMV tiap sesi di setiap channel     |
 | `/transactions` | **Rincian Transaksi** — satu baris per produk, dikelompokkan per invoice, dengan ekspor CSV |
 | `/eksternal`    | **Ringkasan Eksternal** — penjualan brand eksternal per brand, dari Sheet per brand di Drive |
@@ -138,6 +139,28 @@ HPP tidak dibaca dari warehouse dan tidak ditampilkan di mana pun.
   invoice tetap berdampingan.
 - **Ekspor CSV** memakai filter dan urutan yang sama (pemisah `;`, dengan BOM untuk Excel, maks.
   200.000 baris).
+
+## Ringkasan All
+
+Satu tab untuk seluruh penjualan event: **internal** (warehouse, sama dengan halaman Sesi ×
+Channel) ditambah **eksternal** (Sheet brand, sama dengan tab Ringkasan Eksternal).
+
+- **KPI**: GMV total, TRX, Unit sold, jumlah brand yang berjualan.
+- **Internal vs Eksternal**: porsi GMV kedua sumber, tabel per sumber (internal dirinci per
+  channel/gudang), dan TOTAL. Status tiap sumber ditulis terpisah.
+- **Ringkasan per Brand**: seluruh brand dari kedua sumber dengan GMV internal, GMV eksternal, GMV
+  total, TRX, unit, dan kontribusi; saring sumber (Semua / Internal / Eksternal / Keduanya), cari,
+  dan Export CSV.
+
+Cara menggabungkan:
+
+- Unit sold dan GMV dijumlahkan langsung. TRX gabungan = invoice internal + baris transaksi
+  eksternal; satu transaksi tidak boleh dicatat di warehouse **dan** Sheet brand (aturan yang sama
+  dengan papan TV), jadi tidak ada yang terhitung dua kali.
+- Brand yang namanya sama di `principal_brand` dan di nama file Sheet digabung jadi satu baris
+  (sumber "Keduanya"); huruf besar/kecil dan spasi tidak dibedakan.
+- Sheet brand yang belum punya transaksi tidak ikut daftar brand.
+- Kalau satu sumber gagal dibaca, sumber lainnya tetap tampil dan galatnya disebut di status.
 
 ## Ringkasan Eksternal
 
@@ -341,6 +364,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `GET /api/pivot`             | tabel pivot + KPI. Parameter: `brand`, `hari`, `baris`, `urut`           |
 | `GET /api/transactions`      | rincian. Parameter: `brand`, `hari`, `sesi`, `channel`, `payment`, `q`, `page`, `pageSize`, `sortBy`, `sortDir` |
 | `GET /api/transactions.csv`  | ekspor rincian dengan filter yang sama                                  |
+| `GET /api/ringkasan`         | gabungan internal + eksternal: total, per sumber, per brand             |
 | `GET /api/eksternal`         | ringkasan brand eksternal + KPI                                         |
 | `GET /api/eksternal/brand`   | detail satu brand eksternal. Parameter: `brand`                         |
 | `GET /api/health`            | kesegaran data dan variabel yang terisi, tanpa isi transaksi            |
@@ -359,6 +383,7 @@ server/
   report.js           pivot Sesi × Channel, rincian, CSV, pilihan filter
   auth.js             gerbang password opsional (cookie HMAC)
   eksternal/          brand eksternal: baca folder Drive, parsing Sheet, ringkasan
+  ringkasan.js        gabungan internal + eksternal (tab Ringkasan All)
   app.js              endpoint /api/*
   index.js            server Node lokal (API + berkas build/)
 api/index.js          entrypoint Vercel

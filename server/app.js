@@ -7,6 +7,7 @@ const { createPostgresSource } = require("./source-postgres");
 const { createDemoSource } = require("./demo-data");
 const report = require("./report");
 const eksternal = require("./eksternal");
+const { ringkasanAll } = require("./ringkasan");
 
 /**
  * Seluruh endpoint /api/*, dipakai bersama server Node (server/index.js) dan
@@ -205,6 +206,25 @@ function createApp(env, deps = {}) {
           error: "method_not_allowed",
           message: "Method tidak didukung.",
         });
+
+      if (path === "/api/ringkasan") {
+        // Kedua sumber dibaca bersamaan; yang gagal tidak menahan yang lain.
+        const [dI, dE] = await Promise.all([store.get(), brandEksternal.get()]);
+        if (!dI.rows && !dE.files) {
+          return json(res, 503, {
+            error: "data_unavailable",
+            message: `Belum ada sumber yang terbaca. Internal: ${dI.kesegaran.error}. Eksternal: ${dE.kesegaran.error}.`,
+          });
+        }
+        return json(res, 200, {
+          ...ringkasanAll({ internalRows: dI.rows, eksternalFiles: dE.files }),
+          kesegaran: { internal: dI.kesegaran, eksternal: dE.kesegaran },
+          galat: {
+            internal: dI.rows ? null : dI.kesegaran.error,
+            eksternal: dE.files ? null : dE.kesegaran.error,
+          },
+        });
+      }
 
       if (path === "/api/eksternal") {
         const d = await dataEksternal(res);

@@ -64,6 +64,7 @@ export const api = {
   transactions: (params) => request(`/api/transactions?${toQuery(params)}`),
   exportUrl: (params) => `/api/transactions.csv?${toQuery(params)}`,
   eksternal: () => request("/api/eksternal"),
+  ringkasan: () => request("/api/ringkasan"),
   eksternalBrand: (brand) =>
     request(`/api/eksternal/brand?${toQuery({ brand })}`),
 };

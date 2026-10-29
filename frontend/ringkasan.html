@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Ringkasan penjualan Imperfect Sale: internal (warehouse) dan eksternal (Sheet brand)."
+    />
+    <title>Ringkasan All | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="ringkasanPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+        <include src="./partials/header.html" />
+
+        <main>
+          <div
+            class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6"
+          >
+            <div
+              x-show="error"
+              x-cloak
+              role="alert"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-6 rounded-xl border p-4"
+              x-text="error"
+            ></div>
+
+            <!-- KPI gabungan -->
+            <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <template x-for="k in kpi" :key="k.label">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+                >
+                  <p
+                    class="text-theme-sm text-gray-500 dark:text-gray-400"
+                    x-text="k.label"
+                  ></p>
+                  <p
+                    class="text-title-xs mt-2 font-bold text-gray-800 tabular-nums dark:text-white/90"
+                    :title="k.penuh"
+                    x-text="k.nilai"
+                  ></p>
+                </div>
+              </template>
+            </div>
+
+            <!-- Internal vs Eksternal -->
+            <section
+              class="mb-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-start justify-between gap-3 p-5 md:p-6"
+              >
+                <div>
+                  <h2
+                    class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Internal vs Eksternal
+                  </h2>
+                  <div
+                    class="text-theme-sm mt-1 space-y-0.5 text-gray-500 dark:text-gray-400"
+                  >
+                    <template
+                      x-for="s in [
+                        { nama: 'internal', label: 'Internal' },
+                        { nama: 'eksternal', label: 'Eksternal' },
+                      ]"
+                      :key="s.nama"
+                    >
+                      <p class="flex items-center gap-2">
+                        <span
+                          class="inline-block size-2 shrink-0 rounded-full"
+                          :class="statusSumber(s.nama).warna"
+                        ></span>
+                        <span
+                          x-text="s.label + ': ' + statusSumber(s.nama).teks"
+                        ></span>
+                      </p>
+                    </template>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  @click="refresh()"
+                  :disabled="loading"
+                  class="text-theme-sm shadow-theme-xs inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 px-4 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                >
+                  <svg
+                    class="size-4"
+                    :class="loading ? 'animate-spin' : ''"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M16.25 10a6.25 6.25 0 1 1-1.83-4.42M16.25 3.75v3.5h-3.5"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+
+              <!-- Porsi GMV -->
+              <div class="px-5 pb-5 md:px-6">
+                <div
+                  class="flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                  role="img"
+                  :aria-label="'Porsi GMV: internal ' + formatPersen(data.internal ? data.internal.kontribusi : 0) + ', eksternal ' + formatPersen(data.eksternal ? data.eksternal.kontribusi : 0)"
+                >
+                  <div
+                    class="bg-brand-500 h-full"
+                    :style="'width:' + (data.internal ? data.internal.kontribusi : 0) + '%'"
+                  ></div>
+                  <div
+                    class="h-full bg-orange-400"
+                    :style="'width:' + (data.eksternal ? data.eksternal.kontribusi : 0) + '%'"
+                  ></div>
+                </div>
+                <div
+                  class="text-theme-xs mt-2 flex flex-wrap gap-x-5 gap-y-1 text-gray-600 dark:text-gray-400"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <span class="bg-brand-500 size-2.5 rounded-sm"></span>
+                    Internal
+                    <span
+                      class="font-medium text-gray-800 tabular-nums dark:text-white/90"
+                      x-text="formatPersen(data.internal ? data.internal.kontribusi : 0)"
+                    ></span>
+                  </span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="size-2.5 rounded-sm bg-orange-400"></span>
+                    Eksternal
+                    <span
+                      class="font-medium text-gray-800 tabular-nums dark:text-white/90"
+                      x-text="formatPersen(data.eksternal ? data.eksternal.kontribusi : 0)"
+                    ></span>
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity duration-200 dark:border-gray-800"
+                :class="loading ? 'opacity-60' : 'opacity-100'"
+              >
+                <table class="w-full min-w-180 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">Sumber</th>
+                      <th class="px-4 py-3 text-right font-medium">TRX</th>
+                      <th class="px-4 py-3 text-right font-medium">
+                        Unit sold
+                      </th>
+                      <th class="px-4 py-3 text-right font-medium">GMV</th>
+                      <th class="px-4 py-3 text-right font-medium">
+                        Kontribusi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-theme-sm">
+                    <!-- Internal + rincian per channel -->
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                      <td class="px-5 py-3">
+                        <a
+                          href="/"
+                          class="hover:text-brand-500 font-semibold text-gray-800 dark:text-white/90"
+                          >Internal (warehouse)</a
+                        >
+                        <span
+                          class="text-theme-xs block text-gray-500 dark:text-gray-400"
+                          x-text="data.internal ? formatAngka(data.internal.brand) + ' brand' : 'belum terbaca'"
+                        ></span>
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.internal ? formatAngka(data.internal.trx) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.internal ? formatAngka(data.internal.qty) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.internal ? formatRupiah(data.internal.gmv) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                        x-text="data.internal ? formatPersen(data.internal.kontribusi) : '–'"
+                      ></td>
+                    </tr>
+                    <template
+                      x-for="c in data.internal ? data.internal.channels : []"
+                      :key="c.nama"
+                    >
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td
+                          class="py-2.5 ps-10 pe-5 text-gray-600 dark:text-gray-400"
+                          x-text="c.nama"
+                        ></td>
+                        <td
+                          class="px-4 py-2.5 text-right text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="formatAngka(c.trx)"
+                        ></td>
+                        <td
+                          class="px-4 py-2.5 text-right text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="formatAngka(c.qty)"
+                        ></td>
+                        <td
+                          class="px-4 py-2.5 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="formatRupiah(c.gmv)"
+                        ></td>
+                        <td
+                          class="px-4 py-2.5 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                          x-text="formatPersen(c.kontribusi)"
+                        ></td>
+                      </tr>
+                    </template>
+
+                    <!-- Eksternal -->
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                      <td class="px-5 py-3">
+                        <a
+                          href="/eksternal"
+                          class="hover:text-brand-500 font-semibold text-gray-800 dark:text-white/90"
+                          >Eksternal (Sheet brand)</a
+                        >
+                        <span
+                          class="text-theme-xs block text-gray-500 dark:text-gray-400"
+                          x-text="data.eksternal
+                            ? formatAngka(data.eksternal.brand) + ' dari ' + formatAngka(data.eksternal.brandSheet) + ' brand berjualan' + (data.eksternal.brandGagal ? ' · ' + data.eksternal.brandGagal + ' Sheet gagal dibaca' : '')
+                            : 'belum terbaca'"
+                        ></span>
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.eksternal ? formatAngka(data.eksternal.trx) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.eksternal ? formatAngka(data.eksternal.qty) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                        x-text="data.eksternal ? formatRupiah(data.eksternal.gmv) : '–'"
+                      ></td>
+                      <td
+                        class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                        x-text="data.eksternal ? formatPersen(data.eksternal.kontribusi) : '–'"
+                      ></td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr
+                      class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                    >
+                      <td class="px-5 py-3.5">TOTAL</td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.total.trx)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.total.qty)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.total.gmv)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="data.total.gmv ? '100%' : '–'"
+                      ></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p
+                class="text-theme-xs px-5 py-3 leading-relaxed text-gray-500 md:px-6 dark:text-gray-400"
+              >
+                <span class="font-medium">TRX</span> internal = invoice berbeda;
+                TRX eksternal = baris transaksi di Sheet brand.
+                <span class="font-medium">GMV</span> internal = total harga
+                barang; GMV eksternal = trx value. Klik nama sumber untuk
+                membuka rinciannya.
+              </p>
+            </section>
+
+            <!-- Per brand gabungan -->
+            <section
+              class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 p-5 md:p-6"
+              >
+                <div>
+                  <h2
+                    class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Ringkasan per Brand
+                  </h2>
+                  <p
+                    class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400"
+                    x-text="formatAngka(brandTampil.length) + ' brand' + (adaFilter ? ' (tersaring)' : '')"
+                  ></p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <div
+                    class="flex rounded-lg border border-gray-300 p-0.5 dark:border-gray-700"
+                    role="group"
+                    aria-label="Saring sumber"
+                  >
+                    <template x-for="p in pilihanSumber" :key="p.value">
+                      <button
+                        type="button"
+                        @click="sumber = p.value"
+                        class="text-theme-sm h-9 rounded-md px-3 font-medium transition-colors"
+                        :class="sumber === p.value
+                          ? 'bg-brand-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5'"
+                        :aria-pressed="sumber === p.value"
+                        x-text="p.label"
+                      ></button>
+                    </template>
+                  </div>
+                  <input
+                    type="search"
+                    x-model="cari"
+                    placeholder="Cari brand…"
+                    aria-label="Cari brand"
+                    class="focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:ring-3 focus:outline-hidden sm:w-52 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  />
+                  <button
+                    type="button"
+                    @click="exportCsv()"
+                    :disabled="!brandTampil.length"
+                    class="bg-brand-500 hover:bg-brand-600 shadow-theme-xs text-theme-sm inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium text-white transition disabled:opacity-60"
+                  >
+                    Export CSV
+                  </button>
+                </div>
+              </div>
+
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity duration-200 dark:border-gray-800"
+                :class="loading ? 'opacity-60' : 'opacity-100'"
+              >
+                <table class="w-full min-w-240 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">#</th>
+                      <th class="px-4 py-3 font-medium">Brand</th>
+                      <th class="px-4 py-3 font-medium">Sumber</th>
+                      <th class="px-4 py-3 text-right font-medium">TRX</th>
+                      <th class="px-4 py-3 text-right font-medium">
+                        Unit sold
+                      </th>
+                      <th
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap"
+                      >
+                        GMV internal
+                      </th>
+                      <th
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap"
+                      >
+                        GMV eksternal
+                      </th>
+                      <th
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap"
+                      >
+                        GMV total
+                      </th>
+                      <th class="px-4 py-3 font-medium">Kontribusi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(b, i) in brandTampil" :key="b.brand">
+                      <tr
+                        class="text-theme-sm border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                      >
+                        <td
+                          class="px-5 py-3 text-gray-400 tabular-nums"
+                          x-text="i + 1"
+                        ></td>
+                        <td
+                          class="px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                          x-text="b.brand"
+                        ></td>
+                        <td class="px-4 py-3">
+                          <span
+                            class="text-theme-xs inline-flex rounded-full px-2.5 py-0.5 font-medium"
+                            :class="labelSumber(b.sumber).kelas"
+                            x-text="labelSumber(b.sumber).teks"
+                          ></span>
+                        </td>
+                        <td
+                          class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatAngka(b.trx)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatAngka(b.qty)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
+                          :class="b.gmvInternal ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'"
+                          x-text="b.gmvInternal ? formatRupiah(b.gmvInternal) : '–'"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
+                          :class="b.gmvEksternal ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'"
+                          x-text="b.gmvEksternal ? formatRupiah(b.gmvEksternal) : '–'"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="formatRupiah(b.gmv)"
+                        ></td>
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <div
+                              class="flex h-1.5 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                            >
+                              <div
+                                class="bg-brand-500 h-full"
+                                :style="'width:' + Math.min(100, data.total.gmv ? (b.gmvInternal / data.total.gmv) * 100 : 0) + '%'"
+                              ></div>
+                              <div
+                                class="h-full bg-orange-400"
+                                :style="'width:' + Math.min(100, data.total.gmv ? (b.gmvEksternal / data.total.gmv) * 100 : 0) + '%'"
+                              ></div>
+                            </div>
+                            <span
+                              class="text-theme-xs text-gray-500 tabular-nums dark:text-gray-400"
+                              x-text="formatPersen(b.kontribusi)"
+                            ></span>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr x-show="!loading && brandTampil.length === 0" x-cloak>
+                      <td
+                        colspan="9"
+                        class="text-theme-sm px-5 py-12 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        Tidak ada brand yang cocok.
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot x-show="data.brands.length && !adaFilter">
+                    <tr
+                      class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                    >
+                      <td class="px-5 py-3.5" colspan="3">TOTAL</td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.total.trx)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.total.qty)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.internal ? data.internal.gmv : 0)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.eksternal ? data.eksternal.gmv : 0)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.total.gmv)"
+                      ></td>
+                      <td class="px-4 py-3.5"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p
+                class="text-theme-xs px-5 py-3 leading-relaxed text-gray-500 md:px-6 dark:text-gray-400"
+              >
+                Brand yang namanya sama di warehouse (principal_brand) dan di
+                Sheet eksternal digabung jadi satu baris (sumber "Keduanya");
+                huruf besar/kecil dan spasi tidak dibedakan. TRX internal
+                dihitung per brand, jadi invoice berisi beberapa brand terhitung
+                di tiap brand-nya — jumlah TRX per baris bisa lebih besar dari
+                TOTAL.
+              </p>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

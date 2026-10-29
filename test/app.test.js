@@ -89,10 +89,23 @@ test("Postgres: parameter event dikirim ke query, dibaca sekali per CACHE_SECOND
   ]);
 });
 
-test("mode uji (bawaan): N baris pertama gudang 2025, Day 1 = tanggal pertamanya", async () => {
+test("tanpa UJI_WAREHOUSE: membaca gudang & tanggal event 2026", async () => {
   PoolTiruan.gagal = false;
   const env = { ...ENV_DB };
   delete env.UJI_WAREHOUSE;
+  const app = createApp(env, { Pool: PoolTiruan });
+  assert.equal((await panggil(app, { url: "/api/app" })).json.uji, null);
+  await panggil(app, { url: "/api/pivot" });
+  assert.deepEqual(PoolTiruan.params, [
+    ["MAIN IMPERFECT WAREHOUS 2026", "TEBUS MURAH IMPERFECT 2026"],
+    "2026-10-30",
+    "2026-11-01",
+  ]);
+});
+
+test("mode uji: N baris pertama gudang 2025, Day 1 = tanggal pertamanya", async () => {
+  PoolTiruan.gagal = false;
+  const env = { ...ENV_DB, UJI_WAREHOUSE: "MAIN STAGE IMPERFECT SALE 2025" };
   const app = createApp(env, { Pool: PoolTiruan });
   const info = await panggil(app, { url: "/api/app" });
   assert.deepEqual(info.json.uji, {

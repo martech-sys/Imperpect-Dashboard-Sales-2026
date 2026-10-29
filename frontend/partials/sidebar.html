@@ -86,7 +86,7 @@
               <span class="menu-item-text" :class="sidebarToggle ? 'xl:hidden' : ''">Rincian Transaksi</span>
             </a>
           </li>
-
+        </ul>
       </div>
     </nav>
 
@@ -101,7 +101,7 @@
       <p class="mt-1.5 text-sm font-semibold text-gray-800 dark:text-white/90" x-text="eventLabel"></p>
       <p
         class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400"
-        x-text="app ? app.event.warehouse.join(' · ') : ''"
+        x-text="app ? (app.uji ? 'Mode uji: ' + app.uji.warehouse : app.event.warehouse.join(' · ')) : ''"
       ></p>
     </div>
   </div>

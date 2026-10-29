@@ -11,7 +11,7 @@
  * tidak memakainya.
  */
 
-function buildQuery(cfg, event) {
+function pilihan(cfg, event) {
   const tabel = cfg.schema
     ? `"${cfg.schema}".laporan_penjualan`
     : "laporan_penjualan";
@@ -24,13 +24,42 @@ function buildQuery(cfg, event) {
        brand, sku_produk,
        COALESCE(NULLIF(btrim(name_tag), ''), nama_produk) AS nama_produk,
        kategori, warna, ukuran, promo_kode, promo_value, status
-  FROM ${tabel}
+  FROM ${tabel}`;
+}
+
+function buildQuery(cfg, event) {
+  return `${pilihan(cfg, event)}
  WHERE warehouse = ANY($1::text[])
    AND tanggal >= $2::date
    AND tanggal < ($3::date + 1)`;
 }
 
-function createPostgresSource(cfg, event, deps = {}) {
+/** Mode uji: N baris pertama satu gudang, tanpa batas tanggal. */
+function buildQueryUji(cfg, event) {
+  return `${pilihan(cfg, event)}
+ WHERE warehouse = $1
+ ORDER BY tanggal, waktu, invoice_number, sku_produk
+ LIMIT $2`;
+}
+
+/**
+ * Event yang dipakai menghitung hari & sesi data uji: Day 1 = tanggal
+ * transaksi pertama, kolom channel = gudang uji saja.
+ */
+function eventUji(event, uji, rows) {
+  const tanggal = rows
+    .map((r) => r.tanggal)
+    .filter(Boolean)
+    .sort();
+  return {
+    ...event,
+    dari: tanggal[0] || event.dari,
+    sampai: tanggal[tanggal.length - 1] || event.dari,
+    warehouse: [uji.warehouse],
+  };
+}
+
+function createPostgresSource(cfg, event, deps = {}, uji = null) {
   // Vercel Function mengirim Pool yang di-import statis supaya pg ikut dibundel.
   const Pool = deps.Pool || require("pg").Pool;
   // DATABASE_URL didahulukan; selain itu variabel terpisah, supaya password
@@ -62,17 +91,23 @@ function createPostgresSource(cfg, event, deps = {}) {
   // PG_QUERY mengganti seluruh query (tanpa parameter). Kolom keluarannya harus
   // sama dengan query bawaan.
   const custom = (cfg.query || "").trim();
-  const sql = custom || buildQuery(cfg, event);
-  const params = custom ? [] : [event.warehouse, event.dari, event.sampai];
+  const modeUji = !custom && uji;
+  let sql = custom || buildQuery(cfg, event);
+  let params = custom ? [] : [event.warehouse, event.dari, event.sampai];
+  if (modeUji) {
+    sql = buildQueryUji(cfg, event);
+    params = [uji.warehouse, uji.limit];
+  }
 
   return {
     name: "postgres",
     async fetch() {
       const res = await pool.query(sql, params);
-      return res.rows;
+      if (!modeUji) return { rows: res.rows, event };
+      return { rows: res.rows, event: eventUji(event, uji, res.rows), uji };
     },
     close: () => pool.end(),
   };
 }
 
-module.exports = { createPostgresSource, buildQuery };
+module.exports = { createPostgresSource, buildQuery, buildQueryUji };

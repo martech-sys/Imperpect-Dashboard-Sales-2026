@@ -74,6 +74,12 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
           teks: `Gagal membaca data terbaru (${k.error}) — menampilkan ${this.usiaData}`,
         };
       }
+      if (k.uji) {
+        return {
+          warna: "bg-warning-500",
+          teks: `Mode uji · ${k.uji.limit} baris pertama gudang ${k.uji.warehouse} · ${this.usiaData}`,
+        };
+      }
       if (k.sumber === "demo") {
         return {
           warna: "bg-warning-500",

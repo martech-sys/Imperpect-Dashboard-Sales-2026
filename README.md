@@ -79,6 +79,27 @@ Day 3: 09.00-10.00, 11.00-12.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20
 > (Womens) dan Ticket B (Mens) di sesi yang sama memakai jam yang sama, jadi dihitung satu sesi.
 > `EVENT_SESI` hanya perlu diisi kalau jadwalnya berubah.
 
+## Mode uji (aktif saat ini)
+
+Sebelum event 2026 punya transaksi, dashboard membaca **20 baris pertama gudang
+`MAIN STAGE IMPERFECT SALE 2025`** (tanpa batas tanggal, diurutkan tanggal & jam) supaya
+tampilannya bisa dicek dengan data asli. Selama mode uji:
+
+- Day 1 = tanggal transaksi pertama di data uji; sesi tetap memakai jadwal 2026, jadi transaksi
+  di luar jam itu masuk "Di luar sesi".
+- Kolom channel hanya gudang uji. Baris ke-20 bisa memotong satu invoice di tengah.
+- Titik status berwarna oranye dengan tulisan "Mode uji · …", dan kartu Event di sidebar
+  menyebut gudang ujinya. `/api/health` menampilkan `kesegaran.uji`.
+
+Mode uji **tidak mati sendiri**. Untuk pindah ke data event 2026 (gudang `EVENT_WAREHOUSE`,
+tanggal `EVENT_DARI`–`EVENT_SAMPAI`), pilih salah satu:
+
+- Vercel → Settings → Environment Variables → `UJI_WAREHOUSE` = `off` → Redeploy, atau
+- ubah `UJI_WAREHOUSE_BAWAAN` di `server/config.js` menjadi `""` lalu merge ke `main`.
+
+`UJI_WAREHOUSE` juga bisa diisi gudang lain dan `UJI_LIMIT` jumlah barisnya (maks. 5000).
+`PG_QUERY` yang terisi selalu didahulukan dan mematikan mode uji.
+
 ## Halaman Rincian Transaksi
 
 Logikanya mengikuti halaman Transaksi OFFLINE-STORE:
@@ -224,6 +245,8 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `CACHE_SECONDS`                   | `60`                                                       | Jarak minimum antar query ke warehouse (min 5).                                              |
 | `DASHBOARD_PASSWORD`              | –                                                          | Lihat [Akses dan HPP](#akses-dan-hpp).                                                       |
 | `SESSION_SECRET`                  | –                                                          | Kunci tambahan cookie sesi; mengganti nilainya mengeluarkan semua sesi.                      |
+| `UJI_WAREHOUSE`                   | `MAIN STAGE IMPERFECT SALE 2025`                           | Gudang [mode uji](#mode-uji-aktif-saat-ini). `off` = baca event 2026.                         |
+| `UJI_LIMIT`                       | `20`                                                       | Jumlah baris mode uji.                                                                       |
 | `DEMO_MODE`                       | `false`                                                    | Paksa data contoh walau database terisi.                                                     |
 | `PORT`                            | `3000`                                                     | Port server lokal.                                                                           |
 

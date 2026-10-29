@@ -93,8 +93,15 @@ function createStore(source, event, opts = {}) {
   async function baca() {
     lastAttempt = now();
     try {
-      const raw = await source.fetch();
-      data = siapkan(raw, event);
+      const hasil = await source.fetch();
+      // Sumber boleh mengembalikan array saja, atau { rows, event, uji } bila
+      // event yang dipakai menghitung hari/sesi berbeda (mode uji).
+      const raw = Array.isArray(hasil) ? { rows: hasil, event } : hasil;
+      data = {
+        ...siapkan(raw.rows, raw.event || event),
+        event: raw.event || event,
+        uji: raw.uji || null,
+      };
       fetchedAt = new Date(now()).toISOString();
       error = null;
     } catch (e) {
@@ -112,8 +119,10 @@ function createStore(source, event, opts = {}) {
       return {
         rows: data ? data.rows : null,
         dibuang: data ? data.dibuang : 0,
+        event: data ? data.event : event,
         kesegaran: {
           sumber: source.name,
+          uji: data ? data.uji : null,
           fetchedAt,
           error,
           stale: Boolean(error && data),

@@ -6,6 +6,7 @@ const { createStore } = require("./store");
 const { createPostgresSource } = require("./source-postgres");
 const { createDemoSource } = require("./demo-data");
 const report = require("./report");
+const eksternal = require("./eksternal");
 
 /**
  * Seluruh endpoint /api/*, dipakai bersama server Node (server/index.js) dan
@@ -72,6 +73,23 @@ function createApp(env, deps = {}) {
     cacheSeconds: config.cacheSeconds,
   });
   const auth = createAuth(config.auth);
+  const brandEksternal = eksternal.createEksternal(config.drive, {
+    cacheSeconds: config.cacheSeconds,
+  });
+
+  /** Isi folder brand eksternal, atau jawaban galat bila belum pernah terbaca. */
+  async function dataEksternal(res) {
+    const d = await brandEksternal.get();
+    if (!d.files) {
+      json(res, 503, {
+        error: "data_unavailable",
+        message: `Sheet brand eksternal belum bisa dibaca: ${d.kesegaran.error}`,
+        kesegaran: d.kesegaran,
+      });
+      return null;
+    }
+    return d;
+  }
 
   /** Data penjualan, atau jawaban galat bila belum pernah berhasil dibaca. */
   async function data(res) {
@@ -168,6 +186,8 @@ function createApp(env, deps = {}) {
               "EVENT_WAREHOUSE",
               "EVENT_SESI",
               "DASHBOARD_PASSWORD",
+              "DRIVE_FOLDER",
+              "GOOGLE_SERVICE_ACCOUNT_JSON",
             ].map((k) => [k, env[k] ? "terisi" : "kosong"]),
           ),
         });
@@ -185,6 +205,28 @@ function createApp(env, deps = {}) {
           error: "method_not_allowed",
           message: "Method tidak didukung.",
         });
+
+      if (path === "/api/eksternal") {
+        const d = await dataEksternal(res);
+        if (!d) return undefined;
+        return json(res, 200, {
+          ...eksternal.ringkasan(d.files),
+          kesegaran: d.kesegaran,
+        });
+      }
+
+      if (path === "/api/eksternal/brand") {
+        const d = await dataEksternal(res);
+        if (!d) return undefined;
+        const detail = eksternal.detailBrand(d.files, query.brand || "");
+        if (!detail) {
+          return json(res, 404, {
+            error: "not_found",
+            message: `Brand "${query.brand || ""}" tidak ada di folder Drive.`,
+          });
+        }
+        return json(res, 200, { ...detail, kesegaran: d.kesegaran });
+      }
 
       if (path === "/api/pivot") {
         const d = await data(res);

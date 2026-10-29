@@ -76,6 +76,15 @@ function loadConfig(env) {
       sslRejectUnauthorized: flag(env.PG_SSL_REJECT_UNAUTHORIZED, true),
     },
     uji: bacaUji(env),
+    // Brand eksternal: satu Sheet per brand di satu folder Drive (cara papan
+    // TV IMPERPECT-SALES-2026). Kosong = data contoh di tab Ringkasan Eksternal.
+    drive: {
+      folder: (env.DRIVE_FOLDER || "").trim(),
+      json: env.GOOGLE_SERVICE_ACCOUNT_JSON,
+      email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      privateKey: env.GOOGLE_PRIVATE_KEY,
+      maxRows: parseInt(env.DRIVE_MAX_ROWS || "5000", 10),
+    },
     auth: {
       password: env.DASHBOARD_PASSWORD || "",
       secret: env.SESSION_SECRET || "",

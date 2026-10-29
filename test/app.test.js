@@ -180,3 +180,36 @@ test("konfigurasi salah dilaporkan di setiap endpoint", async () => {
   assert.equal(r.status, 500);
   assert.match(r.json.message, /EVENT_SESI/);
 });
+
+test("Ringkasan Eksternal: data contoh tanpa DRIVE_FOLDER, tertutup bila belum masuk", async () => {
+  const app = createApp({});
+  const r = await panggil(app, { url: "/api/eksternal" });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.kesegaran.sumber, "demo");
+  assert.ok(r.json.brands.length > 0);
+  const d = await panggil(app, {
+    url: `/api/eksternal/brand?brand=${encodeURIComponent(r.json.brands[0].brand)}`,
+  });
+  assert.equal(d.status, 200);
+  assert.equal(
+    (await panggil(app, { url: "/api/eksternal/brand?brand=Tidak%20Ada" }))
+      .status,
+    404,
+  );
+
+  const tertutup = createApp({ DASHBOARD_PASSWORD: "rahasia" });
+  assert.equal(
+    (await panggil(tertutup, { url: "/api/eksternal" })).status,
+    401,
+  );
+});
+
+test("Ringkasan Eksternal: kunci akun layanan salah dilaporkan, bukan diganti data contoh", async () => {
+  const app = createApp({
+    DRIVE_FOLDER: "FOLDER_ID_123",
+    GOOGLE_SERVICE_ACCOUNT_JSON: "{",
+  });
+  const r = await panggil(app, { url: "/api/eksternal" });
+  assert.equal(r.status, 503);
+  assert.match(r.json.message, /bukan JSON/);
+});

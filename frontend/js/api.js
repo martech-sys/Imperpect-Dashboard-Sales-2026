@@ -63,4 +63,7 @@ export const api = {
   pivot: (params) => request(`/api/pivot?${toQuery(params)}`),
   transactions: (params) => request(`/api/transactions?${toQuery(params)}`),
   exportUrl: (params) => `/api/transactions.csv?${toQuery(params)}`,
+  eksternal: () => request("/api/eksternal"),
+  eksternalBrand: (brand) =>
+    request(`/api/eksternal/brand?${toQuery({ brand })}`),
 };

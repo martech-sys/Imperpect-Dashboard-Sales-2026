@@ -6,6 +6,7 @@ Dashboard penjualan event Imperfect Sale, dua halaman:
 | --------------- | ---------------------------------------------------------------------------------------- |
 | `/`             | **Penjualan per Sesi × Channel** — Unit sold, TRX, dan GMV tiap sesi di setiap channel     |
 | `/transactions` | **Rincian Transaksi** — satu baris per produk, dikelompokkan per invoice, dengan ekspor CSV |
+| `/eksternal`    | **Ringkasan Eksternal** — penjualan brand eksternal per brand, dari Sheet per brand di Drive |
 | `/signin`       | Masuk (hanya bila `DASHBOARD_PASSWORD` diisi)                                             |
 
 - **Tampilan** mengikuti dashboard [OFFLINE-STORE](https://github.com/martech-sys/OFFLINE-STORE):
@@ -138,6 +139,64 @@ HPP tidak dibaca dari warehouse dan tidak ditampilkan di mana pun.
 - **Ekspor CSV** memakai filter dan urutan yang sama (pemisah `;`, dengan BOM untuk Excel, maks.
   200.000 baris).
 
+## Ringkasan Eksternal
+
+Brand eksternal mencatat penjualannya sendiri di **satu Google Sheet per brand**, di luar
+warehouse. Sumbernya sama dengan Sheet brand papan TV IMPERPECT-SALES-2026 (folder Drive yang
+sama, file dibuat dengan `scripts/buat-sheet-brand.gs` di repo itu):
+
+- Satu folder Google Drive, satu spreadsheet per brand, **nama file = nama brand**.
+- Tab pertama, baris pertama judul, satu baris = satu transaksi:
+  `No HP | Nama | qty | trx value`. Kolom dikenali dari judulnya.
+- Dibaca dengan **akun layanan** Google (Drive API, `drive.readonly`). Folder di-share sekali ke
+  email akun layanan sebagai Viewer; brand hanya memegang file-nya sendiri.
+- Tiap pembacaan: 1× daftar isi folder, lalu hanya file yang berubah yang diekspor ulang, paling
+  sering sekali per `CACHE_SECONDS`. File yang gagal dibaca tetap memakai isi terakhirnya dan
+  ditandai "Gagal dibaca".
+
+Isi tab:
+
+- **KPI**: GMV eksternal, TRX, Unit sold, Brand aktif (brand yang sudah punya transaksi / seluruh
+  Sheet di folder).
+- **Ringkasan per Brand**: TRX, Unit sold, GMV, Pembeli, rata-rata per TRX, kontribusi, terakhir
+  diubah, status (OK / baris dilewati / belum ada transaksi / gagal dibaca), baris TOTAL, pencarian,
+  dan Export CSV.
+- **Detail Brand** (klik brand atau pilih dari daftar, alamatnya `?brand=…`): KPI brand, nomor baris
+  yang dilewati, 10 pembeli teratas, dan seluruh baris transaksinya.
+
+| Angka       | Dihitung dari                                                                 |
+| ----------- | ----------------------------------------------------------------------------- |
+| **TRX**     | jumlah baris yang `trx value`-nya terbaca dan lebih dari 0                     |
+| **Unit**    | jumlah `qty`                                                                  |
+| **GMV**     | jumlah `trx value`                                                            |
+| **Pembeli** | nomor HP berbeda (TOTAL: berbeda di seluruh brand)                            |
+
+- Baris yang `trx value`-nya kosong/nol/tidak terbaca dilewati dan nomor barisnya ditampilkan.
+- Berbeda dengan papan TV, baris **tanpa nomor HP tetap dihitung** sebagai penjualan; hanya tidak
+  masuk hitungan pembeli.
+- Sheet tidak punya tanggal/jam, jadi tab ini tidak dipecah per hari atau sesi.
+- Nomor HP disamarkan (`0812-xxxx-7890`) dan nama dipendekkan (`Dewi L.`) di server; nomor lengkap
+  tidak pernah dikirim ke browser.
+- Penjualan eksternal **tidak** dijumlahkan ke halaman Sesi × Channel dan Rincian Transaksi.
+
+Tanpa `DRIVE_FOLDER`, tab ini menampilkan data contoh (status oranye). Akun layanan yang salah
+atau folder yang belum di-share tampil sebagai galat dengan pesan aslinya.
+
+Setup di Vercel (isi yang sama dengan project papan TV kalau sudah ada):
+
+| Variabel                      | Isi                                                                   |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `DRIVE_FOLDER`                | link atau ID folder Drive berisi Sheet brand                          |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | seluruh isi file key JSON akun layanan, tempel apa adanya (Sensitive) |
+
+| Pesan                                         | Perbaikan                                                       |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| `Folder Drive tidak bisa dibaca (HTTP 404 …)` | Folder belum di-share ke email akun layanan, atau ID-nya salah. |
+| `HTTP 403 … has not been used in project`     | Google Drive API belum diaktifkan di project akun layanan.      |
+| `Login akun layanan gagal: invalid_grant`     | Kunci sudah dihapus atau salah tempel; buat key JSON baru.      |
+| `GOOGLE_SERVICE_ACCOUNT_JSON bukan JSON …`    | Tempel ulang seluruh isi file, dari `{` sampai `}`.             |
+| Brand tidak muncul                            | File harus Google Sheets (bukan `.xlsx`) dan langsung di folder itu. |
+
 ## Akses
 
 | `DASHBOARD_PASSWORD` | Akses data                                |
@@ -268,6 +327,9 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `SESSION_SECRET`                  | –                                                          | Kunci tambahan cookie sesi; mengganti nilainya mengeluarkan semua sesi.                      |
 | `UJI_WAREHOUSE`                   | `MAIN STAGE IMPERFECT SALE 2025`                           | Gudang [mode uji](#mode-uji-aktif-saat-ini). `off` = baca event 2026.                         |
 | `UJI_LIMIT`                       | `20`                                                       | Jumlah baris mode uji.                                                                       |
+| `DRIVE_FOLDER`                    | –                                                          | Folder Sheet brand eksternal. Lihat [Ringkasan Eksternal](#ringkasan-eksternal).            |
+| `GOOGLE_SERVICE_ACCOUNT_JSON`     | –                                                          | Key JSON akun layanan (atau `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`).          |
+| `DRIVE_MAX_ROWS`                  | `5000`                                                     | Baris maksimum yang dibaca per Sheet brand.                                                  |
 | `DEMO_MODE`                       | `false`                                                    | Paksa data contoh walau database terisi.                                                     |
 | `PORT`                            | `3000`                                                     | Port server lokal.                                                                           |
 
@@ -279,6 +341,8 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `GET /api/pivot`             | tabel pivot + KPI. Parameter: `brand`, `hari`, `baris`, `urut`           |
 | `GET /api/transactions`      | rincian. Parameter: `brand`, `hari`, `sesi`, `channel`, `payment`, `q`, `page`, `pageSize`, `sortBy`, `sortDir` |
 | `GET /api/transactions.csv`  | ekspor rincian dengan filter yang sama                                  |
+| `GET /api/eksternal`         | ringkasan brand eksternal + KPI                                         |
+| `GET /api/eksternal/brand`   | detail satu brand eksternal. Parameter: `brand`                         |
 | `GET /api/health`            | kesegaran data dan variabel yang terisi, tanpa isi transaksi            |
 | `POST /api/auth/login`       | `{ "password": "…" }`                                                    |
 | `POST /api/auth/logout`      |                                                                         |
@@ -294,6 +358,7 @@ server/
   store.js            cache per CACHE_SECONDS, data terakhir saat gagal, buang Cancel/Open
   report.js           pivot Sesi × Channel, rincian, CSV, pilihan filter
   auth.js             gerbang password opsional (cookie HMAC)
+  eksternal/          brand eksternal: baca folder Drive, parsing Sheet, ringkasan
   app.js              endpoint /api/*
   index.js            server Node lokal (API + berkas build/)
 api/index.js          entrypoint Vercel

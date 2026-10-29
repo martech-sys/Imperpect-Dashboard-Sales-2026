@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Ringkasan penjualan brand eksternal Imperfect Sale dari Sheet per brand."
+    />
+    <title>Ringkasan Eksternal | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="eksternalPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+        <include src="./partials/header.html" />
+
+        <main>
+          <div
+            class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6"
+          >
+            <!-- KPI seluruh brand eksternal -->
+            <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <template x-for="k in kpi" :key="k.label">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+                >
+                  <p
+                    class="text-theme-sm text-gray-500 dark:text-gray-400"
+                    x-text="k.label"
+                  ></p>
+                  <p
+                    class="text-title-xs mt-2 font-bold text-gray-800 tabular-nums dark:text-white/90"
+                    :title="k.penuh"
+                    x-text="k.nilai"
+                  ></p>
+                </div>
+              </template>
+            </div>
+
+            <!-- Ringkasan per brand -->
+            <section
+              class="mb-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-start justify-between gap-3 p-5 md:p-6"
+              >
+                <div>
+                  <h2
+                    class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Ringkasan per Brand
+                  </h2>
+                  <p
+                    class="text-theme-sm mt-1 flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                  >
+                    <span
+                      class="inline-block size-2 shrink-0 rounded-full"
+                      :class="statusData.warna"
+                    ></span>
+                    <span x-text="statusData.teks"></span>
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <input
+                    type="search"
+                    x-model="cari"
+                    placeholder="Cari brand…"
+                    aria-label="Cari brand"
+                    class="focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:ring-3 focus:outline-hidden sm:w-56 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  />
+                  <button
+                    type="button"
+                    @click="refresh()"
+                    :disabled="loading"
+                    class="text-theme-sm shadow-theme-xs inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 px-4 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                  >
+                    <svg
+                      class="size-4"
+                      :class="loading ? 'animate-spin' : ''"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M16.25 10a6.25 6.25 0 1 1-1.83-4.42M16.25 3.75v3.5h-3.5"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    @click="exportCsv()"
+                    :disabled="!data.brands.length"
+                    class="bg-brand-500 hover:bg-brand-600 shadow-theme-xs text-theme-sm inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium text-white transition disabled:opacity-60"
+                  >
+                    Export CSV
+                  </button>
+                </div>
+              </div>
+
+              <div
+                x-show="error"
+                x-cloak
+                role="alert"
+                class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mx-5 mb-5 rounded-xl border p-3 md:mx-6"
+                x-text="error"
+              ></div>
+
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity duration-200 dark:border-gray-800"
+                :class="loading ? 'opacity-60' : 'opacity-100'"
+              >
+                <table class="w-full min-w-240 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 font-medium tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">#</th>
+                      <th class="px-4 py-3 font-medium">Brand</th>
+                      <th class="px-4 py-3 text-right font-medium">TRX</th>
+                      <th class="px-4 py-3 text-right font-medium">
+                        Unit sold
+                      </th>
+                      <th class="px-4 py-3 text-right font-medium">GMV</th>
+                      <th class="px-4 py-3 text-right font-medium">Pembeli</th>
+                      <th
+                        class="px-4 py-3 text-right font-medium whitespace-nowrap"
+                      >
+                        Rata-rata / TRX
+                      </th>
+                      <th class="px-4 py-3 font-medium">Kontribusi</th>
+                      <th class="px-4 py-3 font-medium whitespace-nowrap">
+                        Terakhir diubah
+                      </th>
+                      <th class="px-4 py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(b, i) in brandTampil" :key="b.brand">
+                      <tr
+                        @click="pilihBrand(b.brand)"
+                        class="text-theme-sm cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                        :class="b.brand === brandDipilih ? 'bg-brand-25 dark:bg-brand-500/10' : ''"
+                        :title="'Lihat detail ' + b.brand"
+                      >
+                        <td
+                          class="px-5 py-3 text-gray-400 tabular-nums"
+                          x-text="i + 1"
+                        ></td>
+                        <td
+                          class="px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                          x-text="b.brand"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatAngka(b.trx)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatAngka(b.qty)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="formatRupiah(b.gmv)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatAngka(b.pembeli)"
+                        ></td>
+                        <td
+                          class="px-4 py-3 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatRupiah(b.aov)"
+                        ></td>
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <div
+                              class="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                            >
+                              <div
+                                class="bg-brand-500 h-full rounded-full"
+                                :style="'width:' + Math.min(100, b.kontribusi) + '%'"
+                              ></div>
+                            </div>
+                            <span
+                              class="text-theme-xs text-gray-500 tabular-nums dark:text-gray-400"
+                              x-text="formatPersen(b.kontribusi)"
+                            ></span>
+                          </div>
+                        </td>
+                        <td
+                          class="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400"
+                          x-text="diubah(b.diubah)"
+                        ></td>
+                        <td class="px-4 py-3">
+                          <span
+                            class="text-theme-xs inline-flex rounded-full px-2.5 py-0.5 font-medium whitespace-nowrap"
+                            :class="status(b).kelas"
+                            :title="b.error || ''"
+                            x-text="status(b).teks"
+                          ></span>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr x-show="!loading && brandTampil.length === 0" x-cloak>
+                      <td
+                        colspan="10"
+                        class="text-theme-sm px-5 py-12 text-center text-gray-500 dark:text-gray-400"
+                        x-text="cari ? 'Tidak ada brand yang cocok.' : 'Belum ada Sheet brand di folder Drive.'"
+                      ></td>
+                    </tr>
+                  </tbody>
+                  <tfoot x-show="data.brands.length && !cari">
+                    <tr
+                      class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                    >
+                      <td class="px-5 py-3.5" colspan="2">TOTAL</td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.summary.trx)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.summary.qty)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.summary.gmv)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right tabular-nums"
+                        x-text="formatAngka(data.summary.pembeli)"
+                      ></td>
+                      <td
+                        class="px-4 py-3.5 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(data.summary.aov)"
+                      ></td>
+                      <td class="px-4 py-3.5" colspan="3"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <p
+                class="text-theme-xs px-5 py-3 leading-relaxed text-gray-500 md:px-6 dark:text-gray-400"
+              >
+                Satu Sheet per brand (nama file = nama brand), satu baris = satu
+                transaksi. <span class="font-medium">TRX</span> = baris
+                bernilai, <span class="font-medium">Unit sold</span> = jumlah
+                qty, <span class="font-medium">GMV</span> = jumlah trx value,
+                <span class="font-medium">Pembeli</span> = nomor HP berbeda
+                (TOTAL: berbeda di seluruh brand). Baris yang nilainya kosong
+                atau tidak terbaca dilewati. Klik brand untuk melihat detailnya.
+              </p>
+            </section>
+
+            <!-- Detail satu brand -->
+            <section
+              id="detail-brand"
+              class="scroll-mt-24 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 p-5 md:p-6 dark:border-gray-800"
+              >
+                <div>
+                  <h2
+                    class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Detail Brand
+                  </h2>
+                  <p
+                    class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400"
+                    x-text="detail ? 'Terakhir diubah ' + diubah(detail.diubah) : 'Pilih brand dari tabel di atas atau dari daftar ini.'"
+                  ></p>
+                </div>
+                <div class="w-full sm:w-72">
+                  <label
+                    for="pilih-brand"
+                    class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                    >Brand</label
+                  >
+                  <select
+                    id="pilih-brand"
+                    @change="pilihBrand($event.target.value)"
+                    class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  >
+                    <option value="" :selected="!brandDipilih">
+                      Pilih brand…
+                    </option>
+                    <template x-for="b in data.brands" :key="b.brand">
+                      <option
+                        :value="b.brand"
+                        :selected="b.brand === brandDipilih"
+                        x-text="b.brand"
+                      ></option>
+                    </template>
+                  </select>
+                </div>
+              </div>
+
+              <p
+                x-show="galatDetail"
+                x-cloak
+                class="text-theme-sm text-error-600 dark:text-error-400 p-5 md:p-6"
+                x-text="galatDetail"
+              ></p>
+
+              <template x-if="detail">
+                <div
+                  class="p-5 md:p-6"
+                  :class="memuatDetail ? 'opacity-60' : ''"
+                >
+                  <div
+                    x-show="detail.error"
+                    role="alert"
+                    class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-5 rounded-xl border p-3"
+                    x-text="'Sheet ini gagal dibaca pada pembacaan terakhir (' + detail.error + '). Angka di bawah dari isi terakhir yang berhasil dibaca.'"
+                  ></div>
+
+                  <!-- KPI brand -->
+                  <div class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+                    <template
+                      x-for="k in [
+                        { label: 'GMV', nilai: formatRupiah(detail.gmv) },
+                        { label: 'TRX', nilai: formatAngka(detail.trx) },
+                        { label: 'Unit sold', nilai: formatAngka(detail.qty) },
+                        { label: 'Pembeli', nilai: formatAngka(detail.pembeli) },
+                        { label: 'Rata-rata / TRX', nilai: formatRupiah(detail.aov) },
+                      ]"
+                      :key="k.label"
+                    >
+                      <div class="rounded-xl bg-gray-50 p-4 dark:bg-white/3">
+                        <p
+                          class="text-theme-xs text-gray-500 dark:text-gray-400"
+                          x-text="k.label"
+                        ></p>
+                        <p
+                          class="mt-1 text-lg font-semibold text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="k.nilai"
+                        ></p>
+                      </div>
+                    </template>
+                  </div>
+
+                  <p
+                    x-show="detail.barisDilewati.length"
+                    class="text-theme-sm bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400 mb-6 rounded-xl p-3"
+                    x-text="'Baris dilewati (nilai kosong/tidak terbaca): ' + detail.barisDilewati.join(', ')"
+                  ></p>
+
+                  <div class="grid gap-6 xl:grid-cols-5">
+                    <!-- Pembeli teratas -->
+                    <div class="xl:col-span-2">
+                      <h3
+                        class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90"
+                      >
+                        Pembeli teratas
+                      </h3>
+                      <div
+                        class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800"
+                      >
+                        <table class="w-full text-left">
+                          <thead>
+                            <tr
+                              class="text-theme-xs bg-gray-50 text-gray-500 uppercase dark:bg-white/3 dark:text-gray-400"
+                            >
+                              <th class="px-4 py-2.5 font-medium">Pembeli</th>
+                              <th class="px-4 py-2.5 text-right font-medium">
+                                TRX
+                              </th>
+                              <th class="px-4 py-2.5 text-right font-medium">
+                                GMV
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template
+                              x-for="p in detail.pembeliTeratas"
+                              :key="p.hp"
+                            >
+                              <tr
+                                class="text-theme-sm border-t border-gray-100 dark:border-gray-800"
+                              >
+                                <td class="px-4 py-2.5">
+                                  <span
+                                    class="block font-medium text-gray-800 dark:text-white/90"
+                                    x-text="p.nama || '–'"
+                                  ></span>
+                                  <span
+                                    class="text-theme-xs text-gray-500 tabular-nums dark:text-gray-400"
+                                    x-text="p.hp"
+                                  ></span>
+                                </td>
+                                <td
+                                  class="px-4 py-2.5 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                                  x-text="formatAngka(p.trx)"
+                                ></td>
+                                <td
+                                  class="px-4 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                                  x-text="formatRupiah(p.gmv)"
+                                ></td>
+                              </tr>
+                            </template>
+                            <tr x-show="!detail.pembeliTeratas.length">
+                              <td
+                                colspan="3"
+                                class="text-theme-sm px-4 py-6 text-center text-gray-500 dark:text-gray-400"
+                              >
+                                Belum ada pembeli dengan nomor HP.
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <!-- Seluruh transaksi brand -->
+                    <div class="xl:col-span-3">
+                      <h3
+                        class="mb-3 text-base font-semibold text-gray-800 dark:text-white/90"
+                      >
+                        Transaksi
+                        <span
+                          class="text-theme-sm font-normal text-gray-500 dark:text-gray-400"
+                          x-text="'(' + formatAngka(detail.rows.length) + ' baris)'"
+                        ></span>
+                      </h3>
+                      <div
+                        class="custom-scrollbar max-h-120 overflow-auto rounded-xl border border-gray-200 dark:border-gray-800"
+                      >
+                        <table class="w-full text-left">
+                          <thead class="sticky top-0">
+                            <tr
+                              class="text-theme-xs bg-gray-50 text-gray-500 uppercase dark:bg-gray-800 dark:text-gray-400"
+                            >
+                              <th class="px-4 py-2.5 font-medium">Baris</th>
+                              <th class="px-4 py-2.5 font-medium">Nama</th>
+                              <th class="px-4 py-2.5 font-medium">No HP</th>
+                              <th class="px-4 py-2.5 text-right font-medium">
+                                Qty
+                              </th>
+                              <th class="px-4 py-2.5 text-right font-medium">
+                                Trx value
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template x-for="r in detail.rows" :key="r.baris">
+                              <tr
+                                class="text-theme-sm border-t border-gray-100 dark:border-gray-800"
+                                :class="r.valid ? '' : 'bg-warning-50/60 dark:bg-warning-500/5'"
+                              >
+                                <td
+                                  class="px-4 py-2.5 text-gray-400 tabular-nums"
+                                  x-text="r.baris"
+                                ></td>
+                                <td
+                                  class="px-4 py-2.5 text-gray-800 dark:text-white/90"
+                                  x-text="r.nama || '–'"
+                                ></td>
+                                <td
+                                  class="px-4 py-2.5 whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                                  x-text="r.hp || '–'"
+                                ></td>
+                                <td
+                                  class="px-4 py-2.5 text-right text-gray-700 tabular-nums dark:text-gray-300"
+                                  x-text="formatAngka(r.qty)"
+                                ></td>
+                                <td
+                                  class="px-4 py-2.5 text-right whitespace-nowrap tabular-nums"
+                                  :class="r.valid ? 'font-medium text-gray-800 dark:text-white/90' : 'text-warning-600 dark:text-warning-400'"
+                                  x-text="r.valid ? formatRupiah(r.nilai) : 'dilewati'"
+                                ></td>
+                              </tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p
+                    class="text-theme-xs mt-4 text-gray-500 dark:text-gray-400"
+                  >
+                    Nomor HP disamarkan dan nama dipendekkan di server; nomor
+                    lengkap tidak dikirim ke browser.
+                  </p>
+                </div>
+              </template>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

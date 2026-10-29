@@ -63,7 +63,8 @@ Sesi ditentukan dari kolom `tanggal` dan `waktu`. **Day 1 = `EVENT_DARI`**. Jadw
 
 ```
 Day 1: 09.00-10.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20.00
-Day 2: 09.00-10.00, 11.00-12.00, 13.00-14.00
+Day 2: 09.00-10.00, 11.00-12.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20.00
+Day 3: 09.00-10.00, 11.00-12.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20.00
 ```
 
 - Nomor sesi diberikan otomatis menurut urutan jam: `Day 1 | Sesi 1 (09.00-10.00)`.
@@ -74,8 +75,9 @@ Day 2: 09.00-10.00, 11.00-12.00, 13.00-14.00
 - Jadwal yang salah tulis atau rentang yang bertumpuk ditolak saat start, dengan pesan yang
   menyebut barisnya (terlihat di setiap endpoint `/api/*`).
 
-> Jadwal bawaan diambil dari tabel sesi Day 1–Day 2. **Day 3 (1 Nov) belum punya jadwal**, jadi
-> seluruh transaksinya masuk "Day 3 | Di luar sesi" sampai `EVENT_SESI` diberi baris `Day 3: …`.
+> Jadwal bawaan = jadwal tiket event 2026 (Day 1: 5 sesi, Day 2 dan Day 3: 6 sesi). Ticket A
+> (Womens) dan Ticket B (Mens) di sesi yang sama memakai jam yang sama, jadi dihitung satu sesi.
+> `EVENT_SESI` hanya perlu diisi kalau jadwalnya berubah.
 
 ## Halaman Rincian Transaksi
 
@@ -160,7 +162,7 @@ Langkah:
    | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
    | `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME` | user read-only warehouse, sama dengan yang dipakai IMPERPECT-SALES-2026 (atau satu `DATABASE_URL`) |
    | `PG_SSL`                                                                                | `false` (atau `true` bila server mewajibkan)                                         |
-   | `EVENT_SESI`                                                                            | jadwal sesi lengkap, termasuk Day 3                                                  |
+   | `EVENT_SESI`                                                                            | tidak perlu diisi; bawaan sudah jadwal lengkap Day 1–3                               |
    | `DASHBOARD_PASSWORD`                                                                    | disarankan diisi — tandai **Sensitive**                                              |
    | `CACHE_SECONDS`                                                                         | `60`                                                                                 |
 
@@ -214,7 +216,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `EVENT_DARI`, `EVENT_SAMPAI`      | `2026-10-30`, `2026-11-01`                                 | Rentang tanggal event (WIB). Day 1 = `EVENT_DARI`.                                           |
 | `EVENT_WAREHOUSE`                 | `MAIN IMPERFECT WAREHOUS 2026, TEBUS MURAH IMPERFECT 2026` | Gudang event, dipisah koma.                                                                  |
 | `KOLOM_CHANNEL`                   | `warehouse`                                                | Kolom yang menjadi kolom channel di tabel: `warehouse` atau `channel`.                       |
-| `EVENT_SESI`                      | jadwal Day 1–2                                             | Lihat [Sesi](#sesi).                                                                         |
+| `EVENT_SESI`                      | jadwal tiket Day 1–3                                       | Lihat [Sesi](#sesi).                                                                         |
 | `DATABASE_URL` / `DATABASE_HOST`… | –                                                          | Koneksi warehouse. Kosong semua = mode demo.                                                 |
 | `PG_SSL`, `PG_SSL_REJECT_UNAUTHORIZED` | `false`, `true`                                       | SSL ke Postgres.                                                                             |
 | `DB_SCHEMA`                       | –                                                          | Schema `laporan_penjualan` bila tidak di `search_path`.                                      |

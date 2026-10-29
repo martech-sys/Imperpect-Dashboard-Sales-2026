@@ -4,10 +4,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { parseSesi, createPenentuSesi, menitDari } = require("../server/sesi");
 
-test("jadwal bawaan sama dengan tabel event: 5 sesi Day 1, 3 sesi Day 2", () => {
+test("jadwal bawaan sama dengan jadwal tiket: Day 1 5 sesi, Day 2 & 3 6 sesi", () => {
   const sesi = parseSesi("");
   assert.equal(sesi.filter((s) => s.hari === 1).length, 5);
-  assert.equal(sesi.filter((s) => s.hari === 2).length, 3);
+  assert.equal(sesi.filter((s) => s.hari === 2).length, 6);
+  assert.equal(sesi.filter((s) => s.hari === 3).length, 6);
+  assert.equal(sesi.at(-1).label, "Day 3 | Sesi 6 (19.00-20.00)");
   assert.equal(sesi[0].label, "Day 1 | Sesi 1 (09.00-10.00)");
   assert.equal(sesi[6].label, "Day 2 | Sesi 2 (11.00-12.00)");
 });

@@ -7,6 +7,8 @@
  * jadi query-nya mengambil baris apa adanya dan agregasinya dikerjakan di
  * server (server/report.js).
  *
+ * Brand diambil dari `principal_brand` (bukan kolom `brand`).
+ *
  * Kolom identitas pelanggan (`nama`, `no_hp`) sengaja tidak diambil: dashboard
  * tidak memakainya.
  */
@@ -21,7 +23,7 @@ function pilihan(cfg, event) {
        ${event.kolomChannel} AS channel,
        COALESCE(NULLIF(btrim(invoice_number), ''), no_order) AS invoice,
        payment_note, total_bayar, qty, hpp, total_harga_barang,
-       brand, sku_produk,
+       principal_brand AS brand, sku_produk,
        COALESCE(NULLIF(btrim(name_tag), ''), nama_produk) AS nama_produk,
        kategori, warna, ukuran, promo_kode, promo_value, status
   FROM ${tabel}`;

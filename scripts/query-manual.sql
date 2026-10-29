@@ -1,0 +1,291 @@
+-- =============================================================================
+-- Query manual cadangan — Dashboard Imperfect Sale 2026
+-- =============================================================================
+-- Dipakai kalau dashboard bermasalah (Vercel down, galat, dll). Hitungannya
+-- SAMA dengan dashboard:
+--   * sumber   : laporan_penjualan, gudang MAIN IMPERFECT WAREHOUS 2026 +
+--                TEBUS MURAH IMPERFECT 2026, tanggal 30 Okt – 1 Nov 2026
+--   * dibuang  : status Cancel / Batal / Open
+--   * Unit sold: SUM(qty)
+--   * TRX      : jumlah invoice berbeda (invoice_number, atau no_order bila kosong)
+--   * GMV      : SUM(total_harga_barang)  — bukan total_bayar
+--   * Brand    : principal_brand
+--   * Sesi     : jadwal tiket (Day 1 = 30 Okt); jam mulai termasuk, jam selesai tidak
+--
+-- Cara pakai: buka DBeaver/TablePlus/psql dengan user read-only warehouse,
+-- blok SATU query (dari WITH sampai titik koma), jalankan, lalu ekspor hasilnya
+-- ke Excel/CSV bila perlu. Semua query hanya membaca (SELECT).
+--
+-- Bagian yang boleh diubah ditandai  -- UBAH:
+-- =============================================================================
+
+
+-- -----------------------------------------------------------------------------
+-- 0. CEK CEPAT: data sudah masuk? transaksi terakhir jam berapa?
+-- -----------------------------------------------------------------------------
+SELECT warehouse,
+       tanggal::date                                                 AS tanggal,
+       COUNT(*)                                                      AS baris_produk,
+       COUNT(DISTINCT COALESCE(NULLIF(btrim(invoice_number), ''), no_order)) AS invoice,
+       MIN(waktu)                                                    AS jam_pertama,
+       MAX(waktu)                                                    AS jam_terakhir
+  FROM laporan_penjualan
+ WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+   AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'
+ GROUP BY 1, 2
+ ORDER BY 2, 1;
+
+
+-- -----------------------------------------------------------------------------
+-- 1. KPI: total event + per gudang (baris "TOTAL" di paling bawah)
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT warehouse                                                     AS channel,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         COALESCE(qty, 0)                                              AS qty,
+         COALESCE(total_harga_barang, 0)                               AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'   -- UBAH: rentang tanggal
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+)
+SELECT COALESCE(channel, 'TOTAL')                       AS channel,
+       SUM(qty)                                         AS unit_sold,
+       COUNT(DISTINCT invoice)                          AS trx,
+       SUM(gmv)                                         AS gmv,
+       ROUND(SUM(gmv) / NULLIF(COUNT(DISTINCT invoice), 0)) AS rata_rata_per_trx
+  FROM baris
+ GROUP BY GROUPING SETS ((channel), ())
+ ORDER BY (channel IS NULL), gmv DESC;
+
+
+-- -----------------------------------------------------------------------------
+-- 2. PENJUALAN PER SESI × CHANNEL (sama dengan halaman utama)
+--    Sesi terjadwal selalu tampil walau 0; "Di luar sesi" hanya bila ada isinya.
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT tanggal::date                                                 AS tanggal,
+         waktu::time                                                   AS waktu,
+         warehouse                                                     AS channel,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         COALESCE(NULLIF(btrim(principal_brand), ''), '(tanpa brand)') AS brand,
+         COALESCE(qty, 0)                                              AS qty,
+         COALESCE(total_harga_barang, 0)                               AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+     -- AND principal_brand = 'NAMA BRAND'                             -- UBAH: filter satu brand
+),
+sesi (hari, nomor, mulai, selesai) AS (
+  VALUES (1, 1, TIME '09:00', TIME '10:00'), (1, 2, TIME '13:00', TIME '14:00'),
+         (1, 3, TIME '15:00', TIME '16:00'), (1, 4, TIME '17:00', TIME '18:00'),
+         (1, 5, TIME '19:00', TIME '20:00'),
+         (2, 1, TIME '09:00', TIME '10:00'), (2, 2, TIME '11:00', TIME '12:00'),
+         (2, 3, TIME '13:00', TIME '14:00'), (2, 4, TIME '15:00', TIME '16:00'),
+         (2, 5, TIME '17:00', TIME '18:00'), (2, 6, TIME '19:00', TIME '20:00'),
+         (3, 1, TIME '09:00', TIME '10:00'), (3, 2, TIME '11:00', TIME '12:00'),
+         (3, 3, TIME '13:00', TIME '14:00'), (3, 4, TIME '15:00', TIME '16:00'),
+         (3, 5, TIME '17:00', TIME '18:00'), (3, 6, TIME '19:00', TIME '20:00')
+),
+berlabel AS (
+  SELECT b.*, (b.tanggal - DATE '2026-10-30') + 1 AS hari, s.nomor
+    FROM baris b
+    LEFT JOIN sesi s
+      ON s.hari = (b.tanggal - DATE '2026-10-30') + 1
+     AND b.waktu >= s.mulai AND b.waktu < s.selesai
+),
+agg AS (
+  SELECT hari, nomor,
+         SUM(qty)                FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_unit,
+         COUNT(DISTINCT invoice) FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_trx,
+         SUM(gmv)                FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_gmv,
+         SUM(qty)                FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_unit,
+         COUNT(DISTINCT invoice) FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_trx,
+         SUM(gmv)                FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_gmv,
+         SUM(qty)                AS total_unit,
+         COUNT(DISTINCT invoice) AS total_trx,
+         SUM(gmv)                AS total_gmv
+    FROM berlabel
+   GROUP BY hari, nomor
+),
+daftar AS (
+  SELECT hari, nomor, mulai, selesai FROM sesi
+  UNION ALL
+  SELECT hari, NULL, NULL, NULL FROM agg WHERE nomor IS NULL
+),
+total AS (
+  SELECT SUM(qty)                FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_unit,
+         COUNT(DISTINCT invoice) FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_trx,
+         SUM(gmv)                FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS main_gmv,
+         SUM(qty)                FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_unit,
+         COUNT(DISTINCT invoice) FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_trx,
+         SUM(gmv)                FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS tebus_gmv,
+         SUM(qty) AS total_unit, COUNT(DISTINCT invoice) AS total_trx, SUM(gmv) AS total_gmv
+    FROM berlabel
+)
+SELECT sesi, main_unit, main_trx, main_gmv, tebus_unit, tebus_trx, tebus_gmv,
+       total_unit, total_trx, total_gmv
+  FROM (
+    SELECT 0 AS urut, d.hari, COALESCE(d.nomor, 99) AS nomor,
+           'Day ' || d.hari || ' | ' ||
+             CASE WHEN d.nomor IS NULL THEN 'Di luar sesi'
+                  ELSE 'Sesi ' || d.nomor || ' (' || to_char(d.mulai, 'HH24.MI') || '-' || to_char(d.selesai, 'HH24.MI') || ')'
+             END                         AS sesi,
+           COALESCE(a.main_unit, 0)  AS main_unit,  COALESCE(a.main_trx, 0)  AS main_trx,  COALESCE(a.main_gmv, 0)  AS main_gmv,
+           COALESCE(a.tebus_unit, 0) AS tebus_unit, COALESCE(a.tebus_trx, 0) AS tebus_trx, COALESCE(a.tebus_gmv, 0) AS tebus_gmv,
+           COALESCE(a.total_unit, 0) AS total_unit, COALESCE(a.total_trx, 0) AS total_trx, COALESCE(a.total_gmv, 0) AS total_gmv
+      FROM daftar d
+      LEFT JOIN agg a ON a.hari = d.hari AND a.nomor IS NOT DISTINCT FROM d.nomor
+    UNION ALL
+    SELECT 1, NULL, NULL, 'TOTAL',
+           COALESCE(main_unit, 0), COALESCE(main_trx, 0), COALESCE(main_gmv, 0),
+           COALESCE(tebus_unit, 0), COALESCE(tebus_trx, 0), COALESCE(tebus_gmv, 0),
+           COALESCE(total_unit, 0), COALESCE(total_trx, 0), COALESCE(total_gmv, 0)
+      FROM total
+  ) x
+ ORDER BY urut, hari, nomor;
+
+
+-- -----------------------------------------------------------------------------
+-- 3. PER HARI × CHANNEL
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT tanggal::date                                                 AS tanggal,
+         warehouse                                                     AS channel,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         COALESCE(qty, 0)                                              AS qty,
+         COALESCE(total_harga_barang, 0)                               AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+)
+SELECT 'Day ' || ((tanggal - DATE '2026-10-30') + 1) || ' · ' || to_char(tanggal, 'DD Mon') AS hari,
+       COALESCE(channel, 'TOTAL')   AS channel,
+       SUM(qty)                     AS unit_sold,
+       COUNT(DISTINCT invoice)      AS trx,
+       SUM(gmv)                     AS gmv
+  FROM baris
+ GROUP BY GROUPING SETS ((tanggal, channel), (tanggal))
+ ORDER BY tanggal, (channel IS NULL), channel;
+
+
+-- -----------------------------------------------------------------------------
+-- 4. PER BRAND (principal_brand) — GMV per gudang + total, urut GMV terbesar
+--    TRX per brand: invoice berisi beberapa brand dihitung di tiap brand.
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT warehouse                                                     AS channel,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         COALESCE(NULLIF(btrim(principal_brand), ''), '(tanpa brand)') AS brand,
+         COALESCE(qty, 0)                                              AS qty,
+         COALESCE(total_harga_barang, 0)                               AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'   -- UBAH: mis. satu hari saja
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+)
+SELECT brand,
+       SUM(gmv) FILTER (WHERE channel = 'MAIN IMPERFECT WAREHOUS 2026') AS gmv_main,
+       SUM(gmv) FILTER (WHERE channel = 'TEBUS MURAH IMPERFECT 2026')   AS gmv_tebus,
+       SUM(qty)                                                        AS unit_sold,
+       COUNT(DISTINCT invoice)                                         AS trx,
+       SUM(gmv)                                                        AS gmv_total,
+       ROUND(100.0 * SUM(gmv) / NULLIF(SUM(SUM(gmv)) OVER (), 0), 2)   AS kontribusi_persen
+  FROM baris
+ GROUP BY brand
+ ORDER BY gmv_total DESC;
+
+
+-- -----------------------------------------------------------------------------
+-- 5. PER JAM (semua hari; aktifkan filter tanggal untuk satu hari)
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT waktu::time                                                   AS waktu,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         COALESCE(qty, 0)                                              AS qty,
+         COALESCE(total_harga_barang, 0)                               AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'   -- UBAH: mis. DATE '2026-10-30' s/d DATE '2026-10-31'
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+)
+SELECT to_char(date_trunc('hour', waktu), 'HH24.MI') || '-' ||
+       to_char(date_trunc('hour', waktu) + INTERVAL '1 hour', 'HH24.MI') AS jam,
+       SUM(qty)                AS unit_sold,
+       COUNT(DISTINCT invoice) AS trx,
+       SUM(gmv)                AS gmv
+  FROM baris
+ GROUP BY date_trunc('hour', waktu)
+ ORDER BY date_trunc('hour', waktu);
+
+
+-- -----------------------------------------------------------------------------
+-- 6. PER METODE BAYAR (payment_note)
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT COALESCE(NULLIF(btrim(payment_note), ''), '(tanpa metode bayar)') AS metode_bayar,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)            AS invoice,
+         COALESCE(qty, 0)                                                  AS qty,
+         COALESCE(total_harga_barang, 0)                                   AS gmv
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+)
+SELECT metode_bayar,
+       COUNT(DISTINCT invoice) AS trx,
+       SUM(qty)                AS unit_sold,
+       SUM(gmv)                AS gmv
+  FROM baris
+ GROUP BY metode_bayar
+ ORDER BY gmv DESC;
+
+
+-- -----------------------------------------------------------------------------
+-- 7. RINCIAN TRANSAKSI (urutan kolom sama dengan halaman Rincian Transaksi)
+--    promo_value & total_bayar hanya di baris pertama tiap invoice, supaya
+--    tidak terhitung ganda kalau dijumlahkan di Excel.
+-- -----------------------------------------------------------------------------
+WITH baris AS (
+  SELECT COALESCE(NULLIF(btrim(principal_brand), ''), '(tanpa brand)') AS brand,
+         tanggal::date                                                 AS tanggal,
+         waktu,
+         COALESCE(NULLIF(btrim(invoice_number), ''), no_order)        AS invoice,
+         sku_produk,
+         COALESCE(NULLIF(btrim(name_tag), ''), nama_produk)           AS nama_produk,
+         kategori,
+         warehouse                                                     AS channel,
+         qty,
+         total_harga_barang                                            AS harga,
+         promo_value,
+         total_bayar,
+         payment_note                                                  AS payment_method,
+         status
+    FROM laporan_penjualan
+   WHERE warehouse IN ('MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026')
+     AND tanggal >= DATE '2026-10-30' AND tanggal < DATE '2026-11-02'   -- UBAH: rentang tanggal
+     AND lower(btrim(COALESCE(status, ''))) NOT IN ('cancel', 'batal', 'open')
+     -- AND principal_brand = 'NAMA BRAND'                             -- UBAH: filter brand
+     -- AND payment_note = 'QRIS EDC BCA'                              -- UBAH: filter metode bayar
+)
+SELECT brand, tanggal, waktu, invoice, sku_produk, nama_produk, kategori, channel,
+       qty, harga,
+       CASE WHEN ROW_NUMBER() OVER w = 1 THEN promo_value END AS promo_value,
+       CASE WHEN ROW_NUMBER() OVER w = 1 THEN total_bayar END AS total_bayar,
+       payment_method, status
+  FROM baris
+WINDOW w AS (PARTITION BY invoice ORDER BY brand, sku_produk)
+ ORDER BY tanggal DESC, waktu DESC, invoice, brand, sku_produk;
+
+
+-- -----------------------------------------------------------------------------
+-- 8. CEK SATU INVOICE (cocokkan dengan struk / POS)
+-- -----------------------------------------------------------------------------
+SELECT warehouse, tanggal, waktu, invoice_number, no_order, principal_brand,
+       sku_produk, COALESCE(NULLIF(btrim(name_tag), ''), nama_produk) AS nama_produk,
+       qty, total_harga_barang, promo_value, total_bayar, payment_note, status
+  FROM laporan_penjualan
+ WHERE invoice_number = 'ISI NOMOR INVOICE'                             -- UBAH
+ ORDER BY principal_brand, sku_produk;

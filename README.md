@@ -230,6 +230,17 @@ Sesi login disimpan di cookie bertanda tangan HMAC (berlaku 7 hari, tanpa databa
 di semua instance Vercel. Kuncinya diturunkan dari password, sehingga **mengganti password
 mengeluarkan semua sesi lama**. Percobaan login dibatasi 8 kali per 10 menit per IP (per instance).
 
+## Cadangan manual (kalau dashboard bermasalah)
+
+- [`scripts/query-manual.sql`](scripts/query-manual.sql) — query SELECT untuk DBeaver/psql dengan
+  user read-only, hitungannya sama dengan dashboard: cek data masuk, KPI per gudang, Sesi ×
+  Channel (format sama dengan halaman utama), per hari, per brand, per jam, per metode bayar,
+  rincian transaksi (urutan kolom halaman Rincian), dan cek satu invoice. Bagian yang bisa diubah
+  ditandai `-- UBAH:`.
+- [`scripts/ringkasan-eksternal.gs`](scripts/ringkasan-eksternal.gs) — Apps Script yang membaca
+  semua Sheet brand di folder Drive dan menulis ringkasan per brand (TRX, unit, GMV, pembeli,
+  status) ke sebuah Google Sheet. Cara pakainya di kepala file.
+
 ## Menjalankan
 
 Butuh Node.js 22.
@@ -405,6 +416,7 @@ api/index.js          entrypoint Vercel
 frontend/             template TailAdmin (dari OFFLINE-STORE)
   partials/           header, sidebar, preloader
   js/pages/           pivot.js, transactions.js, signin.js
+scripts/              query & Apps Script cadangan manual
 db/                   tabel tiruan untuk uji lokal
 test/                 node --test
 ```

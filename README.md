@@ -103,13 +103,33 @@ tanggal `EVENT_DARI`–`EVENT_SAMPAI`), pilih salah satu:
 
 ## Halaman Rincian Transaksi
 
-Logikanya mengikuti halaman Transaksi OFFLINE-STORE:
+Logikanya mengikuti halaman Transaksi OFFLINE-STORE. Urutan kolom (tabel dan CSV):
+
+| Tabel        | CSV              | Sumber                                       |
+| ------------ | ---------------- | -------------------------------------------- |
+| Brand        | `brand`          | `principal_brand`                            |
+| Tanggal      | `tanggal`        | `tanggal`                                    |
+| Jam          | `waktu`          | `waktu`                                      |
+| No. invoice  | `invoice`        | `invoice_number` (atau `no_order` bila kosong) |
+| SKU          | `sku_produk`     | `sku_produk`                                 |
+| Nama produk  | `nama_produk`    | `name_tag` (atau `nama_produk` bila kosong)  |
+| Kategori     | `kategori`       | `kategori`                                   |
+| Channel      | `channel`        | `warehouse` (atau `channel`, lihat `KOLOM_CHANNEL`) |
+| Qty          | `qty`            | `qty`                                        |
+| Harga        | `harga`          | `total_harga_barang`                         |
+| Promo        | `promo_value`    | `promo_value`                                |
+| Total bayar  | `total_bayar`    | `total_bayar`                                |
+| Metode bayar | `payment_method` | `payment_note`                               |
+| Status       | `status`         | `status`                                     |
+
+HPP tidak dibaca dari warehouse dan tidak ditampilkan di mana pun.
 
 - Satu baris = satu produk. **Total bayar** dan **nilai promo** berlaku untuk satu invoice, jadi
   hanya ditulis di baris pertama invoice itu — dihitung sebelum paginasi, sehingga invoice yang
   terpotong batas halaman tidak menulis totalnya dua kali.
-- Tanggal dan channel hanya ditulis saat berganti; nomor invoice panjang dipendekkan dari tengah
-  (utuhnya di tooltip dan CSV).
+- Tanggal hanya ditulis saat berganti; jam, invoice, channel, promo, total bayar, dan metode bayar
+  hanya di baris pertama invoice. Nomor invoice panjang dipendekkan dari tengah (utuhnya di tooltip
+  dan CSV).
 - Filter Brand, Hari, Sesi, Channel, plus pencarian (invoice, SKU, nama produk, brand, channel,
   metode bayar, kode promo, kategori). Filter ikut tertulis di alamat halaman, jadi tampilan bisa
   dibagikan.
@@ -118,15 +138,15 @@ Logikanya mengikuti halaman Transaksi OFFLINE-STORE:
 - **Ekspor CSV** memakai filter dan urutan yang sama (pemisah `;`, dengan BOM untuk Excel, maks.
   200.000 baris).
 
-## Akses dan HPP
+## Akses
 
-| `DASHBOARD_PASSWORD` | Akses data                                | Kolom HPP                    |
-| -------------------- | ----------------------------------------- | ---------------------------- |
-| kosong               | terbuka bagi siapa pun yang memegang link | **tidak pernah dikirim**     |
-| diisi                | hanya setelah masuk dengan password itu   | tampil di tabel dan CSV      |
+| `DASHBOARD_PASSWORD` | Akses data                                |
+| -------------------- | ----------------------------------------- |
+| kosong               | terbuka bagi siapa pun yang memegang link |
+| diisi                | hanya setelah masuk dengan password itu   |
 
 Pembatasan ada di server: tanpa login, `/api/pivot`, `/api/transactions`, dan ekspor CSV menjawab
-401, dan HPP tidak ikut dalam JSON maupun CSV — bukan sekadar disembunyikan di tampilan.
+401.
 
 Sesi login disimpan di cookie bertanda tangan HMAC (berlaku 7 hari, tanpa database), jadi berlaku
 di semua instance Vercel. Kuncinya diturunkan dari password, sehingga **mengganti password
@@ -244,7 +264,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `DB_SCHEMA`                       | –                                                          | Schema `laporan_penjualan` bila tidak di `search_path`.                                      |
 | `PG_QUERY`                        | –                                                          | Ganti seluruh query (tanpa parameter). Kolom keluaran harus sama dengan `server/source-postgres.js`. |
 | `CACHE_SECONDS`                   | `60`                                                       | Jarak minimum antar query ke warehouse (min 5).                                              |
-| `DASHBOARD_PASSWORD`              | –                                                          | Lihat [Akses dan HPP](#akses-dan-hpp).                                                       |
+| `DASHBOARD_PASSWORD`              | –                                                          | Lihat [Akses](#akses).                                                                       |
 | `SESSION_SECRET`                  | –                                                          | Kunci tambahan cookie sesi; mengganti nilainya mengeluarkan semua sesi.                      |
 | `UJI_WAREHOUSE`                   | `MAIN STAGE IMPERFECT SALE 2025`                           | Gudang [mode uji](#mode-uji-aktif-saat-ini). `off` = baca event 2026.                         |
 | `UJI_LIMIT`                       | `20`                                                       | Jumlah baris mode uji.                                                                       |

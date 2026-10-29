@@ -261,56 +261,28 @@
                           ? 'border-t border-gray-200 dark:border-gray-800'
                           : 'border-t border-gray-100/70 dark:border-gray-800/40'"
                       >
-                        <!-- Tanggal & channel hanya ditulis saat berganti, supaya
-                             mata langsung menangkap batas kelompoknya. -->
+                        <!-- Urutan kolom: brand, tanggal, waktu, invoice, SKU, nama
+                             produk, kategori, channel, qty, harga, promo, total
+                             bayar, metode bayar, status. Kolom tingkat invoice
+                             (waktu, invoice, channel, promo, total bayar, metode
+                             bayar) hanya ditulis di baris pertama invoice; tanggal
+                             hanya saat berganti. -->
+                        <td
+                          class="text-theme-sm px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                          x-text="teks(row.brand)"
+                        ></td>
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
                           x-text="row.grupBaru ? formatTanggalRingkas(row.tanggal) : ''"
                         ></td>
-                        <!-- Kolom tingkat invoice: ditulis sekali di baris pertamanya. -->
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
                           x-text="row.invoiceBaru ? jamPendek(row.waktu) : ''"
                         ></td>
                         <td
-                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="row.invoiceBaru ? row.sesi_label : ''"
-                        ></td>
-                        <td
-                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="row.grupBaru ? row.channel : ''"
-                        ></td>
-                        <td
                           class="text-theme-sm px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
                           :title="row.invoiceBaru ? (row.invoice || '') : ''"
                           x-text="row.invoiceBaru ? invoicePendek(row.invoice) : ''"
-                        ></td>
-                        <td
-                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="row.invoiceBaru ? teks(row.payment_note) : ''"
-                        ></td>
-                        <td
-                          class="text-theme-sm px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
-                          x-text="rupiahAtauKosong(row.total_bayar)"
-                        ></td>
-
-                        <!-- Kolom tingkat baris produk. -->
-                        <td
-                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
-                          x-text="formatAngka(row.qty)"
-                        ></td>
-                        <td
-                          x-show="app && app.bolehLihatHpp"
-                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
-                          x-text="rupiahAtauStrip(row.hpp)"
-                        ></td>
-                        <td
-                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
-                          x-text="rupiahAtauStrip(row.total_harga_barang)"
-                        ></td>
-                        <td
-                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="teks(row.brand)"
                         ></td>
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
@@ -322,21 +294,35 @@
                         ></td>
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="teks(row.warna)"
+                          x-text="teks(row.kategori)"
                         ></td>
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="teks(row.ukuran)"
+                          x-text="row.invoiceBaru ? row.channel : ''"
                         ></td>
-
-                        <!-- Promo kembali ke tingkat invoice. -->
                         <td
-                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
-                          x-text="row.invoiceBaru ? teks(row.promo_kode) : ''"
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="formatAngka(row.qty)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="rupiahAtauStrip(row.total_harga_barang)"
                         ></td>
                         <td
                           class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
                           x-text="row.invoiceBaru ? rupiahAtauStrip(row.promo_value) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="rupiahAtauKosong(row.total_bayar)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.invoiceBaru ? teks(row.payment_note) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.status)"
                         ></td>
                       </tr>
                     </template>
@@ -359,10 +345,9 @@
                 class="text-theme-xs border-t border-gray-100 px-5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400"
               >
                 Satu baris = satu produk.
-                <span class="font-medium">Total bayar</span> dan nilai promo
-                berlaku untuk satu invoice, jadi hanya ditulis di baris pertama
-                invoice tersebut. Transaksi berstatus Cancel/Open tidak
-                ditampilkan.
+                <span class="font-medium">Total bayar</span> dan promo berlaku
+                untuk satu invoice, jadi hanya ditulis di baris pertama invoice
+                tersebut. Transaksi berstatus Cancel/Open tidak ditampilkan.
               </p>
 
               <!-- Navigasi halaman -->

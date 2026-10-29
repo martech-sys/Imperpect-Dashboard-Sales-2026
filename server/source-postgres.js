@@ -3,7 +3,7 @@
 /**
  * Sumber data: tabel `laporan_penjualan` di warehouse `we_data_store`, sama
  * dengan papan TV IMPERPECT-SALES-2026. Bedanya, papan TV hanya butuh satu
- * baris per invoice; dashboard ini butuh baris per produk (brand, SKU, HPP),
+ * baris per invoice; dashboard ini butuh baris per produk (brand, SKU),
  * jadi query-nya mengambil baris apa adanya dan agregasinya dikerjakan di
  * server (server/report.js).
  *
@@ -22,7 +22,7 @@ function pilihan(cfg, event) {
        waktu::text AS waktu,
        ${event.kolomChannel} AS channel,
        COALESCE(NULLIF(btrim(invoice_number), ''), no_order) AS invoice,
-       payment_note, total_bayar, qty, hpp, total_harga_barang,
+       payment_note, total_bayar, qty, total_harga_barang,
        principal_brand AS brand, sku_produk,
        COALESCE(NULLIF(btrim(name_tag), ''), nama_produk) AS nama_produk,
        kategori, warna, ukuran, promo_kode, promo_value, status

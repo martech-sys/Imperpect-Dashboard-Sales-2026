@@ -19,7 +19,7 @@ const bukanPenjualan = (status) =>
 
 /**
  * pg mengembalikan NUMERIC/BIGINT sebagai teks ("2500000.0000"). Nilai kosong
- * tetap null — HPP kosong bukan HPP nol.
+ * tetap null — harga kosong bukan harga nol.
  */
 function angka(v) {
   if (v === null || v === undefined || v === "") return null;
@@ -58,7 +58,6 @@ function siapkan(rawRows, event) {
       payment_note: teks(r.payment_note),
       total_bayar: angka(r.total_bayar),
       qty: angka(r.qty) || 0,
-      hpp: angka(r.hpp),
       total_harga_barang: angka(r.total_harga_barang),
       brand: teks(r.brand) || "(tanpa brand)",
       sku_produk: teks(r.sku_produk),

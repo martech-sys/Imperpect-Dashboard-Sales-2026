@@ -92,7 +92,6 @@ function createApp(env, deps = {}) {
     const path = url.pathname.replace(/\/+$/, "");
     const query = Object.fromEntries(url.searchParams.entries());
     const sudahMasuk = auth.masuk(req.headers.cookie);
-    const hpp = auth.aktif && sudahMasuk;
 
     try {
       if (path === "/api/app" && req.method === "GET") {
@@ -108,7 +107,6 @@ function createApp(env, deps = {}) {
           uji: config.demo || config.pg.query ? null : config.uji,
           refreshSeconds: Math.max(30, config.cacheSeconds),
           auth: { aktif: auth.aktif, masuk: sudahMasuk },
-          bolehLihatHpp: hpp,
         });
       }
 
@@ -202,7 +200,7 @@ function createApp(env, deps = {}) {
         const d = await data(res);
         if (!d) return undefined;
         return json(res, 200, {
-          ...report.transactions(d.rows, d.event, query, { hpp }),
+          ...report.transactions(d.rows, query),
           options: report.opsiFilter(d.rows, d.event),
           kesegaran: d.kesegaran,
         });
@@ -218,7 +216,7 @@ function createApp(env, deps = {}) {
           "Content-Disposition",
           `attachment; filename="rincian-imperfect-sale_${d.event.dari}_${d.event.sampai}.csv"`,
         );
-        return res.end(report.transactionsCsv(d.rows, d.event, query, { hpp }));
+        return res.end(report.transactionsCsv(d.rows, query));
       }
 
       return json(res, 404, {

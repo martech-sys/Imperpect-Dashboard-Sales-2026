@@ -71,7 +71,7 @@ test("status Cancel dibuang, angka teks dari pg dibaca sebagai angka", () => {
   assert.equal(dibuang, 1);
   assert.equal(rows.length, 5);
   assert.equal(rows[0].total_harga_barang, 100000);
-  assert.equal(rows[2].hpp, null);
+  assert.equal(rows[0].total_bayar, 350000);
 });
 
 test("pivot sesi: sesi terjadwal tampil walau kosong, di luar sesi hanya bila ada isinya", () => {
@@ -138,59 +138,58 @@ test("pivot per hari, brand, dan jam; filter hari", () => {
   assert.equal(perJam.total.trx, 3);
 });
 
-test("rincian: total bayar hanya di baris pertama invoice, HPP hanya bila diizinkan", () => {
-  const tanpa = report.transactions(
-    rows,
-    event,
-    { sesi: "1-1" },
-    { hpp: false },
-  );
-  assert.equal(tanpa.total, 2);
+test("rincian: urutan kolom, total bayar hanya di baris pertama invoice", () => {
+  const r = report.transactions(rows, { sesi: "1-1" });
+  assert.equal(r.total, 2);
+  assert.deepEqual(Object.keys(r.rows[0]), [
+    "brand",
+    "tanggal",
+    "waktu",
+    "invoice",
+    "sku_produk",
+    "nama_produk",
+    "kategori",
+    "channel",
+    "qty",
+    "total_harga_barang",
+    "promo_value",
+    "total_bayar",
+    "payment_note",
+    "status",
+  ]);
   assert.deepEqual(
-    tanpa.rows.map((r) => r.total_bayar),
+    r.rows.map((x) => x.total_bayar),
     [350000, null],
   );
-  assert.ok(!("hpp" in tanpa.rows[0]));
-  assert.equal(tanpa.summary.trx, 1);
-
-  const dengan = report.transactions(
-    rows,
-    event,
-    { sesi: "1-1" },
-    { hpp: true },
-  );
-  assert.equal(dengan.rows[0].hpp, 40000);
-  assert.equal(dengan.rows[0].sesi_label, "Day 1 | Sesi 1 (09.00-10.00)");
+  assert.equal(r.summary.trx, 1);
 });
 
 test("rincian: total bayar tidak tertulis ulang saat invoice terpotong halaman", () => {
-  const hal2 = report.transactions(
-    rows,
-    event,
-    { sesi: "1-1", pageSize: "1", page: "2" },
-    { hpp: false },
-  );
+  const hal2 = report.transactions(rows, {
+    sesi: "1-1",
+    pageSize: "1",
+    page: "2",
+  });
   assert.equal(hal2.rows.length, 1);
   assert.equal(hal2.rows[0].total_bayar, null);
 });
 
 test("rincian: pencarian dan urutan", () => {
-  assert.equal(report.transactions(rows, event, { q: "d" }, {}).total, 1);
-  const asc = report.transactions(
-    rows,
-    event,
-    { sortBy: "tanggal", sortDir: "asc" },
-    {},
-  );
+  assert.equal(report.transactions(rows, { q: "d" }).total, 1);
+  const asc = report.transactions(rows, { sortBy: "tanggal", sortDir: "asc" });
   assert.deepEqual(
     asc.rows.map((r) => r.invoice),
     ["A", "A", "C", "B", "D"],
   );
 });
 
-test("CSV memakai pemisah titik koma, BOM, dan tanpa HPP bila tidak diizinkan", () => {
-  const csv = report.transactionsCsv(rows, event, {}, { hpp: false });
-  assert.ok(csv.startsWith("﻿tanggal;waktu;sesi_label;"));
-  assert.ok(!csv.includes(";hpp;"));
+test("CSV memakai urutan kolom tabel, pemisah titik koma, dan BOM", () => {
+  const csv = report.transactionsCsv(rows, {});
+  assert.ok(
+    csv.startsWith(
+      "\ufeffbrand;tanggal;waktu;invoice;sku_produk;nama_produk;kategori;channel;qty;harga;promo_value;total_bayar;payment_method;status\n",
+    ),
+  );
+  assert.ok(!csv.includes("hpp"));
   assert.equal(csv.split("\n").length, 6);
 });

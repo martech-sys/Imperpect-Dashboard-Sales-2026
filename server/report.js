@@ -306,25 +306,25 @@ function pembanding(sortBy, arah) {
   };
 }
 
+/**
+ * Kolom rincian & ekspor CSV, urutannya sama dengan tabel di halaman Rincian
+ * Transaksi: [kunci baris, judul kolom CSV].
+ */
 const KOLOM_DETAIL = [
-  "tanggal",
-  "waktu",
-  "sesi_label",
-  "channel",
-  "invoice",
-  "payment_note",
-  "total_bayar",
-  "qty",
-  "hpp",
-  "total_harga_barang",
-  "brand",
-  "sku_produk",
-  "nama_produk",
-  "kategori",
-  "warna",
-  "ukuran",
-  "promo_kode",
-  "promo_value",
+  ["brand", "brand"],
+  ["tanggal", "tanggal"],
+  ["waktu", "waktu"],
+  ["invoice", "invoice"],
+  ["sku_produk", "sku_produk"],
+  ["nama_produk", "nama_produk"],
+  ["kategori", "kategori"],
+  ["channel", "channel"],
+  ["qty", "qty"],
+  ["total_harga_barang", "harga"],
+  ["promo_value", "promo_value"],
+  ["total_bayar", "total_bayar"],
+  ["payment_note", "payment_method"],
+  ["status", "status"],
 ];
 
 function urutkan(semuaRows, query) {
@@ -343,17 +343,12 @@ function urutkan(semuaRows, query) {
  * halaman, sehingga invoice yang terpotong batas halaman tidak menulis
  * totalnya dua kali.
  */
-function keluaran(rows, event, { hpp }) {
+function keluaran(rows) {
   const sudah = new Set();
   return rows.map((r) => {
     const pertama = !sudah.has(r.invoice);
     sudah.add(r.invoice);
-    const o = {};
-    for (const k of KOLOM_DETAIL) {
-      if (k === "hpp" && !hpp) continue;
-      o[k] = k === "sesi_label" ? labelSesi(event, r.sesi) : r[k];
-    }
-    o.sesi = r.sesi;
+    const o = Object.fromEntries(KOLOM_DETAIL.map(([k]) => [k, r[k]]));
     if (!pertama) {
       o.total_bayar = null;
       o.promo_value = null;
@@ -362,14 +357,14 @@ function keluaran(rows, event, { hpp }) {
   });
 }
 
-function transactions(semuaRows, event, query, opsi) {
+function transactions(semuaRows, query) {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const pageSize = Math.min(
     500,
     Math.max(1, parseInt(query.pageSize, 10) || 25),
   );
   const { rows, sortBy, sortDir } = urutkan(semuaRows, query);
-  const semua = keluaran(rows, event, opsi);
+  const semua = keluaran(rows);
   const g = kelompokBaru();
   rows.forEach((r) => tambah(g, r));
   const mulai = (page - 1) * pageSize;
@@ -392,13 +387,12 @@ function csvSel(v) {
 const BATAS_CSV = 200000;
 
 /** Ekspor CSV rincian, dipisah `;` dan diawali BOM supaya Excel membacanya rapi. */
-function transactionsCsv(semuaRows, event, query, opsi) {
+function transactionsCsv(semuaRows, query) {
   const { rows } = urutkan(semuaRows, query);
-  const kolom = KOLOM_DETAIL.filter((k) => opsi.hpp || k !== "hpp");
-  const isi = keluaran(rows.slice(0, BATAS_CSV), event, opsi);
+  const isi = keluaran(rows.slice(0, BATAS_CSV));
   const baris = [
-    kolom.join(";"),
-    ...isi.map((o) => kolom.map((k) => csvSel(o[k])).join(";")),
+    KOLOM_DETAIL.map(([, judul]) => judul).join(";"),
+    ...isi.map((o) => KOLOM_DETAIL.map(([k]) => csvSel(o[k])).join(";")),
   ];
   return `﻿${baris.join("\n")}`;
 }

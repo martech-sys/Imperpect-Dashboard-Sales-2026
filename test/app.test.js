@@ -128,7 +128,7 @@ test("database gagal sejak awal: 503 dengan pesan aslinya, bukan data contoh", a
   PoolTiruan.gagal = false;
 });
 
-test("gerbang password: data tertutup sebelum masuk, HPP hanya setelah masuk", async () => {
+test("gerbang password: data tertutup sebelum masuk", async () => {
   const app = createApp(
     { ...ENV_DB, DASHBOARD_PASSWORD: "Rh#4s!" },
     { Pool: PoolTiruan },
@@ -155,7 +155,7 @@ test("gerbang password: data tertutup sebelum masuk, HPP hanya setelah masuk", a
 
   const trx = await panggil(app, { url: "/api/transactions", cookie });
   assert.equal(trx.status, 200);
-  assert.equal(trx.json.rows[0].hpp, 30000);
+  assert.equal(trx.json.rows[0].brand, "X");
 
   // Cookie palsu ditolak.
   const palsu = await panggil(app, {
@@ -165,12 +165,13 @@ test("gerbang password: data tertutup sebelum masuk, HPP hanya setelah masuk", a
   assert.equal(palsu.status, 401);
 });
 
-test("tanpa password: HPP tidak pernah dikirim", async () => {
+test("HPP tidak pernah dikirim, login atau tidak", async () => {
   const app = createApp(ENV_DB, { Pool: PoolTiruan });
   const trx = await panggil(app, { url: "/api/transactions" });
   assert.ok(!("hpp" in trx.json.rows[0]));
   const csv = await panggil(app, { url: "/api/transactions.csv" });
   assert.ok(!csv.teks.includes("hpp"));
+  assert.doesNotMatch(PoolTiruan.sql, /\bhpp\b/);
 });
 
 test("konfigurasi salah dilaporkan di setiap endpoint", async () => {

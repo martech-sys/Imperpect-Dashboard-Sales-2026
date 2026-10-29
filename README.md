@@ -299,6 +299,20 @@ Langkah:
 
 Database harus bisa diakses dari internet: Vercel Functions tidak punya IP tetap.
 
+### Cache & kecepatan
+
+Data disimpan di tiga lapis supaya halaman tidak menunggu warehouse atau Google Drive:
+
+| Lapis | Isi | Akibatnya |
+| --- | --- | --- |
+| **Browser** (localStorage) | jawaban terakhir 15 alamat data | halaman yang dibuka ulang langsung menampilkan angka terakhir ("Menampilkan data tersimpan … memuat data terbaru"), lalu diganti jawaban server. Dikosongkan saat keluar. |
+| **CDN Vercel** | jawaban `/api/*` data, `max-age=CACHE_SECONDS`, `stale-while-revalidate=300` | pengunjung lain dan instance yang baru menyala dilayani CDN tanpa menyentuh function. **Hanya bila `DASHBOARD_PASSWORD` kosong** — dengan password, jawaban bergantung pada cookie dan tidak di-cache CDN. Deploy baru mengosongkannya. |
+| **Server** (memori function) | hasil query warehouse & isi Sheet | *stale-while-revalidate*: sesudah pembacaan pertama, permintaan tidak pernah menunggu database; data yang lewat `CACHE_SECONDS` langsung dikirim dan pembacaan baru berjalan di belakang (`waitUntil` Vercel). |
+
+Yang masih bisa lambat: permintaan **pertama** sebuah instance yang baru menyala (cold start)
+harus menunggu query dan pembacaan Drive. Penyebab terbesarnya biasanya query warehouse yang
+memindai seluruh `laporan_penjualan` — lihat index di bawah.
+
 ### Beban ke database
 
 - **Satu query per `CACHE_SECONDS` per instance**, berapa pun orang yang membuka dashboard dan

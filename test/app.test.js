@@ -213,3 +213,23 @@ test("Ringkasan Eksternal: kunci akun layanan salah dilaporkan, bukan diganti da
   assert.equal(r.status, 503);
   assert.match(r.json.message, /bukan JSON/);
 });
+
+test("cache CDN hanya tanpa gerbang password", async () => {
+  const terbuka = createApp({});
+  const a = await panggil(terbuka, { url: "/api/pivot" });
+  assert.match(a.headers["vercel-cdn-cache-control"], /max-age=60/);
+  assert.equal(a.headers["cache-control"], "no-store");
+  const info = await panggil(terbuka, { url: "/api/app" });
+  assert.equal(info.headers["vercel-cdn-cache-control"], undefined);
+
+  const tertutup = createApp({ DASHBOARD_PASSWORD: "rahasia" });
+  const masuk = await panggil(tertutup, {
+    url: "/api/auth/login",
+    method: "POST",
+    body: { password: "rahasia" },
+  });
+  const cookie = masuk.headers["set-cookie"].split(";")[0];
+  const b = await panggil(tertutup, { url: "/api/pivot", cookie });
+  assert.equal(b.status, 200);
+  assert.equal(b.headers["vercel-cdn-cache-control"], undefined);
+});

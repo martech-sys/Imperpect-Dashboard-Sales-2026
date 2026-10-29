@@ -52,7 +52,7 @@ export function eksternalPage() {
 
     /** Status data: mode contoh di tab ini berarti folder Drive belum diisi. */
     get statusData() {
-      if (!this.error && this.kesegaran?.sumber === "demo") {
+      if (!this.error && !this.dariCache && this.kesegaran?.sumber === "demo") {
         return {
           warna: "bg-warning-500",
           teks: "DRIVE_FOLDER belum diisi — menampilkan data contoh",
@@ -137,10 +137,13 @@ export function eksternalPage() {
     },
 
     async loadData(muatan) {
-      const data = await api.eksternal();
+      const terapkan = (data) => {
+        this.data = data;
+        this.kesegaran = data.kesegaran;
+      };
+      const data = await api.eksternal(this.dariCacheUntuk(muatan, terapkan));
       if (this.usang(muatan)) return;
-      this.data = data;
-      this.kesegaran = data.kesegaran;
+      terapkan(data);
       if (this.brandDipilih) await this.muatDetail();
     },
 
@@ -164,7 +167,9 @@ export function eksternalPage() {
       this.memuatDetail = true;
       this.galatDetail = "";
       try {
-        const d = await api.eksternalBrand(brand);
+        const d = await api.eksternalBrand(brand, (lama) => {
+          if (brand === this.brandDipilih) this.detail = lama;
+        });
         if (brand === this.brandDipilih) this.detail = d;
       } catch (err) {
         if (brand === this.brandDipilih) {

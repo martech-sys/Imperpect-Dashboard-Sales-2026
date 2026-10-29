@@ -127,13 +127,17 @@ function createEksternal(cfg, opts = {}) {
   }
 
   return {
-    async get() {
+    /** Stale-while-revalidate, sama dengan server/store.js. */
+    async get({ tunggu = false } = {}) {
       if (
         source &&
         (Date.now() - lastAttempt >= cacheMs || (!files && !error))
       ) {
-        if (!running) running = baca().finally(() => (running = null));
-        await running;
+        if (!running) {
+          running = baca().finally(() => (running = null));
+          if (opts.waitUntil) opts.waitUntil(running);
+        }
+        if (!files || tunggu) await running;
       }
       return {
         files,
@@ -142,6 +146,7 @@ function createEksternal(cfg, opts = {}) {
           fetchedAt,
           error,
           stale: Boolean(error && files),
+          memperbarui: Boolean(running),
           cacheSeconds: cacheMs / 1000,
         },
       };

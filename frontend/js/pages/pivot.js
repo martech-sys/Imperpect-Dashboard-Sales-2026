@@ -75,15 +75,21 @@ export function pivotPage() {
       },
 
       async loadData(muatan) {
-        const data = await api.pivot({
-          brand: this.brand,
-          hari: this.hari,
-          baris: this.baris,
-          urut: this.urut,
-        });
+        const terapkan = (data) => {
+          this.data = data;
+          this.kesegaran = data.kesegaran;
+        };
+        const data = await api.pivot(
+          {
+            brand: this.brand,
+            hari: this.hari,
+            baris: this.baris,
+            urut: this.urut,
+          },
+          this.dariCacheUntuk(muatan, terapkan),
+        );
         if (this.usang(muatan)) return;
-        this.data = data;
-        this.kesegaran = data.kesegaran;
+        terapkan(data);
       },
 
       saveState() {

@@ -72,11 +72,25 @@ function createApp(env, deps = {}) {
     : createPostgresSource(config.pg, event, deps, config.uji);
   const store = createStore(source, event, {
     cacheSeconds: config.cacheSeconds,
+    waitUntil: deps.waitUntil,
   });
   const auth = createAuth(config.auth);
   const brandEksternal = eksternal.createEksternal(config.drive, {
     cacheSeconds: config.cacheSeconds,
+    waitUntil: deps.waitUntil,
   });
+  /**
+   * Tanpa gerbang password, jawaban data sama untuk semua orang, jadi boleh
+   * disimpan CDN Vercel: pengunjung berikutnya (dan instance yang baru
+   * menyala) dilayani CDN tanpa menyentuh function. Dengan password,
+   * jawaban bergantung pada cookie sesi dan tidak boleh di-cache CDN.
+   * Deploy baru mengosongkan cache CDN.
+   */
+  const cdn = auth.aktif
+    ? {}
+    : {
+        "Vercel-CDN-Cache-Control": `max-age=${config.cacheSeconds}, stale-while-revalidate=300`,
+      };
 
   /** Isi folder brand eksternal, atau jawaban galat bila belum pernah terbaca. */
   async function dataEksternal(res) {
@@ -216,23 +230,36 @@ function createApp(env, deps = {}) {
             message: `Belum ada sumber yang terbaca. Internal: ${dI.kesegaran.error}. Eksternal: ${dE.kesegaran.error}.`,
           });
         }
-        return json(res, 200, {
-          ...ringkasanAll({ internalRows: dI.rows, eksternalFiles: dE.files }),
-          kesegaran: { internal: dI.kesegaran, eksternal: dE.kesegaran },
-          galat: {
-            internal: dI.rows ? null : dI.kesegaran.error,
-            eksternal: dE.files ? null : dE.kesegaran.error,
+        return json(
+          res,
+          200,
+          {
+            ...ringkasanAll({
+              internalRows: dI.rows,
+              eksternalFiles: dE.files,
+            }),
+            kesegaran: { internal: dI.kesegaran, eksternal: dE.kesegaran },
+            galat: {
+              internal: dI.rows ? null : dI.kesegaran.error,
+              eksternal: dE.files ? null : dE.kesegaran.error,
+            },
           },
-        });
+          cdn,
+        );
       }
 
       if (path === "/api/eksternal") {
         const d = await dataEksternal(res);
         if (!d) return undefined;
-        return json(res, 200, {
-          ...eksternal.ringkasan(d.files),
-          kesegaran: d.kesegaran,
-        });
+        return json(
+          res,
+          200,
+          {
+            ...eksternal.ringkasan(d.files),
+            kesegaran: d.kesegaran,
+          },
+          cdn,
+        );
       }
 
       if (path === "/api/eksternal/brand") {
@@ -245,27 +272,37 @@ function createApp(env, deps = {}) {
             message: `Brand "${query.brand || ""}" tidak ada di folder Drive.`,
           });
         }
-        return json(res, 200, { ...detail, kesegaran: d.kesegaran });
+        return json(res, 200, { ...detail, kesegaran: d.kesegaran }, cdn);
       }
 
       if (path === "/api/pivot") {
         const d = await data(res);
         if (!d) return undefined;
-        return json(res, 200, {
-          ...report.pivot(d.rows, d.event, query),
-          options: report.opsiFilter(d.rows, d.event),
-          kesegaran: d.kesegaran,
-        });
+        return json(
+          res,
+          200,
+          {
+            ...report.pivot(d.rows, d.event, query),
+            options: report.opsiFilter(d.rows, d.event),
+            kesegaran: d.kesegaran,
+          },
+          cdn,
+        );
       }
 
       if (path === "/api/transactions") {
         const d = await data(res);
         if (!d) return undefined;
-        return json(res, 200, {
-          ...report.transactions(d.rows, query),
-          options: report.opsiFilter(d.rows, d.event),
-          kesegaran: d.kesegaran,
-        });
+        return json(
+          res,
+          200,
+          {
+            ...report.transactions(d.rows, query),
+            options: report.opsiFilter(d.rows, d.event),
+            kesegaran: d.kesegaran,
+          },
+          cdn,
+        );
       }
 
       if (path === "/api/transactions.csv") {
@@ -274,6 +311,7 @@ function createApp(env, deps = {}) {
         res.statusCode = 200;
         res.setHeader("Content-Type", "text/csv; charset=utf-8");
         res.setHeader("Cache-Control", "no-store");
+        Object.entries(cdn).forEach(([k, v]) => res.setHeader(k, v));
         res.setHeader(
           "Content-Disposition",
           `attachment; filename="rincian-imperfect-sale_${d.event.dari}_${d.event.sampai}.csv"`,

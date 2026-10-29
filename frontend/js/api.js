@@ -55,16 +55,78 @@ export function toQuery(params) {
   return search.toString();
 }
 
+/*
+ * Cache di browser: jawaban data terakhir per alamat disimpan di
+ * localStorage, supaya halaman yang dibuka ulang langsung menampilkan angka
+ * terakhir sambil menunggu jawaban baru. Dibatasi beberapa alamat terakhir
+ * (paling lama dibuang) dan dikosongkan saat keluar.
+ */
+const CACHE_PREFIX = "isd.cache.v1:";
+const CACHE_INDEX = "isd.cache.v1.index";
+const CACHE_MAKS_ALAMAT = 15;
+const CACHE_MAKS_UKURAN = 1_500_000;
+
+function bacaCache(path) {
+  try {
+    const isi = localStorage.getItem(CACHE_PREFIX + path);
+    return isi ? JSON.parse(isi) : null;
+  } catch {
+    return null;
+  }
+}
+
+function simpanCache(path, payload) {
+  try {
+    const isi = JSON.stringify(payload);
+    if (isi.length > CACHE_MAKS_UKURAN) return;
+    const indeks = JSON.parse(localStorage.getItem(CACHE_INDEX) || "[]").filter(
+      (p) => p !== path,
+    );
+    indeks.push(path);
+    while (indeks.length > CACHE_MAKS_ALAMAT) {
+      localStorage.removeItem(CACHE_PREFIX + indeks.shift());
+    }
+    localStorage.setItem(CACHE_PREFIX + path, isi);
+    localStorage.setItem(CACHE_INDEX, JSON.stringify(indeks));
+  } catch {
+    // Penyimpanan penuh/tidak tersedia: halaman tetap jalan tanpa cache.
+  }
+}
+
+export function hapusCache() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(CACHE_PREFIX) || k === CACHE_INDEX)
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // Tidak ada yang perlu dihapus.
+  }
+}
+
+/**
+ * Data dengan cache: `dariCache(isi)` dipanggil seketika bila alamat ini
+ * pernah dimuat, lalu janji yang dikembalikan berisi jawaban terbaru.
+ */
+async function muat(path, dariCache) {
+  const lama = dariCache ? bacaCache(path) : null;
+  if (lama) dariCache(lama);
+  const baru = await request(path);
+  simpanCache(path, baru);
+  return baru;
+}
+
 export const api = {
   app: () => request("/api/app"),
   login: (password) =>
     request("/api/auth/login", { method: "POST", body: { password } }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
-  pivot: (params) => request(`/api/pivot?${toQuery(params)}`),
-  transactions: (params) => request(`/api/transactions?${toQuery(params)}`),
+  pivot: (params, dariCache) =>
+    muat(`/api/pivot?${toQuery(params)}`, dariCache),
+  transactions: (params, dariCache) =>
+    muat(`/api/transactions?${toQuery(params)}`, dariCache),
   exportUrl: (params) => `/api/transactions.csv?${toQuery(params)}`,
-  eksternal: () => request("/api/eksternal"),
-  ringkasan: () => request("/api/ringkasan"),
-  eksternalBrand: (brand) =>
-    request(`/api/eksternal/brand?${toQuery({ brand })}`),
+  eksternal: (dariCache) => muat("/api/eksternal", dariCache),
+  ringkasan: (dariCache) => muat("/api/ringkasan", dariCache),
+  eksternalBrand: (brand, dariCache) =>
+    muat(`/api/eksternal/brand?${toQuery({ brand })}`, dariCache),
 };

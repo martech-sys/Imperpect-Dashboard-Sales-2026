@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, hapusCache } from "./api.js";
 import { formatJam, formatTanggalSedang } from "./format.js";
 
 /**
@@ -29,6 +29,9 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     /** Kesegaran data, dikirim server bersama datanya. */
     kesegaran: null,
     lastUpdated: "",
+    /** Yang tampil adalah data tersimpan di browser; jawaban baru sedang dimuat. */
+    dariCache: false,
+    muatOtomatis: false,
     detik: Date.now(),
 
     get demoMode() {
@@ -66,6 +69,12 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     /** Titik status: hijau = segar, oranye = memakai data lama, merah = gagal. */
     get statusData() {
       if (this.error) return { warna: "bg-error-500", teks: this.error };
+      if (this.dariCache) {
+        return {
+          warna: "bg-gray-400",
+          teks: `Menampilkan data tersimpan (${this.usiaData}) — memuat data terbaru…`,
+        };
+      }
       const k = this.kesegaran;
       if (!k) return { warna: "bg-gray-400", teks: "Memuat data…" };
       if (k.stale) {
@@ -100,6 +109,11 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
         document.documentElement.classList.toggle("dark", value);
       });
 
+      // Info aplikasi dan data dimuat bersamaan, bukan berurutan: data
+      // (dari cache browser lalu dari server) tidak perlu menunggu /api/app.
+      this.restoreState?.();
+      const muatPertama = this.refresh();
+
       try {
         this.app = await api.app();
       } catch (err) {
@@ -112,20 +126,20 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
       // Di Vercel HTML dilayani CDN, jadi pagar halamannya dijalankan di sini;
       // datanya sendiri tetap dijaga server (401 tanpa sesi).
       if (this.app.auth.aktif && !this.app.auth.masuk) {
+        hapusCache();
         window.location.replace(
           `/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
         );
         return;
       }
 
-      this.restoreState?.();
       this.loaded = false;
-      await this.refresh();
+      await muatPertama;
 
       // Event berjalan live: muat ulang berkala selama tab terlihat.
       const jeda = (this.app.refreshSeconds || 60) * 1000;
       setInterval(() => {
-        if (!document.hidden) this.refresh();
+        if (!document.hidden) this.refresh({ otomatis: true });
       }, jeda);
       setInterval(() => (this.detik = Date.now()), 30000);
     },
@@ -135,13 +149,15 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     },
 
     /** Memuat ulang data halaman dengan filter terkini. */
-    async refresh() {
+    async refresh({ otomatis = false } = {}) {
+      this.muatOtomatis = otomatis;
       this.saveState?.();
       const muatan = (this.muatanKe += 1);
       this.loading = true;
       try {
         await this.loadData(muatan);
         if (this.usang(muatan)) return;
+        this.dariCache = false;
         this.error = "";
         this.lastUpdated = formatJam(new Date());
         this.detik = Date.now();
@@ -157,7 +173,21 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     /** Diisi oleh masing-masing halaman. */
     async loadData() {},
 
+    /**
+     * Penerima data tersimpan untuk `api.*(…, dariCache)`: dipakai hanya bila
+     * permintaan ini masih yang terbaru dan belum ada jawaban server.
+     */
+    dariCacheUntuk(muatan, terapkan) {
+      return (isi) => {
+        // Muat ulang berkala: yang tampil sudah data terbaru, tidak perlu cache.
+        if (this.usang(muatan) || this.muatOtomatis) return;
+        terapkan(isi);
+        this.dariCache = true;
+      };
+    },
+
     async logout() {
+      hapusCache();
       try {
         await api.logout();
       } finally {

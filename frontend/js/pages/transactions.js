@@ -190,15 +190,21 @@ export function transactionsPage() {
       },
 
       async loadData(muatan) {
-        const data = await api.transactions({
-          ...this.filterParams,
-          page: this.currentPage,
-          pageSize: this.pageSize,
-        });
+        const terapkan = (data) => {
+          this.result = data;
+          this.options = data.options;
+          this.kesegaran = data.kesegaran;
+        };
+        const data = await api.transactions(
+          {
+            ...this.filterParams,
+            page: this.currentPage,
+            pageSize: this.pageSize,
+          },
+          this.dariCacheUntuk(muatan, terapkan),
+        );
         if (this.usang(muatan)) return;
-        this.result = data;
-        this.options = data.options;
-        this.kesegaran = data.kesegaran;
+        terapkan(data);
       },
 
       /** Filter berubah → kembali ke halaman pertama agar hasilnya tidak kosong. */

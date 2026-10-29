@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Rincian transaksi Imperfect Sale per baris produk."
+    />
+    <title>Rincian Transaksi | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="transactionsPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+        <include src="./partials/header.html" />
+
+        <main>
+          <div
+            class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6"
+          >
+            <!-- Filter: dari tautan halaman Sesi × Channel atau dipilih di sini -->
+            <section
+              class="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2 md:p-5 xl:grid-cols-5 dark:border-gray-800 dark:bg-white/3"
+              aria-label="Filter rincian"
+            >
+              <div>
+                <label
+                  for="f-brand"
+                  class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  >Brand</label
+                >
+                <select
+                  id="f-brand"
+                  @change="setMedan('brand', $event.target.value)"
+                  class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <option value="" :selected="!brand">Semua brand</option>
+                  <template x-for="o in options.brands" :key="o">
+                    <option
+                      :value="o"
+                      :selected="String(o) === String(brand)"
+                      x-text="o"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+              <div>
+                <label
+                  for="f-hari"
+                  class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  >Hari</label
+                >
+                <select
+                  id="f-hari"
+                  @change="setMedan('hari', $event.target.value)"
+                  class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <option value="" :selected="!hari">Semua hari</option>
+                  <template x-for="o in options.hari" :key="o.value">
+                    <option
+                      :value="o.value"
+                      :selected="String(o.value) === String(hari)"
+                      x-text="o.label"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+              <div>
+                <label
+                  for="f-sesi"
+                  class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  >Sesi</label
+                >
+                <select
+                  id="f-sesi"
+                  @change="setMedan('sesi', $event.target.value)"
+                  class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <option value="" :selected="!sesi">Semua sesi</option>
+                  <template x-for="o in opsiSesi" :key="o.value">
+                    <option
+                      :value="o.value"
+                      :selected="String(o.value) === String(sesi)"
+                      x-text="o.label"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+              <div>
+                <label
+                  for="f-channel"
+                  class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  >Channel</label
+                >
+                <select
+                  id="f-channel"
+                  @change="setMedan('channel', $event.target.value)"
+                  class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <option value="" :selected="!channel">Semua channel</option>
+                  <template x-for="o in options.channels" :key="o">
+                    <option
+                      :value="o"
+                      :selected="String(o) === String(channel)"
+                      x-text="o"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button
+                  type="button"
+                  @click="resetFilters()"
+                  :disabled="!adaFilter"
+                  class="text-theme-sm h-11 rounded-lg border border-gray-300 px-4 font-medium whitespace-nowrap text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+                >
+                  Reset filter
+                </button>
+              </div>
+            </section>
+
+            <div
+              x-show="error"
+              x-cloak
+              role="alert"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 mb-6 rounded-xl border p-4"
+            >
+              <p
+                class="text-theme-sm text-error-600 dark:text-error-400"
+                x-text="error"
+              ></p>
+            </div>
+
+            <section
+              class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 p-5 md:p-6 dark:border-gray-800"
+              >
+                <div>
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Rincian transaksi
+                  </h3>
+                  <p
+                    class="text-theme-sm mt-0.5 text-gray-500 dark:text-gray-400"
+                    x-text="rangeLabel + (result.total ? ' · ' + formatAngka(result.summary.trx) + ' invoice · ' + formatAngka(result.summary.qty) + ' unit · GMV ' + formatRupiah(result.summary.gmv) : '')"
+                  ></p>
+                  <p
+                    class="text-theme-xs mt-1 flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                  >
+                    <span
+                      class="inline-block size-2 shrink-0 rounded-full"
+                      :class="statusData.warna"
+                    ></span>
+                    <span x-text="statusData.teks"></span>
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="relative">
+                    <input
+                      type="search"
+                      x-model="search"
+                      @input="onSearchInput()"
+                      placeholder="Cari invoice, SKU, produk, brand…"
+                      class="dark:bg-dark-900 focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 ps-10 pe-4 text-sm text-gray-800 focus:ring-3 focus:outline-hidden sm:w-72 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                      aria-label="Cari transaksi"
+                    />
+                    <span
+                      class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-gray-400"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 20 20"
+                        class="fill-current"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M3.04 9.37a6.33 6.33 0 1 1 11.2 4.04l3.17 3.17a.75.75 0 1 1-1.06 1.06l-3.17-3.16A6.33 6.33 0 0 1 3.04 9.37Zm6.33-4.83a4.83 4.83 0 1 0 0 9.66 4.83 4.83 0 0 0 0-9.66Z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+
+                  <a
+                    :href="exportHref"
+                    class="bg-brand-500 hover:bg-brand-600 shadow-theme-xs text-theme-sm inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium text-white transition"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 20 20"
+                      class="fill-current"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M10 2.5a.75.75 0 0 1 .75.75v7.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V3.25A.75.75 0 0 1 10 2.5ZM3.75 13a.75.75 0 0 1 .75.75v1.75c0 .14.11.25.25.25h10.5a.25.25 0 0 0 .25-.25v-1.75a.75.75 0 0 1 1.5 0v1.75c0 .97-.78 1.75-1.75 1.75H4.75C3.78 17.25 3 16.47 3 15.5v-1.75a.75.75 0 0 1 .75-.75Z"
+                      />
+                    </svg>
+                    Ekspor CSV
+                  </a>
+                </div>
+              </div>
+
+              <div
+                class="custom-scrollbar overflow-x-auto transition-opacity duration-200"
+                :class="loading ? 'opacity-50' : 'opacity-100'"
+              >
+                <table class="w-full min-w-320 text-left">
+                  <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-800">
+                      <template x-for="kolom in kolomTabel" :key="kolom.key">
+                        <th
+                          class="px-4 py-3 whitespace-nowrap"
+                          :class="kolom.align === 'right' ? 'text-right' : 'text-left'"
+                        >
+                          <button
+                            x-show="kolom.sortable"
+                            type="button"
+                            @click="urutkan(kolom.key)"
+                            class="text-theme-xs flex items-center gap-1 font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            :class="kolom.align === 'right' ? 'ml-auto' : ''"
+                          >
+                            <span x-text="kolom.label"></span>
+                            <span
+                              x-show="sortBy === kolom.key"
+                              x-text="sortDir === 'asc' ? '↑' : '↓'"
+                            ></span>
+                          </button>
+                          <span
+                            x-show="!kolom.sortable"
+                            class="text-theme-xs font-medium text-gray-500 dark:text-gray-400"
+                            :class="kolom.align === 'right' ? 'block text-right' : ''"
+                            x-text="kolom.label"
+                          ></span>
+                        </th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(row, index) in barisTampil" :key="index">
+                      <tr
+                        class="hover:bg-gray-50 dark:hover:bg-white/3"
+                        :class="row.invoiceBaru && index > 0
+                          ? 'border-t border-gray-200 dark:border-gray-800'
+                          : 'border-t border-gray-100/70 dark:border-gray-800/40'"
+                      >
+                        <!-- Tanggal & channel hanya ditulis saat berganti, supaya
+                             mata langsung menangkap batas kelompoknya. -->
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.grupBaru ? formatTanggalRingkas(row.tanggal) : ''"
+                        ></td>
+                        <!-- Kolom tingkat invoice: ditulis sekali di baris pertamanya. -->
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="row.invoiceBaru ? jamPendek(row.waktu) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.invoiceBaru ? row.sesi_label : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.grupBaru ? row.channel : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                          :title="row.invoiceBaru ? (row.invoice || '') : ''"
+                          x-text="row.invoiceBaru ? invoicePendek(row.invoice) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.invoiceBaru ? teks(row.payment_note) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="rupiahAtauKosong(row.total_bayar)"
+                        ></td>
+
+                        <!-- Kolom tingkat baris produk. -->
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="formatAngka(row.qty)"
+                        ></td>
+                        <td
+                          x-show="app && app.bolehLihatHpp"
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="rupiahAtauStrip(row.hpp)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="rupiahAtauStrip(row.total_harga_barang)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.brand)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.sku_produk)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.nama_produk)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.warna)"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="teks(row.ukuran)"
+                        ></td>
+
+                        <!-- Promo kembali ke tingkat invoice. -->
+                        <td
+                          class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
+                          x-text="row.invoiceBaru ? teks(row.promo_kode) : ''"
+                        ></td>
+                        <td
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          x-text="row.invoiceBaru ? rupiahAtauStrip(row.promo_value) : ''"
+                        ></td>
+                      </tr>
+                    </template>
+
+                    <tr x-show="!loading && result.rows.length === 0" x-cloak>
+                      <td
+                        :colspan="kolomTabel.length"
+                        class="text-theme-sm px-4 py-12 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        <span
+                          x-text="error || 'Tidak ada transaksi yang cocok dengan filter ini.'"
+                        ></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <p
+                class="text-theme-xs border-t border-gray-100 px-5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400"
+              >
+                Satu baris = satu produk.
+                <span class="font-medium">Total bayar</span> dan nilai promo
+                berlaku untuk satu invoice, jadi hanya ditulis di baris pertama
+                invoice tersebut. Transaksi berstatus Cancel/Open tidak
+                ditampilkan.
+              </p>
+
+              <!-- Navigasi halaman -->
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 p-5 dark:border-gray-800"
+              >
+                <div class="flex items-center gap-2">
+                  <label
+                    for="page-size"
+                    class="text-theme-xs text-gray-500 dark:text-gray-400"
+                    >Baris per halaman</label
+                  >
+                  <select
+                    id="page-size"
+                    @change="gantiPageSize($event.target.value)"
+                    class="dark:bg-dark-900 h-9 rounded-lg border border-gray-300 bg-transparent ps-3 pe-8 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  >
+                    <template x-for="size in pageSizes" :key="size">
+                      <option
+                        :value="size"
+                        :selected="size === pageSize"
+                        x-text="size"
+                      ></option>
+                    </template>
+                  </select>
+                </div>
+
+                <nav
+                  class="flex items-center gap-1"
+                  aria-label="Navigasi halaman"
+                >
+                  <button
+                    type="button"
+                    @click="gotoPage(currentPage - 1)"
+                    :disabled="currentPage <= 1"
+                    class="text-theme-sm h-9 rounded-lg border border-gray-300 px-3 font-medium text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-400"
+                  >
+                    Sebelumnya
+                  </button>
+
+                  <template x-for="(nomor, i) in pageNumbers" :key="nomor">
+                    <div class="flex items-center">
+                      <span
+                        x-show="i > 0 && nomor - pageNumbers[i - 1] > 1"
+                        class="px-1 text-gray-400"
+                        >…</span
+                      >
+                      <button
+                        type="button"
+                        @click="gotoPage(nomor)"
+                        class="text-theme-sm h-9 min-w-9 rounded-lg px-2 font-medium transition-colors"
+                        :class="nomor === currentPage
+                          ? 'bg-brand-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5'"
+                        :aria-current="nomor === currentPage ? 'page' : null"
+                        x-text="nomor"
+                      ></button>
+                    </div>
+                  </template>
+
+                  <button
+                    type="button"
+                    @click="gotoPage(currentPage + 1)"
+                    :disabled="currentPage >= totalPages"
+                    class="text-theme-sm h-9 rounded-lg border border-gray-300 px-3 font-medium text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-400"
+                  >
+                    Berikutnya
+                  </button>
+                </nav>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

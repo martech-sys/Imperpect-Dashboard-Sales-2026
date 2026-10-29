@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Masuk ke dashboard penjualan Imperfect Sale."
+    />
+    <title>Masuk | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="signinPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="relative z-1 bg-white p-6 sm:p-0 dark:bg-gray-900">
+      <div
+        class="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-gray-900"
+      >
+        <!-- Kolom formulir -->
+        <div class="flex w-full flex-1 flex-col lg:w-1/2">
+          <div
+            class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10"
+          >
+            <div class="mb-8 flex items-center gap-3 lg:hidden">
+              <span
+                class="bg-brand-500 flex size-10 items-center justify-center rounded-xl text-white"
+                aria-hidden="true"
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  class="fill-current"
+                >
+                  <path
+                    d="M4.5 3.75h15a.75.75 0 0 1 .72.53l1.2 3.9A2.85 2.85 0 0 1 18.9 11.1a2.85 2.85 0 0 1-2.4-1.3 2.85 2.85 0 0 1-4.5 0 2.85 2.85 0 0 1-4.5 0 2.85 2.85 0 0 1-5.22-2.62l1.2-3.9a.75.75 0 0 1 .72-.53Zm.42 8.45v6.55c0 .83.67 1.5 1.5 1.5h3.33v-4.6h4.5v4.6h3.33c.83 0 1.5-.67 1.5-1.5V12.2a4.35 4.35 0 0 1-4.5-.86 4.35 4.35 0 0 1-4.5 0 4.35 4.35 0 0 1-5.16.86Z"
+                  />
+                </svg>
+              </span>
+              <span
+                class="text-base font-semibold text-gray-800 dark:text-white/90"
+                x-text="namaEvent || 'Imperfect Sale'"
+              ></span>
+            </div>
+
+            <div class="mb-6">
+              <h1
+                class="text-title-sm sm:text-title-md mb-2 font-semibold text-gray-800 dark:text-white/90"
+              >
+                Masuk
+              </h1>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Masukkan password dashboard untuk membuka laporan penjualan
+                event.
+              </p>
+            </div>
+
+            <!-- Pesan kesalahan login -->
+            <div
+              x-show="error"
+              x-cloak
+              x-transition
+              role="alert"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 mb-5 flex items-start gap-3 rounded-xl border p-4"
+            >
+              <svg
+                class="fill-error-500 mt-0.5 shrink-0"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 2.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm.75 11.25h-1.5v-1.5h1.5v1.5Zm0-3h-1.5v-4.5h1.5v4.5Z"
+                />
+              </svg>
+              <p
+                class="text-theme-sm text-error-600 dark:text-error-400"
+                x-text="error"
+              ></p>
+            </div>
+
+            <form @submit.prevent="submit()" novalidate>
+              <div class="space-y-5">
+                <div>
+                  <label
+                    for="password"
+                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                  >
+                    Password<span class="text-error-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <input
+                      :type="showPassword ? 'text' : 'password'"
+                      id="password"
+                      name="password"
+                      x-model="password"
+                      autocomplete="current-password"
+                      required
+                      placeholder="Masukkan password"
+                      class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 ps-4 pe-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                    />
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute top-1/2 right-4 z-30 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                      :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+                    >
+                      <svg
+                        x-show="!showPassword"
+                        class="fill-current"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M10 13.86c-2.77 0-5.13-1.72-6.08-4.16A6.55 6.55 0 0 1 10 5.54c2.77 0 5.13 1.73 6.08 4.16A6.55 6.55 0 0 1 10 13.86ZM10 4.04a8.16 8.16 0 0 0-7.58 5.42.9.9 0 0 0 0 .49A8.16 8.16 0 0 0 10 15.36a8.16 8.16 0 0 0 7.58-5.42.9.9 0 0 0 0-.49A8.16 8.16 0 0 0 10 4.04Zm-.01 3.8a1.86 1.86 0 1 0 .02 3.72 1.86 1.86 0 0 0-.02-3.72Z"
+                        />
+                      </svg>
+                      <svg
+                        x-show="showPassword"
+                        x-cloak
+                        class="fill-current"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M4.64 3.58a.75.75 0 1 0-1.06 1.06l1.27 1.27A8.2 8.2 0 0 0 2.42 9.46a.9.9 0 0 0 0 .49 8.16 8.16 0 0 0 11.08 4.61l1.86 1.86a.75.75 0 1 0 1.06-1.06L4.64 3.58Zm7.72 9.84-1.91-1.91a1.86 1.86 0 0 1-2.32-2.32l-2.27-2.27a6.62 6.62 0 0 0-2.21 2.72 6.55 6.55 0 0 0 8.71 3.78Zm3.72-3.72a6.6 6.6 0 0 1-1.26 2.03l1.06 1.06a8.1 8.1 0 0 0 1.7-2.84.9.9 0 0 0 0-.49A8.16 8.16 0 0 0 10 4.04c-.87 0-1.7.14-2.48.39l1.23 1.23c.4-.08.82-.12 1.25-.12 2.77 0 5.13 1.73 6.08 4.16Z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  :disabled="loading"
+                  class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <svg
+                    x-show="loading"
+                    x-cloak
+                    class="size-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      class="opacity-25"
+                    />
+                    <path
+                      d="M21 12a9 9 0 0 0-9-9"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <span x-text="loading ? 'Memproses…' : 'Masuk'"></span>
+                </button>
+              </div>
+            </form>
+
+            <p class="mt-8 text-center text-xs text-gray-400 sm:text-start">
+              Password dibagikan oleh admin dashboard.
+            </p>
+          </div>
+        </div>
+
+        <!-- Kolom brand -->
+        <div
+          class="bg-brand-950 relative hidden h-full w-full items-center lg:grid lg:w-1/2 dark:bg-white/5"
+        >
+          <div class="z-1 flex items-center justify-center">
+            <include src="./partials/common-grid-shape.html"></include>
+            <div class="flex max-w-sm flex-col items-center px-6 text-center">
+              <span
+                class="mb-6 flex size-16 items-center justify-center rounded-2xl bg-white/10 text-white"
+                aria-hidden="true"
+              >
+                <svg
+                  width="34"
+                  height="34"
+                  viewBox="0 0 24 24"
+                  class="fill-current"
+                >
+                  <path
+                    d="M4.5 3.75h15a.75.75 0 0 1 .72.53l1.2 3.9A2.85 2.85 0 0 1 18.9 11.1a2.85 2.85 0 0 1-2.4-1.3 2.85 2.85 0 0 1-4.5 0 2.85 2.85 0 0 1-4.5 0 2.85 2.85 0 0 1-5.22-2.62l1.2-3.9a.75.75 0 0 1 .72-.53Zm.42 8.45v6.55c0 .83.67 1.5 1.5 1.5h3.33v-4.6h4.5v4.6h3.33c.83 0 1.5-.67 1.5-1.5V12.2a4.35 4.35 0 0 1-4.5-.86 4.35 4.35 0 0 1-4.5 0 4.35 4.35 0 0 1-5.16.86Z"
+                  />
+                </svg>
+              </span>
+              <h2
+                class="mb-3 text-xl font-semibold text-white"
+                x-text="namaEvent || 'Imperfect Sale'"
+              ></h2>
+              <p
+                class="text-sm leading-relaxed text-gray-400 dark:text-white/60"
+              >
+                Pantau unit sold, transaksi, dan GMV tiap sesi di setiap channel
+                event secara live, lengkap dengan rincian per produk.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol mode gelap -->
+        <div class="fixed right-6 bottom-6 z-50">
+          <button
+            class="bg-brand-500 hover:bg-brand-600 inline-flex size-14 items-center justify-center rounded-full text-white transition-colors"
+            @click.prevent="darkMode = !darkMode"
+            :aria-label="darkMode ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
+          >
+            <svg
+              class="hidden fill-current dark:block"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M10 1.54a.75.75 0 0 1 .75.75v1.25a.75.75 0 0 1-1.5 0V2.29a.75.75 0 0 1 .75-.75Zm0 5.25a3.21 3.21 0 1 0 0 6.42 3.21 3.21 0 0 0 0-6.42ZM5.29 10a4.71 4.71 0 1 1 9.42 0 4.71 4.71 0 0 1-9.42 0Zm10.69-4.92a.75.75 0 0 0-1.06-1.06l-.88.88a.75.75 0 0 0 1.06 1.06l.88-.88ZM18.46 10a.75.75 0 0 1-.75.75h-1.25a.75.75 0 0 1 0-1.5h1.25a.75.75 0 0 1 .75.75Zm-3.54 5.98a.75.75 0 0 0 1.06-1.06l-.88-.88a.75.75 0 1 0-1.06 1.06l.88.88ZM10 15.71a.75.75 0 0 1 .75.75v1.25a.75.75 0 0 1-1.5 0v-1.25a.75.75 0 0 1 .75-.75Zm-4.04-.61a.75.75 0 1 0-1.06-1.06l-.88.88a.75.75 0 1 0 1.06 1.06l.88-.88ZM4.29 10a.75.75 0 0 1-.75.75H2.29a.75.75 0 0 1 0-1.5h1.25a.75.75 0 0 1 .75.75Zm.61-4.04a.75.75 0 1 0 1.06-1.06l-.88-.88a.75.75 0 0 0-1.06 1.06l.88.88Z"
+                fill="currentColor"
+              />
+            </svg>
+            <svg
+              class="fill-current dark:hidden"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+            >
+              <path
+                d="M17.45 11.97a7.46 7.46 0 0 1-9.42-9.42A7.5 7.5 0 1 0 17.45 11.97Z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

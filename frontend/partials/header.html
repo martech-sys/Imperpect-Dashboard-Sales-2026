@@ -1,0 +1,151 @@
+<header
+  class="sticky top-0 z-99999 flex w-full border-b border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900"
+>
+  <div
+    class="flex grow flex-col items-center justify-between lg:flex-row lg:px-6"
+  >
+    <div
+      class="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4 dark:border-gray-800"
+    >
+      <button
+        class="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 lg:h-11 lg:w-11 dark:border-gray-800 dark:text-gray-400"
+        @click.stop="sidebarToggle = !sidebarToggle"
+        aria-label="Buka atau tutup menu samping"
+      >
+        <svg
+          class="fill-current"
+          :class="sidebarToggle ? 'hidden' : 'block'"
+          width="16"
+          height="12"
+          viewBox="0 0 16 12"
+          fill="none"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M0.583 1C0.583 0.585 0.919 0.25 1.333 0.25H14.667C15.081 0.25 15.417 0.585 15.417 1C15.417 1.414 15.081 1.75 14.667 1.75H1.333C0.919 1.75 0.583 1.414 0.583 1ZM0.583 11C0.583 10.586 0.919 10.25 1.333 10.25H14.667C15.081 10.25 15.417 10.586 15.417 11C15.417 11.414 15.081 11.75 14.667 11.75H1.333C0.919 11.75 0.583 11.414 0.583 11ZM1.333 5.25C0.919 5.25 0.583 5.586 0.583 6C0.583 6.414 0.919 6.75 1.333 6.75H8C8.414 6.75 8.75 6.414 8.75 6C8.75 5.586 8.414 5.25 8 5.25H1.333Z"
+            fill="currentColor"
+          />
+        </svg>
+        <svg
+          class="fill-current"
+          :class="sidebarToggle ? 'block' : 'hidden'"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M3.22 3.22a.75.75 0 0 1 1.06 0L8 6.94l3.72-3.72a.75.75 0 1 1 1.06 1.06L9.06 8l3.72 3.72a.75.75 0 1 1-1.06 1.06L8 9.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06L6.94 8 3.22 4.28a.75.75 0 0 1 0-1.06Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+
+      <div class="hidden lg:block">
+        <h1
+          class="text-lg font-semibold text-gray-800 dark:text-white/90"
+          x-text="pageTitle"
+        ></h1>
+        <p
+          class="text-theme-sm text-gray-500 dark:text-gray-400"
+          x-text="pageSubtitle"
+        ></p>
+      </div>
+
+      <div class="flex items-center gap-2 lg:hidden">
+        <span
+          class="text-theme-xs rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-600 dark:bg-white/5 dark:text-gray-300"
+          x-text="pageTitle"
+        ></span>
+      </div>
+    </div>
+
+    <div
+      class="flex w-full items-center justify-between gap-4 px-5 py-4 lg:w-auto lg:justify-end lg:px-0"
+    >
+      <!-- Penanda mode demo -->
+      <span
+        x-show="demoMode"
+        x-cloak
+        class="text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium whitespace-nowrap"
+        title="Database belum diisi; angka yang tampil adalah data contoh."
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 20 20"
+          fill="none"
+          class="fill-current"
+          aria-hidden="true"
+        >
+          <path
+            d="M10 2.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm.75 11.25h-1.5v-1.5h1.5v1.5Zm0-3h-1.5v-4.5h1.5v4.5Z"
+          />
+        </svg>
+        Mode demo
+      </span>
+
+      <!-- Tombol mode gelap -->
+      <button
+        class="hover:text-brand-500 dark:hover:text-brand-400 flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors dark:border-gray-800 dark:text-gray-400"
+        @click.prevent="darkMode = !darkMode; document.documentElement.classList.toggle('dark', darkMode)"
+        :aria-label="darkMode ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
+      >
+        <svg
+          class="hidden fill-current dark:block"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M10 1.54a.75.75 0 0 1 .75.75v1.25a.75.75 0 0 1-1.5 0V2.29a.75.75 0 0 1 .75-.75Zm0 5.25a3.21 3.21 0 1 0 0 6.42 3.21 3.21 0 0 0 0-6.42ZM5.29 10a4.71 4.71 0 1 1 9.42 0 4.71 4.71 0 0 1-9.42 0Zm10.69-4.92a.75.75 0 0 0-1.06-1.06l-.88.88a.75.75 0 0 0 1.06 1.06l.88-.88ZM18.46 10a.75.75 0 0 1-.75.75h-1.25a.75.75 0 0 1 0-1.5h1.25a.75.75 0 0 1 .75.75Zm-3.54 5.98a.75.75 0 0 0 1.06-1.06l-.88-.88a.75.75 0 1 0-1.06 1.06l.88.88ZM10 15.71a.75.75 0 0 1 .75.75v1.25a.75.75 0 0 1-1.5 0v-1.25a.75.75 0 0 1 .75-.75Zm-4.04-.61a.75.75 0 1 0-1.06-1.06l-.88.88a.75.75 0 1 0 1.06 1.06l.88-.88ZM4.29 10a.75.75 0 0 1-.75.75H2.29a.75.75 0 0 1 0-1.5h1.25a.75.75 0 0 1 .75.75Zm.61-4.04a.75.75 0 1 0 1.06-1.06l-.88-.88a.75.75 0 0 0-1.06 1.06l.88.88Z"
+            fill="currentColor"
+          />
+        </svg>
+        <svg
+          class="fill-current dark:hidden"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            d="M17.45 11.97a7.46 7.46 0 0 1-9.42-9.42A7.5 7.5 0 1 0 17.45 11.97Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+
+      <!-- Keluar: hanya ada bila gerbang password aktif -->
+      <button
+        x-show="authAktif"
+        x-cloak
+        @click="logout()"
+        class="text-theme-sm flex h-11 items-center gap-2 rounded-full border border-gray-200 px-4 font-medium text-gray-600 transition-colors hover:text-gray-800 dark:border-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+      >
+        <svg
+          class="fill-current"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M15.1 19.25a.75.75 0 0 1 0-1.5h2.65a.75.75 0 0 0 .75-.75V7a.75.75 0 0 0-.75-.75H15.1a.75.75 0 0 1 0-1.5h2.65A2.25 2.25 0 0 1 20 7v10a2.25 2.25 0 0 1-2.25 2.25H15.1ZM10.3 8.2a.75.75 0 0 1 1.06 0l3.27 3.27a.75.75 0 0 1 0 1.06L11.36 15.8a.75.75 0 1 1-1.06-1.06l1.99-1.99H4.75a.75.75 0 0 1 0-1.5h7.54L10.3 9.26a.75.75 0 0 1 0-1.06Z"
+            fill="currentColor"
+          />
+        </svg>
+        Keluar
+      </button>
+    </div>
+  </div>
+</header>

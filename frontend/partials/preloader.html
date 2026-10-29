@@ -1,0 +1,14 @@
+<!--
+  Penutup layar saat halaman disiapkan. Sengaja TIDAK menyembunyikan diri
+  sendiri setelah jeda: halaman yang menurunkan `loaded` begitu sesi selesai
+  diperiksa. Dengan begitu pengunjung yang belum login tidak sempat melihat
+  kerangka dashboard sebelum dialihkan ke halaman masuk.
+-->
+<div
+  x-show="loaded"
+  class="fixed top-0 left-0 z-999999 flex h-screen w-screen items-center justify-center bg-white dark:bg-black"
+>
+  <div
+    class="border-brand-500 h-16 w-16 animate-spin rounded-full border-4 border-solid border-t-transparent"
+  ></div>
+</div>

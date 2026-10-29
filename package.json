@@ -17,6 +17,7 @@
     "format": "prettier --write \"frontend/**/*.{js,html,css}\" \"server/**/*.js\""
   },
   "dependencies": {
+    "@vercel/functions": "^3.10.4",
     "pg": "^8.13.1"
   },
   "devDependencies": {

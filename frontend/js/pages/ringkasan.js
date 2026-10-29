@@ -126,10 +126,13 @@ export function ringkasanPage() {
       },
 
       async loadData(muatan) {
-        const data = await api.ringkasan();
+        const terapkan = (data) => {
+          this.data = data;
+          this.kesegaran = data.kesegaran.internal;
+        };
+        const data = await api.ringkasan(this.dariCacheUntuk(muatan, terapkan));
         if (this.usang(muatan)) return;
-        this.data = data;
-        this.kesegaran = data.kesegaran.internal;
+        terapkan(data);
       },
 
       /** Mengunduh ringkasan per brand persis seperti yang tampil. */

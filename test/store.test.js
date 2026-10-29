@@ -44,7 +44,7 @@ test("sumber gagal: data terakhir tetap dipakai dan ditandai stale", async () =>
 
   jam = 61_000;
   gagal = true;
-  const b = await store.get();
+  const b = await store.get({ tunggu: true });
   assert.equal(dibaca, 2);
   assert.equal(b.rows.length, 1);
   assert.equal(b.kesegaran.stale, true);
@@ -61,4 +61,52 @@ test("permintaan bersamaan menunggu satu pembacaan yang sama", async () => {
   const store = createStore(source, event, { cacheSeconds: 60 });
   await Promise.all([store.get(), store.get(), store.get()]);
   assert.equal(dibaca, 1);
+});
+
+test("data kedaluwarsa langsung dikirim; pembacaan baru berjalan di belakang", async () => {
+  let jam = 0;
+  let isi = "1";
+  let lepas;
+  const ditahan = [];
+  const source = {
+    name: "postgres",
+    fetch: () =>
+      new Promise((r) => {
+        lepas = () =>
+          r([
+            {
+              tanggal: "2026-10-30",
+              waktu: "09:00:00",
+              invoice: "A",
+              qty: isi,
+              status: "Delivery",
+            },
+          ]);
+        if (isi === "1") lepas();
+      }),
+    close: async () => {},
+  };
+  const store = createStore(source, event, {
+    cacheSeconds: 60,
+    now: () => jam,
+    waitUntil: (p) => ditahan.push(p),
+  });
+
+  // Permintaan pertama harus menunggu: belum ada data sama sekali.
+  assert.equal((await store.get()).rows[0].qty, 1);
+
+  // Lewat 60 detik: jawaban langsung berisi data lama, pembacaan baru belum selesai.
+  jam = 61_000;
+  isi = "5";
+  const lama = await store.get();
+  assert.equal(lama.rows[0].qty, 1);
+  assert.equal(lama.kesegaran.memperbarui, true);
+  assert.equal(ditahan.length, 2);
+
+  // Setelah pembacaan di belakang selesai, permintaan berikutnya mendapat data baru.
+  lepas();
+  await ditahan[1];
+  const baru = await store.get();
+  assert.equal(baru.rows[0].qty, 5);
+  assert.equal(baru.kesegaran.memperbarui, false);
 });

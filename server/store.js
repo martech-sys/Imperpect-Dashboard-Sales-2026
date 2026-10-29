@@ -79,6 +79,12 @@ function siapkan(rawRows, event) {
  * pembacaan yang sama. Kalau pembacaan gagal, data terakhir yang berhasil
  * tetap dipakai (ditandai `stale`) — database yang restart sebentar tidak
  * mengosongkan dashboard.
+ *
+ * Stale-while-revalidate: begitu sudah ada data, permintaan tidak pernah
+ * menunggu database. Data yang lewat `cacheSeconds` langsung dikirim, dan
+ * pembacaan baru berjalan di belakang untuk permintaan berikutnya. Hanya
+ * permintaan pertama sebuah instance yang menunggu query. `opts.waitUntil`
+ * (Vercel) menjaga pembacaan di belakang tetap jalan sesudah jawaban terkirim.
  */
 function createStore(source, event, opts = {}) {
   const cacheMs = (opts.cacheSeconds || 60) * 1000;
@@ -109,11 +115,20 @@ function createStore(source, event, opts = {}) {
     }
   }
 
+  function mulai() {
+    if (!running) {
+      running = baca().finally(() => (running = null));
+      if (opts.waitUntil) opts.waitUntil(running);
+    }
+    return running;
+  }
+
   return {
-    async get() {
+    /** `tunggu: true` menunggu pembacaan baru walau data lama ada (dipakai tes). */
+    async get({ tunggu = false } = {}) {
       if (now() - lastAttempt >= cacheMs || (!data && !error)) {
-        if (!running) running = baca().finally(() => (running = null));
-        await running;
+        const p = mulai();
+        if (!data || tunggu) await p;
       }
       return {
         rows: data ? data.rows : null,
@@ -125,6 +140,7 @@ function createStore(source, event, opts = {}) {
           fetchedAt,
           error,
           stale: Boolean(error && data),
+          memperbarui: Boolean(running),
           cacheSeconds: cacheMs / 1000,
         },
       };

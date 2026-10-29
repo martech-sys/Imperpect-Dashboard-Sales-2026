@@ -8,9 +8,12 @@
  */
 
 const { Pool } = require("pg");
+const { waitUntil } = require("@vercel/functions");
 const { createApp } = require("../server/app");
 
 // Satu query per pembacaan, jadi tiap instance cukup memegang satu koneksi.
-const app = createApp(process.env, { Pool, maxConnections: 1 });
+// waitUntil menjaga pembacaan data di belakang (stale-while-revalidate) tetap
+// berjalan sesudah jawaban dikirim.
+const app = createApp(process.env, { Pool, maxConnections: 1, waitUntil });
 
 module.exports = (req, res) => app.handle(req, res);

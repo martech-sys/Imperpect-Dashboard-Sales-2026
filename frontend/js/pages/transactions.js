@@ -202,6 +202,7 @@ export function transactionsPage() {
             pageSize: this.pageSize,
           },
           this.dariCacheUntuk(muatan, terapkan),
+          this.muatSegar,
         );
         if (this.usang(muatan)) return;
         terapkan(data);

@@ -110,3 +110,41 @@ test("data kedaluwarsa langsung dikirim; pembacaan baru berjalan di belakang", a
   assert.equal(baru.rows[0].qty, 5);
   assert.equal(baru.kesegaran.memperbarui, false);
 });
+
+test("segar (tombol Refresh): menunggu pembacaan baru bila data lebih tua dari 10 detik", async () => {
+  let jam = 0;
+  let dibaca = 0;
+  const source = {
+    name: "postgres",
+    async fetch() {
+      dibaca += 1;
+      return [
+        {
+          tanggal: "2026-10-30",
+          waktu: "09:00:00",
+          invoice: String(dibaca),
+          qty: "1",
+          status: "Delivery",
+        },
+      ];
+    },
+    close: async () => {},
+  };
+  const store = createStore(source, event, {
+    cacheSeconds: 60,
+    now: () => jam,
+  });
+  await store.get();
+  assert.equal(dibaca, 1);
+
+  // Klik beruntun dalam 10 detik tidak membaca ulang database.
+  jam = 5_000;
+  await store.get({ segar: true });
+  assert.equal(dibaca, 1);
+
+  // Lewat 10 detik: Refresh menunggu data baru walau cache 60 detik belum habis.
+  jam = 15_000;
+  const r = await store.get({ segar: true });
+  assert.equal(dibaca, 2);
+  assert.equal(r.rows[0].invoice, "2");
+});

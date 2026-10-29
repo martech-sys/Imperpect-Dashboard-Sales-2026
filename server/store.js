@@ -85,7 +85,13 @@ function siapkan(rawRows, event) {
  * pembacaan baru berjalan di belakang untuk permintaan berikutnya. Hanya
  * permintaan pertama sebuah instance yang menunggu query. `opts.waitUntil`
  * (Vercel) menjaga pembacaan di belakang tetap jalan sesudah jawaban terkirim.
+ *
+ * `segar: true` (tombol Refresh) menunggu pembacaan baru bila data sudah
+ * lebih tua dari SEGAR_MIN_MS, supaya Refresh benar-benar menampilkan angka
+ * terbaru tanpa membiarkan klik beruntun membebani database.
  */
+const SEGAR_MIN_MS = 10_000;
+
 function createStore(source, event, opts = {}) {
   const cacheMs = (opts.cacheSeconds || 60) * 1000;
   const now = opts.now || (() => Date.now());
@@ -125,8 +131,10 @@ function createStore(source, event, opts = {}) {
 
   return {
     /** `tunggu: true` menunggu pembacaan baru walau data lama ada (dipakai tes). */
-    async get({ tunggu = false } = {}) {
-      if (now() - lastAttempt >= cacheMs || (!data && !error)) {
+    async get({ tunggu = false, segar = false } = {}) {
+      const umur = now() - lastAttempt;
+      if (segar && umur >= SEGAR_MIN_MS) await mulai();
+      else if (umur >= cacheMs || (!data && !error)) {
         const p = mulai();
         if (!data || tunggu) await p;
       }
@@ -149,4 +157,10 @@ function createStore(source, event, opts = {}) {
   };
 }
 
-module.exports = { createStore, siapkan, bukanPenjualan, angka };
+module.exports = {
+  SEGAR_MIN_MS,
+  createStore,
+  siapkan,
+  bukanPenjualan,
+  angka,
+};

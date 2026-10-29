@@ -141,10 +141,13 @@ export function eksternalPage() {
         this.data = data;
         this.kesegaran = data.kesegaran;
       };
-      const data = await api.eksternal(this.dariCacheUntuk(muatan, terapkan));
+      const data = await api.eksternal(
+        this.dariCacheUntuk(muatan, terapkan),
+        this.muatSegar,
+      );
       if (this.usang(muatan)) return;
       terapkan(data);
-      if (this.brandDipilih) await this.muatDetail();
+      if (this.brandDipilih) await this.muatDetail(this.muatSegar);
     },
 
     async pilihBrand(brand) {
@@ -162,14 +165,18 @@ export function eksternalPage() {
       );
     },
 
-    async muatDetail() {
+    async muatDetail(segar = false) {
       const brand = this.brandDipilih;
       this.memuatDetail = true;
       this.galatDetail = "";
       try {
-        const d = await api.eksternalBrand(brand, (lama) => {
-          if (brand === this.brandDipilih) this.detail = lama;
-        });
+        const d = await api.eksternalBrand(
+          brand,
+          (lama) => {
+            if (brand === this.brandDipilih) this.detail = lama;
+          },
+          segar,
+        );
         if (brand === this.brandDipilih) this.detail = d;
       } catch (err) {
         if (brand === this.brandDipilih) {

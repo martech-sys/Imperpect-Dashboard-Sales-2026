@@ -87,6 +87,7 @@ export function pivotPage() {
             urut: this.urut,
           },
           this.dariCacheUntuk(muatan, terapkan),
+          this.muatSegar,
         );
         if (this.usang(muatan)) return;
         terapkan(data);

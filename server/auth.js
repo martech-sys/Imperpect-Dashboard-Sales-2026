@@ -5,10 +5,8 @@ const crypto = require("node:crypto");
 /**
  * Gerbang password opsional.
  *
- * Kalau DASHBOARD_PASSWORD diisi, seluruh data hanya terbuka setelah masuk,
- * dan kolom HPP ikut dikirim. Kalau kosong, dashboard terbuka tanpa login
- * tetapi HPP tidak pernah dikirim ke browser — harga pokok bukan angka yang
- * boleh terbuka bagi siapa pun yang memegang link.
+ * Kalau DASHBOARD_PASSWORD diisi, seluruh data hanya terbuka setelah masuk.
+ * Kalau kosong, dashboard terbuka bagi siapa pun yang memegang link.
  *
  * Sesi disimpan di cookie bertanda tangan HMAC (tanpa database), jadi berlaku
  * di semua instance serverless sekaligus. Kuncinya diturunkan dari password,

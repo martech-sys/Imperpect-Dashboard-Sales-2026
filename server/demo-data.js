@@ -107,7 +107,6 @@ function demoRows(event) {
           nama,
           qty,
           total: hargaJual * qty,
-          hpp: acak() < 0.1 ? null : harga * 0.42 * qty,
         });
       }
       const totalBayar = baris.reduce((s, b) => s + b.total, 0) - promo[1];
@@ -121,7 +120,6 @@ function demoRows(event) {
           payment_note: bayar,
           total_bayar: pgAngka(totalBayar),
           qty: pgAngka(b.qty),
-          hpp: pgAngka(b.hpp),
           total_harga_barang: pgAngka(b.total),
           brand: b.brand,
           sku_produk: b.sku,

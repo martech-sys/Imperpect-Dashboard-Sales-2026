@@ -18,24 +18,20 @@ const MEDAN = ["brand", "hari", "sesi", "channel"];
  * pertama jatuh di tempat yang salah.
  */
 const KOLOM_TABEL = [
+  { key: "brand", label: "Brand", align: "left", sortable: true },
   { key: "tanggal", label: "Tanggal", align: "left", sortable: true },
   { key: "waktu", label: "Jam", align: "left" },
-  { key: "sesi_label", label: "Sesi", align: "left" },
-  { key: "channel", label: "Channel", align: "left", sortable: true },
   { key: "invoice", label: "No. invoice", align: "left", sortable: true },
-  { key: "payment_note", label: "Metode bayar", align: "left" },
-  { key: "total_bayar", label: "Total bayar", align: "right" },
-  { key: "qty", label: "Qty", align: "right" },
-  // HPP tingkat baris, sama seperti Harga: sudah dikali qty, bukan per unit.
-  { key: "hpp", label: "HPP", align: "right" },
-  { key: "total_harga_barang", label: "Harga", align: "right" },
-  { key: "brand", label: "Brand", align: "left", sortable: true },
   { key: "sku_produk", label: "SKU", align: "left" },
   { key: "nama_produk", label: "Nama produk", align: "left" },
-  { key: "warna", label: "Warna", align: "left" },
-  { key: "ukuran", label: "Ukuran", align: "left" },
-  { key: "promo_kode", label: "Kode promo", align: "left" },
-  { key: "promo_value", label: "Nilai promo", align: "right" },
+  { key: "kategori", label: "Kategori", align: "left" },
+  { key: "channel", label: "Channel", align: "left", sortable: true },
+  { key: "qty", label: "Qty", align: "right" },
+  { key: "total_harga_barang", label: "Harga", align: "right" },
+  { key: "promo_value", label: "Promo", align: "right" },
+  { key: "total_bayar", label: "Total bayar", align: "right" },
+  { key: "payment_note", label: "Metode bayar", align: "left" },
+  { key: "status", label: "Status", align: "left" },
 ];
 
 /** Rincian transaksi: satu baris per produk, dikelompokkan per invoice. */
@@ -71,12 +67,7 @@ export function transactionsPage() {
       formatRupiah,
       formatTanggalRingkas,
 
-      /** HPP hanya dikirim server bila login aktif dan sudah masuk. */
-      get kolomTabel() {
-        return this.app?.bolehLihatHpp
-          ? KOLOM_TABEL
-          : KOLOM_TABEL.filter((k) => k.key !== "hpp");
-      },
+      kolomTabel: KOLOM_TABEL,
 
       /** Pilihan sesi mengikuti hari yang dipilih. */
       get opsiSesi() {
@@ -105,14 +96,14 @@ export function transactionsPage() {
 
       /**
        * Baris siap tampil, ditandai batas kelompoknya. Nilai tingkat invoice
-       * (dan tanggal/channel) hanya ditulis sekali di baris pertama
+       * (dan tanggal) hanya ditulis sekali di baris pertama
        * kelompoknya; mengulangnya membuat batas antar invoice tenggelam.
        */
       get barisTampil() {
         let invoiceSebelum = null;
         let grupSebelum = null;
         return this.result.rows.map((row) => {
-          const grup = `${row.tanggal}|${row.channel}`;
+          const grup = row.tanggal;
           const invoiceBaru = row.invoice !== invoiceSebelum;
           const grupBaru = grup !== grupSebelum;
           invoiceSebelum = row.invoice;

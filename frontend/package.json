@@ -1,0 +1,4 @@
+{
+  "//": "Menandai berkas JavaScript di folder frontend sebagai ES module. Root package.json memakai CommonJS untuk server Node, dan tanpa penanda ini webpack ikut membacanya sebagai CommonJS.",
+  "type": "module"
+}

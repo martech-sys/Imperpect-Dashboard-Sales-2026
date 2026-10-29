@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "npm test && npm run build:prod",
+  "outputDirectory": "build",
+  "cleanUrls": true,
+  "regions": ["sin1"],
+  "functions": {
+    "api/index.js": { "maxDuration": 30 }
+  },
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api" }],
+  "headers": [
+    {
+      "source": "/(|transactions|signin)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

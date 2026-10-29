@@ -1,0 +1,43 @@
+{
+  "name": "imperfect-sale-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dashboard penjualan Imperfect Sale 2026: Sesi × Channel dan rincian transaksi, dibaca langsung dari warehouse.",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "build": "webpack --config webpack.config.js",
+    "build:prod": "NODE_ENV=production webpack --config webpack.config.js",
+    "test": "node --test test/*.test.js",
+    "format": "prettier --write \"frontend/**/*.{js,html,css}\" \"server/**/*.js\""
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.6",
+    "@babel/preset-env": "^8.0.6",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/postcss": "^4.3.3",
+    "alpinejs": "^3.17.3",
+    "babel-loader": "^10.1.1",
+    "copy-webpack-plugin": "^14.0.0",
+    "css-loader": "^7.1.5",
+    "glob": "^13.0.6",
+    "html-loader": "^5.1.0",
+    "html-webpack-plugin": "^5.6.8",
+    "mini-css-extract-plugin": "^2.10.2",
+    "postcss": "^8.5.28",
+    "postcss-loader": "^8.2.1",
+    "prettier": "^3.9.8",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^4.3.3",
+    "webpack": "^5.111.1",
+    "webpack-cli": "^7.2.3"
+  }
+}

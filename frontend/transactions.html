@@ -31,7 +31,7 @@
           >
             <!-- Filter: dari tautan halaman Sesi × Channel atau dipilih di sini -->
             <section
-              class="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2 md:p-5 xl:grid-cols-5 dark:border-gray-800 dark:bg-white/3"
+              class="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-3 md:p-5 xl:grid-cols-6 dark:border-gray-800 dark:bg-white/3"
               aria-label="Filter rincian"
             >
               <div>
@@ -113,6 +113,29 @@
                     <option
                       :value="o"
                       :selected="String(o) === String(channel)"
+                      x-text="o"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+              <div>
+                <label
+                  for="f-payment"
+                  class="text-theme-xs mb-1.5 block font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  >Metode bayar</label
+                >
+                <select
+                  id="f-payment"
+                  @change="setMedan('payment', $event.target.value)"
+                  class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <option value="" :selected="!payment">
+                    Semua metode bayar
+                  </option>
+                  <template x-for="o in options.payments" :key="o">
+                    <option
+                      :value="o"
+                      :selected="String(o) === String(payment)"
                       x-text="o"
                     ></option>
                   </template>

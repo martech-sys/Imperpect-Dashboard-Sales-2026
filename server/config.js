@@ -23,11 +23,12 @@ const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
- * Mode uji: sebelum event 2026 punya transaksi, dashboard membaca sebagian
- * kecil data gudang event lama supaya tampilannya bisa dicek dengan data asli.
- * Aktif sampai UJI_WAREHOUSE diisi `off` (atau bawaan ini dikosongkan).
+ * Mode uji: dashboard membaca sebagian kecil data gudang lain (mis. event
+ * 2025) supaya tampilannya bisa dicek dengan data asli. Mati bawaannya —
+ * dashboard membaca gudang & tanggal event 2026. Nyalakan dengan mengisi
+ * UJI_WAREHOUSE (mis. "MAIN STAGE IMPERFECT SALE 2025").
  */
-const UJI_WAREHOUSE_BAWAAN = "MAIN STAGE IMPERFECT SALE 2025";
+const UJI_WAREHOUSE_BAWAAN = "";
 const UJI_MATI = /^(off|false|0|-)?$/i;
 
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */

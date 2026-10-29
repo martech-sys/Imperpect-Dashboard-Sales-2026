@@ -33,6 +33,7 @@ const RAW = [
   baris({
     invoice: "A",
     total_bayar: "350000.0000",
+    payment_note: "QRIS",
     brand: "X",
     total_harga_barang: "100000.0000",
     hpp: "40000.0000",
@@ -40,6 +41,7 @@ const RAW = [
   baris({
     invoice: "A",
     total_bayar: "350000.0000",
+    payment_note: "QRIS",
     brand: "Y",
     channel: "TEBUS",
     qty: "2.0000",
@@ -48,6 +50,7 @@ const RAW = [
   baris({
     invoice: "B",
     waktu: "13:30:00",
+    payment_note: "Cash",
     brand: "Y",
     total_harga_barang: "50000.0000",
   }),
@@ -181,6 +184,26 @@ test("rincian: pencarian dan urutan", () => {
     asc.rows.map((r) => r.invoice),
     ["A", "A", "C", "B", "D"],
   );
+});
+
+test("rincian: filter metode bayar, termasuk yang kosong", () => {
+  assert.deepEqual(report.opsiFilter(rows, event).payments, [
+    "(tanpa metode bayar)",
+    "Cash",
+    "QRIS",
+  ]);
+  const qris = report.transactions(rows, { payment: "QRIS" });
+  assert.deepEqual(
+    qris.rows.map((r) => r.invoice),
+    ["A", "A"],
+  );
+  assert.equal(report.transactions(rows, { payment: "Cash" }).total, 1);
+  assert.equal(
+    report.transactions(rows, { payment: "(tanpa metode bayar)" }).total,
+    2,
+  );
+  // Pivot tidak disaring metode bayar.
+  assert.equal(report.pivot(rows, event, { payment: "Cash" }).total.trx, 4);
 });
 
 test("CSV memakai urutan kolom tabel, pemisah titik koma, dan BOM", () => {

@@ -130,9 +130,9 @@ HPP tidak dibaca dari warehouse dan tidak ditampilkan di mana pun.
 - Tanggal hanya ditulis saat berganti; jam, invoice, channel, promo, total bayar, dan metode bayar
   hanya di baris pertama invoice. Nomor invoice panjang dipendekkan dari tengah (utuhnya di tooltip
   dan CSV).
-- Filter Brand, Hari, Sesi, Channel, plus pencarian (invoice, SKU, nama produk, brand, channel,
-  metode bayar, kode promo, kategori). Filter ikut tertulis di alamat halaman, jadi tampilan bisa
-  dibagikan.
+- Filter Brand, Hari, Sesi, Channel, dan Metode bayar (metode kosong dipilih lewat
+  `(tanpa metode bayar)`), plus pencarian (invoice, SKU, nama produk, brand, channel, metode bayar,
+  kode promo, kategori). Filter ikut tertulis di alamat halaman, jadi tampilan bisa dibagikan.
 - Urutan hanya pada kolom tingkat invoice (tanggal+jam, channel, invoice, brand), supaya baris satu
   invoice tetap berdampingan.
 - **Ekspor CSV** memakai filter dan urutan yang sama (pemisah `;`, dengan BOM untuk Excel, maks.
@@ -277,7 +277,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | ---------------------------- | ----------------------------------------------------------------------- |
 | `GET /api/app`               | info event, mode data, status login                                     |
 | `GET /api/pivot`             | tabel pivot + KPI. Parameter: `brand`, `hari`, `baris`, `urut`           |
-| `GET /api/transactions`      | rincian. Parameter: `brand`, `hari`, `sesi`, `channel`, `q`, `page`, `pageSize`, `sortBy`, `sortDir` |
+| `GET /api/transactions`      | rincian. Parameter: `brand`, `hari`, `sesi`, `channel`, `payment`, `q`, `page`, `pageSize`, `sortBy`, `sortDir` |
 | `GET /api/transactions.csv`  | ekspor rincian dengan filter yang sama                                  |
 | `GET /api/health`            | kesegaran data dan variabel yang terisi, tanpa isi transaksi            |
 | `POST /api/auth/login`       | `{ "password": "…" }`                                                    |

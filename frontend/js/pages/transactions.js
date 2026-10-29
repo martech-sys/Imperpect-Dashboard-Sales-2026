@@ -9,7 +9,7 @@ import { compose } from "../compose.js";
 import { pageBase } from "../page-base.js";
 
 const PAGE_SIZES = [25, 50, 100, 200];
-const MEDAN = ["brand", "hari", "sesi", "channel"];
+const MEDAN = ["brand", "hari", "sesi", "channel", "payment"];
 
 /**
  * Susunan kolom tabel rincian. Hanya kolom tingkat invoice yang bisa
@@ -50,11 +50,12 @@ export function transactionsPage() {
         pageSize: 25,
         summary: { qty: 0, trx: 0, gmv: 0 },
       },
-      options: { brands: [], hari: [], sesi: [], channels: [] },
+      options: { brands: [], hari: [], sesi: [], channels: [], payments: [] },
       brand: "",
       hari: "",
       sesi: "",
       channel: "",
+      payment: "",
       search: "",
       searchTimer: null,
       currentPage: 1,
@@ -84,6 +85,7 @@ export function transactionsPage() {
           hari: this.hari,
           sesi: this.sesi,
           channel: this.channel,
+          payment: this.payment,
           q: this.search.trim(),
           sortBy: this.sortBy,
           sortDir: this.sortDir,

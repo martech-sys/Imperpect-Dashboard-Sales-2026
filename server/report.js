@@ -67,6 +67,10 @@ function labelSesi(event, key) {
 // Filter
 // ---------------------------------------------------------------------------
 
+/** Nama pilihan filter untuk baris yang metode bayarnya kosong. */
+const TANPA_METODE = "(tanpa metode bayar)";
+const metodeBayar = (r) => r.payment_note || TANPA_METODE;
+
 const KOLOM_CARI = [
   "invoice",
   "sku_produk",
@@ -91,6 +95,7 @@ function bacaFilter(query) {
     hari: Number.isFinite(hari) ? hari : null,
     sesi: ambil("sesi"),
     channel: ambil("channel"),
+    payment: ambil("payment"),
     q: ambil("q").toLowerCase().slice(0, 100),
   };
 }
@@ -102,6 +107,7 @@ function saring(rows, f) {
       return false;
     if (f.sesi && r.sesi !== f.sesi) return false;
     if (f.channel && r.channel !== f.channel) return false;
+    if (f.payment && metodeBayar(r) !== f.payment) return false;
     if (
       f.q &&
       !KOLOM_CARI.some((k) => r[k] && String(r[k]).toLowerCase().includes(f.q))
@@ -200,7 +206,7 @@ function susunBaris(baris, event, f, adaData) {
 function pivot(semuaRows, event, query) {
   const f = bacaFilter(query);
   // Pivot hanya disaring brand dan hari; sesi & channel adalah sumbunya.
-  const filter = { ...f, sesi: "", channel: "", q: "" };
+  const filter = { ...f, sesi: "", channel: "", payment: "", q: "" };
   const baris = BARIS.has(query.baris) ? query.baris : "sesi";
   const urut = URUT.has(query.urut) ? query.urut : "gmv";
   const rows = saring(semuaRows, filter);
@@ -403,6 +409,7 @@ function transactionsCsv(semuaRows, query) {
 
 function opsiFilter(semuaRows, event) {
   const brands = new Set();
+  const payments = new Set();
   const channels = new Set(
     event.kolomChannel === "warehouse" ? event.warehouse : [],
   );
@@ -410,6 +417,7 @@ function opsiFilter(semuaRows, event) {
   semuaRows.forEach((r) => {
     brands.add(r.brand);
     channels.add(r.channel);
+    payments.add(metodeBayar(r));
     if (r.sesi) sesiAda.add(r.sesi);
   });
   const urutSesi = [...sesiAda].sort((a, b) => {
@@ -423,6 +431,7 @@ function opsiFilter(semuaRows, event) {
   return {
     brands: [...brands].sort((a, b) => a.localeCompare(b, "id")),
     channels: [...channels].sort((a, b) => a.localeCompare(b, "id")),
+    payments: [...payments].sort((a, b) => a.localeCompare(b, "id")),
     hari,
     sesi: urutSesi.map((k) => ({
       value: k,

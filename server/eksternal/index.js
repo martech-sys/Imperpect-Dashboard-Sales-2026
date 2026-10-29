@@ -1,6 +1,7 @@
 "use strict";
 
 const { createDriveSource } = require("./drive");
+const { SEGAR_MIN_MS } = require("../store");
 const { toNum, normPhone, maskPhone, shortName } = require("./sheet");
 
 /**
@@ -128,16 +129,21 @@ function createEksternal(cfg, opts = {}) {
 
   return {
     /** Stale-while-revalidate, sama dengan server/store.js. */
-    async get({ tunggu = false } = {}) {
-      if (
-        source &&
-        (Date.now() - lastAttempt >= cacheMs || (!files && !error))
-      ) {
+    async get({ tunggu = false, segar = false } = {}) {
+      const umur = Date.now() - lastAttempt;
+      const mulai = () => {
         if (!running) {
           running = baca().finally(() => (running = null));
           if (opts.waitUntil) opts.waitUntil(running);
         }
-        if (!files || tunggu) await running;
+        return running;
+      };
+      if (!source) {
+        // konfigurasi salah: tidak ada yang bisa dibaca
+      } else if (segar && umur >= SEGAR_MIN_MS) await mulai();
+      else if (umur >= cacheMs || (!files && !error)) {
+        const p = mulai();
+        if (!files || tunggu) await p;
       }
       return {
         files,

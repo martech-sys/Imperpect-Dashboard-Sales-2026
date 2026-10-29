@@ -32,6 +32,7 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     /** Yang tampil adalah data tersimpan di browser; jawaban baru sedang dimuat. */
     dariCache: false,
     muatOtomatis: false,
+    muatSegar: false,
     detik: Date.now(),
 
     get demoMode() {
@@ -149,8 +150,13 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
     },
 
     /** Memuat ulang data halaman dengan filter terkini. */
-    async refresh({ otomatis = false } = {}) {
+    /**
+     * `segar: true` dari tombol Refresh: minta server membaca ulang sumbernya
+     * dan lewati cache CDN, supaya yang tampil benar-benar angka terbaru.
+     */
+    async refresh({ otomatis = false, segar = false } = {}) {
       this.muatOtomatis = otomatis;
+      this.muatSegar = segar;
       this.saveState?.();
       const muatan = (this.muatanKe += 1);
       this.loading = true;

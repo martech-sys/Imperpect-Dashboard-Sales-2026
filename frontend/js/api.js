@@ -106,11 +106,17 @@ export function hapusCache() {
 /**
  * Data dengan cache: `dariCache(isi)` dipanggil seketika bila alamat ini
  * pernah dimuat, lalu janji yang dikembalikan berisi jawaban terbaru.
+ *
+ * `segar` (tombol Refresh) meminta server membaca ulang sumbernya dan
+ * melewati cache CDN; alamat unik `_` memastikan CDN tidak menjawab.
  */
-async function muat(path, dariCache) {
-  const lama = dariCache ? bacaCache(path) : null;
+async function muat(path, dariCache, segar = false) {
+  const lama = dariCache && !segar ? bacaCache(path) : null;
   if (lama) dariCache(lama);
-  const baru = await request(path);
+  const alamat = segar
+    ? `${path}${path.includes("?") ? "&" : "?"}segar=1&_=${Date.now()}`
+    : path;
+  const baru = await request(alamat);
   simpanCache(path, baru);
   return baru;
 }
@@ -120,13 +126,13 @@ export const api = {
   login: (password) =>
     request("/api/auth/login", { method: "POST", body: { password } }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
-  pivot: (params, dariCache) =>
-    muat(`/api/pivot?${toQuery(params)}`, dariCache),
-  transactions: (params, dariCache) =>
-    muat(`/api/transactions?${toQuery(params)}`, dariCache),
+  pivot: (params, dariCache, segar) =>
+    muat(`/api/pivot?${toQuery(params)}`, dariCache, segar),
+  transactions: (params, dariCache, segar) =>
+    muat(`/api/transactions?${toQuery(params)}`, dariCache, segar),
   exportUrl: (params) => `/api/transactions.csv?${toQuery(params)}`,
-  eksternal: (dariCache) => muat("/api/eksternal", dariCache),
-  ringkasan: (dariCache) => muat("/api/ringkasan", dariCache),
-  eksternalBrand: (brand, dariCache) =>
-    muat(`/api/eksternal/brand?${toQuery({ brand })}`, dariCache),
+  eksternal: (dariCache, segar) => muat("/api/eksternal", dariCache, segar),
+  ringkasan: (dariCache, segar) => muat("/api/ringkasan", dariCache, segar),
+  eksternalBrand: (brand, dariCache, segar) =>
+    muat(`/api/eksternal/brand?${toQuery({ brand })}`, dariCache, segar),
 };

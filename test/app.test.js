@@ -217,7 +217,13 @@ test("Ringkasan Eksternal: kunci akun layanan salah dilaporkan, bukan diganti da
 test("cache CDN hanya tanpa gerbang password", async () => {
   const terbuka = createApp({});
   const a = await panggil(terbuka, { url: "/api/pivot" });
-  assert.match(a.headers["vercel-cdn-cache-control"], /max-age=60/);
+  assert.equal(
+    a.headers["vercel-cdn-cache-control"],
+    "max-age=15, stale-while-revalidate=60",
+  );
+  // Tombol Refresh (?segar=1) tidak boleh dijawab atau disimpan CDN.
+  const segar = await panggil(terbuka, { url: "/api/pivot?segar=1&_=1" });
+  assert.equal(segar.headers["vercel-cdn-cache-control"], undefined);
   assert.equal(a.headers["cache-control"], "no-store");
   const info = await panggil(terbuka, { url: "/api/app" });
   assert.equal(info.headers["vercel-cdn-cache-control"], undefined);

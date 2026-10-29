@@ -85,16 +85,19 @@ function createApp(env, deps = {}) {
    * menyala) dilayani CDN tanpa menyentuh function. Dengan password,
    * jawaban bergantung pada cookie sesi dan tidak boleh di-cache CDN.
    * Deploy baru mengosongkan cache CDN.
+   *
+   * Jendelanya sengaja pendek (15 detik segar + 60 detik basi) supaya dua tab
+   * yang alamatnya di-cache terpisah tidak berselisih lebih dari ±1 menit.
    */
-  const cdn = auth.aktif
+  const cdnBawaan = auth.aktif
     ? {}
     : {
-        "Vercel-CDN-Cache-Control": `max-age=${config.cacheSeconds}, stale-while-revalidate=300`,
+        "Vercel-CDN-Cache-Control": "max-age=15, stale-while-revalidate=60",
       };
 
   /** Isi folder brand eksternal, atau jawaban galat bila belum pernah terbaca. */
-  async function dataEksternal(res) {
-    const d = await brandEksternal.get();
+  async function dataEksternal(res, segar) {
+    const d = await brandEksternal.get({ segar });
     if (!d.files) {
       json(res, 503, {
         error: "data_unavailable",
@@ -107,8 +110,8 @@ function createApp(env, deps = {}) {
   }
 
   /** Data penjualan, atau jawaban galat bila belum pernah berhasil dibaca. */
-  async function data(res) {
-    const d = await store.get();
+  async function data(res, segar) {
+    const d = await store.get({ segar });
     if (!d.rows) {
       json(res, 503, {
         error: "data_unavailable",
@@ -124,6 +127,9 @@ function createApp(env, deps = {}) {
     const url = new URL(req.url, "http://x");
     const path = url.pathname.replace(/\/+$/, "");
     const query = Object.fromEntries(url.searchParams.entries());
+    // Tombol Refresh mengirim ?segar=1: lewati cache server dan CDN.
+    const segar = query.segar === "1";
+    const cdn = segar ? {} : cdnBawaan;
     const sudahMasuk = auth.masuk(req.headers.cookie);
 
     try {
@@ -223,7 +229,10 @@ function createApp(env, deps = {}) {
 
       if (path === "/api/ringkasan") {
         // Kedua sumber dibaca bersamaan; yang gagal tidak menahan yang lain.
-        const [dI, dE] = await Promise.all([store.get(), brandEksternal.get()]);
+        const [dI, dE] = await Promise.all([
+          store.get({ segar }),
+          brandEksternal.get({ segar }),
+        ]);
         if (!dI.rows && !dE.files) {
           return json(res, 503, {
             error: "data_unavailable",
@@ -249,7 +258,7 @@ function createApp(env, deps = {}) {
       }
 
       if (path === "/api/eksternal") {
-        const d = await dataEksternal(res);
+        const d = await dataEksternal(res, segar);
         if (!d) return undefined;
         return json(
           res,
@@ -263,7 +272,7 @@ function createApp(env, deps = {}) {
       }
 
       if (path === "/api/eksternal/brand") {
-        const d = await dataEksternal(res);
+        const d = await dataEksternal(res, segar);
         if (!d) return undefined;
         const detail = eksternal.detailBrand(d.files, query.brand || "");
         if (!detail) {
@@ -276,7 +285,7 @@ function createApp(env, deps = {}) {
       }
 
       if (path === "/api/pivot") {
-        const d = await data(res);
+        const d = await data(res, segar);
         if (!d) return undefined;
         return json(
           res,
@@ -291,7 +300,7 @@ function createApp(env, deps = {}) {
       }
 
       if (path === "/api/transactions") {
-        const d = await data(res);
+        const d = await data(res, segar);
         if (!d) return undefined;
         return json(
           res,
@@ -306,7 +315,7 @@ function createApp(env, deps = {}) {
       }
 
       if (path === "/api/transactions.csv") {
-        const d = await data(res);
+        const d = await data(res, segar);
         if (!d) return undefined;
         res.statusCode = 200;
         res.setHeader("Content-Type", "text/csv; charset=utf-8");

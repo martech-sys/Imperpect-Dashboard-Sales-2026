@@ -130,7 +130,10 @@ export function ringkasanPage() {
           this.data = data;
           this.kesegaran = data.kesegaran.internal;
         };
-        const data = await api.ringkasan(this.dariCacheUntuk(muatan, terapkan));
+        const data = await api.ringkasan(
+          this.dariCacheUntuk(muatan, terapkan),
+          this.muatSegar,
+        );
         if (this.usang(muatan)) return;
         terapkan(data);
       },

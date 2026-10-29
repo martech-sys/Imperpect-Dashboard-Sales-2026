@@ -81,6 +81,7 @@ test("Postgres: parameter event dikirim ke query, dibaca sekali per CACHE_SECOND
   await panggil(app, { url: "/api/transactions" });
   await panggil(app, { url: "/api/pivot?brand=X" });
   assert.equal(PoolTiruan.n, 1);
+  assert.match(PoolTiruan.sql, /principal_brand AS brand/);
   assert.deepEqual(PoolTiruan.params, [
     ["MAIN IMPERFECT WAREHOUS 2026", "TEBUS MURAH IMPERFECT 2026"],
     "2026-10-30",

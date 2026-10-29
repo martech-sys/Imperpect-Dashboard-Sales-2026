@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS laporan_penjualan (
   hpp                numeric(18, 4),
   total_harga_barang numeric(18, 4),
   brand              text,
+  principal_brand    text,
   sku_produk         text,
   name_tag           text,
   nama_produk        text,

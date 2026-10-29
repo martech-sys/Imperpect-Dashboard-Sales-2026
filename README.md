@@ -47,6 +47,7 @@ Isinya sama dengan tabel sesi yang dipakai selama event:
 | **Unit sold** | jumlah `qty`                                                                              |
 | **TRX**       | jumlah invoice berbeda (`invoice_number`, atau `no_order` bila kosong)                     |
 | **GMV**       | jumlah `total_harga_barang` (nilai per baris produk)                                      |
+| **Brand**     | kolom `principal_brand` (per baris produk; kosong = "(tanpa brand)")                       |
 
 - GMV **tidak** memakai `total_bayar`: kolom itu total satu invoice yang berulang di tiap baris
   produknya, jadi menjumlahkannya menghitung invoice berisi tiga produk tiga kali, dan tidak bisa

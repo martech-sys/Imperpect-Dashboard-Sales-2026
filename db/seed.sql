@@ -2,7 +2,7 @@
 TRUNCATE laporan_penjualan;
 INSERT INTO laporan_penjualan
   (sumber, channel, warehouse, tanggal, waktu, invoice_number, no_order, payment_note, total_bayar, qty, hpp,
-   total_harga_barang, brand, sku_produk, name_tag, nama_produk, kategori, warna, ukuran, promo_kode, promo_value, status)
+   total_harga_barang, principal_brand, sku_produk, name_tag, nama_produk, kategori, warna, ukuran, promo_kode, promo_value, status)
 VALUES
   -- invoice 2 produk, 2 brand, sesi 1 hari 1
   ('OFFLINE-STORE', 'IMPERFECT', 'MAIN IMPERFECT WAREHOUS 2026', '2026-10-30', '09:15:00', 'INV-001', 'O-1', 'QRIS EDC BCA', 400000, 1, 60000, 150000, 'HEYMALE', 'HM1', 'BASIC TEE', NULL, 'APPAREL', 'BLACK', 'L', NULL, 0, 'Delivery'),

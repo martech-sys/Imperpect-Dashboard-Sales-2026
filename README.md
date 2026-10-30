@@ -1,6 +1,6 @@
 # Dashboard Penjualan Imperfect Sale 2026
 
-Dashboard penjualan event Imperfect Sale, dua halaman:
+Dashboard penjualan event Imperfect Sale:
 
 | Alamat          | Halaman                                                                                  |
 | --------------- | ---------------------------------------------------------------------------------------- |
@@ -8,6 +8,7 @@ Dashboard penjualan event Imperfect Sale, dua halaman:
 | `/`             | **Penjualan per Sesi × Channel** — Unit sold, TRX, dan GMV tiap sesi di setiap channel     |
 | `/transactions` | **Rincian Transaksi** — satu baris per produk, dikelompokkan per invoice, dengan ekspor CSV |
 | `/eksternal`    | **Ringkasan Eksternal** — penjualan brand eksternal per brand, dari Sheet per brand di Drive |
+| `/compare`      | **Compare 2025** — event 2026 (live) vs Imperfect Sale 2025 per hari × sesi, dengan insight |
 | `/signin`       | Masuk (hanya bila `DASHBOARD_PASSWORD` diisi)                                             |
 
 - **Tampilan** mengikuti dashboard [OFFLINE-STORE](https://github.com/martech-sys/OFFLINE-STORE):
@@ -160,6 +161,21 @@ Cara menggabungkan:
   (sumber "Keduanya"); huruf besar/kecil dan spasi tidak dibedakan.
 - Sheet brand yang belum punya transaksi tidak ikut daftar brand.
 - Kalau satu sumber gagal dibaca, sumber lainnya tetap tampil dan galatnya disebut di status.
+
+## Compare 2025
+
+Event 2026 (live) dibandingkan dengan Imperfect Sale 2025 (20–23 Nov 2025, Pasaraya Blok M).
+
+- Hari dipasangkan menurut **nama hari** (Jumat vs Jumat, Sabtu vs Sabtu, Minggu vs Minggu), sesi
+  menurut **jam mulai**. Kamis 2025 tidak punya pasangan dan hanya ikut "Seluruh event".
+- Dasar hitung kedua tahun sama: **GMV = total bayar per invoice** (MAX `total_bayar`, karena
+  nilainya berulang di tiap baris produk) — berbeda dengan tab lain yang memakai
+  `total_harga_barang`. TRX = jumlah invoice, Unit = jumlah qty, invoice ikut jam baris
+  pertamanya, potongan sesi sampai jam mulai sesi berikutnya.
+- Angka 2025 tetap di `server/compare.js` (`BASELINE_2025`, hasil query manual channel
+  IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH), jadi tidak menambah beban database.
+- Kartu "vs 2025" dan growth berwarna hanya menghitung sesi yang **sudah selesai**; sesi yang sedang
+  berjalan ditandai dan disebut terpisah di insight.
 
 ## Ringkasan Eksternal
 
@@ -399,6 +415,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `GET /api/transactions`      | rincian. Parameter: `brand`, `hari`, `sesi`, `channel`, `payment`, `q`, `page`, `pageSize`, `sortBy`, `sortDir` |
 | `GET /api/transactions.csv`  | ekspor rincian dengan filter yang sama                                  |
 | `GET /api/ringkasan`         | gabungan internal + eksternal: total, per sumber, per brand             |
+| `GET /api/compare`           | 2026 vs Imperfect Sale 2025 per hari × sesi + insight                   |
 | `GET /api/eksternal`         | ringkasan brand eksternal + KPI                                         |
 | `GET /api/eksternal/brand`   | detail satu brand eksternal. Parameter: `brand`                         |
 | `GET /api/health`            | kesegaran data dan variabel yang terisi, tanpa isi transaksi            |

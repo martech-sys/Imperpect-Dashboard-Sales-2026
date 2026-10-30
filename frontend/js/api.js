@@ -133,6 +133,7 @@ export const api = {
   exportUrl: (params) => `/api/transactions.csv?${toQuery(params)}`,
   eksternal: (dariCache, segar) => muat("/api/eksternal", dariCache, segar),
   ringkasan: (dariCache, segar) => muat("/api/ringkasan", dariCache, segar),
+  compare: (dariCache, segar) => muat("/api/compare", dariCache, segar),
   eksternalBrand: (brand, dariCache, segar) =>
     muat(`/api/eksternal/brand?${toQuery({ brand })}`, dariCache, segar),
 };

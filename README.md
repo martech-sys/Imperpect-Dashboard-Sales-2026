@@ -364,6 +364,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | --------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `EVENT_NAMA`                      | `Imperfect Sale 2026`                                      | Nama di sidebar dan halaman masuk.                                                           |
 | `EVENT_DARI`, `EVENT_SAMPAI`      | `2026-10-30`, `2026-11-01`                                 | Rentang tanggal event (WIB). Day 1 = `EVENT_DARI`.                                           |
+| `EVENT_DATA_DARI`                 | `2026-10-29` (sementara)                                   | Data dibaca mulai tanggal ini; tanggal sebelum `EVENT_DARI` tampil sebagai "Day 0" (seluruhnya di luar sesi). Untuk cek transaksi uji 29 Okt; kosongkan `DATA_DARI_BAWAAN` di `server/config.js` untuk kembali normal. |
 | `EVENT_WAREHOUSE`                 | `MAIN IMPERFECT WAREHOUS 2026, TEBUS MURAH IMPERFECT 2026` | Gudang event, dipisah koma.                                                                  |
 | `KOLOM_CHANNEL`                   | `warehouse`                                                | Kolom yang menjadi kolom channel di tabel: `warehouse` atau `channel`.                       |
 | `EVENT_SESI`                      | jadwal tiket Day 1–3                                       | Lihat [Sesi](#sesi).                                                                         |

@@ -31,6 +31,15 @@ const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const UJI_WAREHOUSE_BAWAAN = "";
 const UJI_MATI = /^(off|false|0|-)?$/i;
 
+/**
+ * Data mulai dibaca dari tanggal ini, walau Day 1 tetap EVENT_DARI. Dipakai
+ * sementara untuk mengecek transaksi uji 29 Okt di dashboard live: tanggal
+ * sebelum EVENT_DARI tampil sebagai "Day 0" (seluruhnya "Di luar sesi"),
+ * sehingga hari & sesi event tidak bergeser. Kosongkan untuk kembali normal
+ * (data hanya dari EVENT_DARI). Bisa ditimpa EVENT_DATA_DARI.
+ */
+const DATA_DARI_BAWAAN = "2026-10-29";
+
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);
 
@@ -41,6 +50,16 @@ function loadConfig(env) {
     throw new Error("EVENT_DARI / EVENT_SAMPAI harus berformat YYYY-MM-DD");
   }
   if (sampai < dari) throw new Error("EVENT_SAMPAI lebih awal dari EVENT_DARI");
+  const dataDari =
+    (env.EVENT_DATA_DARI === undefined
+      ? DATA_DARI_BAWAAN
+      : env.EVENT_DATA_DARI
+    ).trim() || dari;
+  if (!TANGGAL.test(dataDari) || dataDari > dari) {
+    throw new Error(
+      "EVENT_DATA_DARI harus berformat YYYY-MM-DD dan tidak sesudah EVENT_DARI",
+    );
+  }
 
   const kolomChannel = (env.KOLOM_CHANNEL || "warehouse").trim().toLowerCase();
   if (!KOLOM_CHANNEL.has(kolomChannel)) {
@@ -57,6 +76,7 @@ function loadConfig(env) {
       nama: env.EVENT_NAMA || "Imperfect Sale 2026",
       dari,
       sampai,
+      dataDari,
       warehouse: daftar(
         env.EVENT_WAREHOUSE ||
           "MAIN IMPERFECT WAREHOUS 2026, TEBUS MURAH IMPERFECT 2026",

@@ -49,6 +49,18 @@ function jumlahHari(event) {
   );
 }
 
+/** Hari pertama yang punya data: 1, atau 0/negatif bila EVENT_DATA_DARI lebih awal. */
+function hariAwal(event) {
+  if (!event.dataDari || event.dataDari >= event.dari) return 1;
+  return (
+    Math.round(
+      (Date.parse(`${event.dataDari}T00:00:00Z`) -
+        Date.parse(`${event.dari}T00:00:00Z`)) /
+        86400000,
+    ) + 1
+  );
+}
+
 function labelHari(event, hari) {
   const d = tanggalHari(event, hari);
   return `Day ${hari} · ${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`;
@@ -175,7 +187,7 @@ function susunBaris(baris, event, f, adaData) {
   }
   if (baris === "hari") {
     const semua = new Set(adaData.keys());
-    for (let h = 1; h <= jumlahHari(event); h += 1) {
+    for (let h = hariAwal(event); h <= jumlahHari(event); h += 1) {
       if (f.hari === null || f.hari === h) semua.add(String(h));
     }
     return [...semua]
@@ -426,7 +438,7 @@ function opsiFilter(semuaRows, event) {
     return ha - hb || (na || Infinity) - (nb || Infinity);
   });
   const hari = [];
-  for (let h = 1; h <= jumlahHari(event); h += 1)
+  for (let h = hariAwal(event); h <= jumlahHari(event); h += 1)
     hari.push({ value: h, label: labelHari(event, h) });
   return {
     brands: [...brands].sort((a, b) => a.localeCompare(b, "id")),

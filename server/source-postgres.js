@@ -22,6 +22,7 @@ function pilihan(cfg, event) {
        waktu::text AS waktu,
        ${event.kolomChannel} AS channel,
        COALESCE(NULLIF(btrim(invoice_number), ''), no_order) AS invoice,
+       no_order, invoice_number,
        payment_note, total_bayar, qty, total_harga_barang,
        principal_brand AS brand, sku_produk,
        COALESCE(NULLIF(btrim(name_tag), ''), nama_produk) AS nama_produk,

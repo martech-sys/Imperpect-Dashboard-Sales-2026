@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Imperfect Sale 2026 dibandingkan dengan 2025 per hari dan per sesi."
+    />
+    <title>Compare 2025 | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="comparePage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+        <include src="./partials/header.html" />
+
+        <main>
+          <div
+            class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6"
+          >
+            <div
+              x-show="error"
+              x-cloak
+              role="alert"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-6 rounded-xl border p-4"
+              x-text="error"
+            ></div>
+
+            <!-- Judul + status -->
+            <div
+              class="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+            >
+              <div>
+                <h2
+                  class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                >
+                  Imperfect Sale 2026 vs 2025
+                </h2>
+                <p class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400">
+                  Hari yang sama (Jumat vs Jumat, Sabtu vs Sabtu, Minggu vs
+                  Minggu) dan jam sesi yang sama · GMV = total bayar
+                </p>
+                <p
+                  class="text-theme-sm mt-1 flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                >
+                  <span
+                    class="inline-block size-2 shrink-0 rounded-full"
+                    :class="statusData.warna"
+                  ></span>
+                  <span x-text="statusData.teks"></span>
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="refresh({ segar: true })"
+                  :disabled="loading"
+                  class="text-theme-sm shadow-theme-xs inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 px-4 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                >
+                  <svg
+                    class="size-4"
+                    :class="loading ? 'animate-spin' : ''"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M16.25 10a6.25 6.25 0 1 1-1.83-4.42M16.25 3.75v3.5h-3.5"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  @click="exportCsv()"
+                  :disabled="!data.hari.length"
+                  class="bg-brand-500 hover:bg-brand-600 shadow-theme-xs text-theme-sm inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium text-white transition disabled:opacity-60"
+                >
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- KPI -->
+            <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <template x-for="k in kpi" :key="k.label">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+                >
+                  <p
+                    class="text-theme-sm text-gray-500 dark:text-gray-400"
+                    x-text="k.label"
+                  ></p>
+                  <p
+                    class="text-title-xs mt-2 font-bold tabular-nums"
+                    :class="k.warna || 'text-gray-800 dark:text-white/90'"
+                    :title="k.penuh"
+                    x-text="k.nilai"
+                  ></p>
+                  <div
+                    x-show="k.progres !== undefined"
+                    class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                  >
+                    <div
+                      class="bg-brand-500 h-full"
+                      :style="'width:' + Math.min(100, k.progres || 0) + '%'"
+                    ></div>
+                  </div>
+                  <p
+                    class="text-theme-xs mt-1.5 text-gray-500 tabular-nums dark:text-gray-400"
+                    x-text="k.sub"
+                  ></p>
+                </div>
+              </template>
+            </div>
+
+            <div class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-5">
+              <!-- Per hari -->
+              <section
+                class="rounded-2xl border border-gray-200 bg-white xl:col-span-3 dark:border-gray-800 dark:bg-white/3"
+              >
+                <h3
+                  class="p-5 pb-3 text-lg font-semibold text-gray-800 md:px-6 dark:text-white/90"
+                >
+                  Per hari
+                </h3>
+                <div
+                  class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
+                  :class="loading ? 'opacity-60' : 'opacity-100'"
+                >
+                  <table class="w-full min-w-160 text-left">
+                    <thead>
+                      <tr
+                        class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                      >
+                        <th class="px-5 py-3 font-medium">Hari</th>
+                        <th class="px-3 py-3 text-right font-medium">TRX 25</th>
+                        <th class="px-3 py-3 text-right font-medium">TRX 26</th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV 2025
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV 2026
+                        </th>
+                        <th class="px-5 py-3 text-right font-medium">Growth</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-theme-sm">
+                      <template x-for="t in data.tanpaPasangan" :key="t.nama">
+                        <tr
+                          class="border-b border-gray-100 text-gray-400 dark:border-gray-800 dark:text-gray-500"
+                        >
+                          <td class="px-5 py-3">
+                            <span class="font-medium" x-text="t.nama"></span>
+                            <span
+                              class="text-theme-xs block"
+                              x-text="formatTanggalSedang(t.tanggal2025) + ' · tidak ada di 2026'"
+                            ></span>
+                          </td>
+                          <td
+                            class="px-3 py-3 text-right tabular-nums"
+                            x-text="formatAngka(t.v25.trx)"
+                          ></td>
+                          <td class="px-3 py-3 text-right">–</td>
+                          <td
+                            class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                            x-text="formatRupiah(t.v25.gmv)"
+                          ></td>
+                          <td class="px-3 py-3 text-right">–</td>
+                          <td class="px-5 py-3 text-right">–</td>
+                        </tr>
+                      </template>
+                      <template x-for="h in data.hari" :key="h.hari">
+                        <tr
+                          class="border-b border-gray-100 dark:border-gray-800"
+                        >
+                          <td class="px-5 py-3">
+                            <a
+                              :href="'#hari-' + h.hari"
+                              class="hover:text-brand-500 font-semibold text-gray-800 dark:text-white/90"
+                              x-text="h.nama"
+                            ></a>
+                            <span
+                              class="text-theme-xs ms-1 inline-flex rounded-full px-2 py-0.5 font-medium"
+                              :class="status(h.status).kelas"
+                              x-text="status(h.status).teks"
+                            ></span>
+                            <span
+                              class="text-theme-xs block text-gray-500 dark:text-gray-400"
+                              x-text="formatTanggalSedang(h.tanggal2025) + ' vs ' + formatTanggalSedang(h.tanggal2026)"
+                            ></span>
+                          </td>
+                          <td
+                            class="px-3 py-3 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatAngka(h.v25.trx)"
+                          ></td>
+                          <td
+                            class="px-3 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="formatAngka(h.v26.trx)"
+                          ></td>
+                          <td
+                            class="px-3 py-3 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatRupiah(h.v25.gmv)"
+                          ></td>
+                          <td
+                            class="px-3 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="formatRupiah(h.v26.gmv)"
+                          ></td>
+                          <td
+                            class="px-5 py-3 text-right font-medium tabular-nums"
+                            :class="h.status === 'selesai' ? warnaGrowth(h.growthGmv) : 'text-gray-400'"
+                            :title="h.status === 'selesai' ? '' : 'Hari belum selesai — angka 2026 masih bertambah'"
+                            x-text="h.status === 'belum' ? '–' : growth(h.growthGmv)"
+                          ></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr
+                        class="border-b border-gray-200 bg-gray-50 text-sm font-semibold text-gray-800 dark:border-gray-800 dark:bg-white/5 dark:text-white"
+                      >
+                        <td class="px-5 py-3">Jumat–Minggu</td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(data.ringkas.v25Pasangan.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(data.ringkas.v26.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v25Pasangan.gmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v26.gmv)"
+                        ></td>
+                        <td
+                          class="px-5 py-3 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                          x-text="formatPersen(data.ringkas.progresPasangan) + ' tercapai'"
+                        ></td>
+                      </tr>
+                      <tr
+                        class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                      >
+                        <td class="px-5 py-3">Seluruh event</td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(data.ringkas.v25Semua.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(data.ringkas.v26.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v25Semua.gmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v26.gmv)"
+                        ></td>
+                        <td
+                          class="px-5 py-3 text-right tabular-nums"
+                          x-text="formatPersen(data.ringkas.progresSemua) + ' tercapai'"
+                        ></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </section>
+
+              <!-- Insight -->
+              <section
+                class="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 xl:col-span-2 dark:border-gray-800 dark:bg-white/3"
+              >
+                <h3
+                  class="mb-3 text-lg font-semibold text-gray-800 dark:text-white/90"
+                >
+                  Insight
+                </h3>
+                <ul class="space-y-2.5">
+                  <template x-for="(t, i) in data.insight" :key="i">
+                    <li
+                      class="text-theme-sm flex gap-2.5 leading-relaxed text-gray-700 dark:text-gray-300"
+                    >
+                      <span
+                        class="bg-brand-500 mt-2 inline-block size-1.5 shrink-0 rounded-full"
+                      ></span>
+                      <span x-text="t"></span>
+                    </li>
+                  </template>
+                </ul>
+              </section>
+            </div>
+
+            <!-- Per sesi, satu kartu per hari -->
+            <template x-for="h in data.hari" :key="h.hari">
+              <section
+                :id="'hari-' + h.hari"
+                class="mb-6 scroll-mt-24 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+              >
+                <div
+                  class="flex flex-wrap items-center justify-between gap-3 p-5 md:px-6"
+                >
+                  <div>
+                    <h3
+                      class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                      x-text="judulHari(h)"
+                    ></h3>
+                    <p
+                      class="text-theme-xs mt-0.5 text-gray-500 dark:text-gray-400"
+                      x-text="'Day ' + h.hari + ' 2026 · ' + h.sesi.filter((r) => !r.luarSesi && r.sesi2026).length + ' sesi'"
+                    ></p>
+                  </div>
+                  <div
+                    class="text-theme-xs flex items-center gap-4 text-gray-500 dark:text-gray-400"
+                  >
+                    <span class="flex items-center gap-1.5"
+                      ><span
+                        class="size-2.5 rounded-sm bg-gray-300 dark:bg-gray-600"
+                      ></span
+                      >2025</span
+                    >
+                    <span class="flex items-center gap-1.5"
+                      ><span class="bg-brand-500 size-2.5 rounded-sm"></span
+                      >2026</span
+                    >
+                  </div>
+                </div>
+                <div
+                  class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
+                  :class="loading ? 'opacity-60' : 'opacity-100'"
+                >
+                  <table class="w-full min-w-260 text-left">
+                    <thead>
+                      <tr
+                        class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                      >
+                        <th class="px-5 py-3 font-medium">Jam sesi</th>
+                        <th class="px-3 py-3 font-medium">Status</th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          Unit 25
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          Unit 26
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">TRX 25</th>
+                        <th class="px-3 py-3 text-right font-medium">TRX 26</th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV 2025
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV 2026
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">Growth</th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          Rata-rata/TRX 25
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          Rata-rata/TRX 26
+                        </th>
+                        <th class="w-44 px-5 py-3 font-medium">GMV</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-theme-sm">
+                      <template x-for="r in h.sesi" :key="r.jam">
+                        <tr
+                          class="border-b border-gray-100 dark:border-gray-800"
+                          :class="r.status === 'berjalan' ? 'bg-success-50/40 dark:bg-success-500/5' : ''"
+                        >
+                          <td class="px-5 py-2.5 whitespace-nowrap">
+                            <span
+                              class="font-medium text-gray-800 dark:text-white/90"
+                              x-text="r.jam"
+                            ></span>
+                            <span
+                              class="text-theme-xs block text-gray-500 dark:text-gray-400"
+                              x-show="r.sesi2025 || r.sesi2026"
+                              x-text="(r.sesi2025 ? r.sesi2025 + ' (2025)' : 'tidak ada di 2025') + ' · ' + (r.sesi2026 ? r.sesi2026 + ' (2026)' : 'tidak ada di 2026')"
+                            ></span>
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <span
+                              class="text-theme-xs inline-flex rounded-full px-2 py-0.5 font-medium whitespace-nowrap"
+                              :class="status(r.status).kelas"
+                              x-text="status(r.status).teks"
+                            ></span>
+                          </td>
+                          <td
+                            class="px-3 py-2.5 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatAngka(r.v25.unit)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="r.status === 'belum' ? '–' : formatAngka(r.v26.unit)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatAngka(r.v25.trx)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="r.status === 'belum' ? '–' : formatAngka(r.v26.trx)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatRupiah(r.v25.gmv)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="r.status === 'belum' ? '–' : formatRupiah(r.v26.gmv)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right font-medium tabular-nums"
+                            :class="r.status === 'selesai' ? warnaGrowth(r.growthGmv) : 'text-gray-400'"
+                            :title="r.status === 'berjalan' ? 'Sesi masih berjalan' : ''"
+                            x-text="r.status === 'belum' ? '–' : growth(r.growthGmv)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="r.aov25 ? formatRupiah(r.aov25) : '–'"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="r.status !== 'belum' && r.aov26 ? formatRupiah(r.aov26) : '–'"
+                          ></td>
+                          <td class="px-5 py-2.5">
+                            <div class="w-36 space-y-1">
+                              <div
+                                class="h-1.5 rounded-full bg-gray-300 dark:bg-gray-600"
+                                :style="'width:' + lebar(r.v25.gmv)"
+                                :title="'2025: ' + formatRupiah(r.v25.gmv)"
+                              ></div>
+                              <div
+                                class="bg-brand-500 h-1.5 rounded-full"
+                                :style="'width:' + lebar(r.v26.gmv)"
+                                :title="'2026: ' + formatRupiah(r.v26.gmv)"
+                              ></div>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                    <tfoot>
+                      <tr
+                        class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                      >
+                        <td class="px-5 py-3" colspan="2">
+                          Subtotal <span x-text="h.nama"></span>
+                        </td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(h.v25.unit)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(h.v26.unit)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(h.v25.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          x-text="formatAngka(h.v26.trx)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(h.v25.gmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(h.v26.gmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right tabular-nums"
+                          :class="h.status === 'selesai' ? warnaGrowth(h.growthGmv) : 'text-gray-400'"
+                          x-text="h.status === 'belum' ? '–' : growth(h.growthGmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="h.aov25 ? formatRupiah(h.aov25) : '–'"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="h.aov26 ? formatRupiah(h.aov26) : '–'"
+                        ></td>
+                        <td class="px-5 py-3"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </section>
+            </template>
+
+            <p
+              class="text-theme-xs leading-relaxed text-gray-500 dark:text-gray-400"
+            >
+              <span class="font-medium">Cara hitung.</span> 2025 = channel
+              IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH, 20–23 Nov 2025
+              (angka tetap). 2026 = warehouse event, live. Kedua tahun memakai
+              dasar yang sama: GMV = total bayar per invoice (MAX total_bayar,
+              bukan total harga barang seperti tab lain), TRX = jumlah invoice,
+              Unit = jumlah qty, status Cancel/Batal/Open tidak dihitung. Sesi
+              dihitung dari jam mulainya sampai jam mulai sesi berikutnya;
+              invoice ikut jam baris pertamanya. Growth berwarna hanya untuk
+              sesi/hari yang sudah selesai — sesi yang sedang berjalan masih
+              bertambah. Kartu KPI "vs 2025" hanya menjumlahkan sesi yang sudah
+              selesai.
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -2,6 +2,7 @@ import "../css/style.css";
 
 import Alpine from "alpinejs";
 
+import { comparePage } from "./pages/compare.js";
 import { eksternalPage } from "./pages/eksternal.js";
 import { pivotPage } from "./pages/pivot.js";
 import { ringkasanPage } from "./pages/ringkasan.js";
@@ -23,6 +24,7 @@ Alpine.data("pivotPage", pivotPage);
 Alpine.data("transactionsPage", transactionsPage);
 Alpine.data("eksternalPage", eksternalPage);
 Alpine.data("ringkasanPage", ringkasanPage);
+Alpine.data("comparePage", comparePage);
 Alpine.data("signinPage", signinPage);
 
 window.Alpine = Alpine;

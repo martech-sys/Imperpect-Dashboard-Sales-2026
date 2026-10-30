@@ -24,6 +24,10 @@ const STATUS = {
     teks: "Belum",
     kelas: "bg-gray-50 text-gray-400 dark:bg-white/3 dark:text-gray-500",
   },
+  "tanpa-pasangan": {
+    teks: "Hanya 2025",
+    kelas: "bg-gray-50 text-gray-500 dark:bg-white/3 dark:text-gray-400",
+  },
   "tanpa-sesi": {
     teks: "Tidak ada sesi",
     kelas: "bg-gray-50 text-gray-400 dark:bg-white/3 dark:text-gray-500",
@@ -108,10 +112,36 @@ export function comparePage() {
         ];
       },
 
+      /**
+       * Kartu rincian per sesi: hari 2025 tanpa pasangan (Kamis) lebih dulu,
+       * mengikuti urutan event 2025, lalu hari-hari 2026.
+       */
+      get hariRincian() {
+        const tanpa = (this.data.tanpaPasangan || []).map((t) => ({
+          ...t,
+          kunci: `t-${t.tanggal2025}`,
+          hari: null,
+          tanggal2026: null,
+          status: "tanpa-pasangan",
+          tanpa: true,
+          v26: KOSONG,
+          aov26: 0,
+          growthGmv: null,
+          sesi: t.sesi || [],
+        }));
+        return [
+          ...tanpa,
+          ...this.data.hari.map((h) => ({ ...h, kunci: `d-${h.hari}` })),
+        ];
+      },
+
+      /** Kolom 2026 hanya terisi untuk potongan yang sudah dimulai. */
+      ada26: (r) => r.status !== "belum" && r.status !== "tanpa-pasangan",
+
       /** Skala batang: GMV sesi terbesar dari kedua tahun. */
       get gmvMaks() {
         let maks = 0;
-        this.data.hari.forEach((h) =>
+        this.hariRincian.forEach((h) =>
           h.sesi.forEach((r) => {
             maks = Math.max(maks, r.v25.gmv, r.v26.gmv);
           }),
@@ -124,7 +154,18 @@ export function comparePage() {
       },
 
       judulHari(h) {
+        if (h.tanpa)
+          return `${h.nama} · ${formatTanggalSedang(h.tanggal2025)} (hanya 2025)`;
         return `${h.nama} · ${formatTanggalSedang(h.tanggal2026)} vs ${h.tanggal2025 ? formatTanggalSedang(h.tanggal2025) : "–"}`;
+      },
+
+      subJudulHari(h) {
+        const n = h.sesi.filter(
+          (r) => !r.luarSesi && (h.tanpa ? r.sesi2025 : r.sesi2026),
+        ).length;
+        return h.tanpa
+          ? `Day 1 2025 · ${n} sesi · tidak ada di jadwal 2026`
+          : `Day ${h.hari} 2026 · ${n} sesi`;
       },
 
       async loadData(muatan) {
@@ -160,11 +201,11 @@ export function comparePage() {
           "aov_2025",
           "aov_2026",
         ];
-        const baris = this.data.hari.flatMap((h) =>
+        const baris = this.hariRincian.flatMap((h) =>
           h.sesi.map((r) => [
             h.nama,
             h.tanggal2025 || "",
-            h.tanggal2026,
+            h.tanggal2026 || "",
             r.jam,
             r.sesi2025 || "",
             r.sesi2026 || "",

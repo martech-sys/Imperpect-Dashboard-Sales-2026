@@ -278,7 +278,31 @@ function compare(rows, event, opts = {}) {
       );
       if (b.luar)
         tambah(v, { unit: b.luar[0], trx: b.luar[1], gmv: b.luar[2] });
-      return { nama: b.nama, tanggal2025: b.tanggal, v25: v, aov25: aov(v) };
+      // Rincian per sesi tetap dikirim supaya hari ini bisa ditampilkan
+      // seperti hari lain, dengan kolom 2026 kosong.
+      const sesi = b.sesi.map((s) => {
+        const v25 = { unit: s[3], trx: s[4], gmv: s[5] };
+        return {
+          jam: `${jamTeks(s[0])}-${jamTeks(s[1])}`,
+          mulai: s[0],
+          sesi2025: `Sesi ${s[2]}`,
+          sesi2026: null,
+          status: "tanpa-pasangan",
+          v25,
+          v26: kosong(),
+          growthGmv: null,
+          growthTrx: null,
+          aov25: aov(v25),
+          aov26: 0,
+        };
+      });
+      return {
+        nama: b.nama,
+        tanggal2025: b.tanggal,
+        v25: v,
+        aov25: aov(v),
+        sesi,
+      };
     });
 
   // Pembanding yang adil: hanya potongan sesi yang sudah selesai (sesi yang

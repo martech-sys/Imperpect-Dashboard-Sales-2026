@@ -54,6 +54,24 @@ test("compare: Jumat 2026 dipasangkan dengan Jumat 2025, per jam sesi", () => {
     r.tanpaPasangan.map((t) => [t.nama, t.v25.gmv]),
     [["Kamis", 1788975600]],
   );
+  // Kamis 2025 tetap punya rincian per sesi (kolom 2026 kosong)
+  assert.deepEqual(
+    r.tanpaPasangan[0].sesi.map((x) => [
+      x.jam,
+      x.sesi2025,
+      x.status,
+      x.v26.gmv,
+    ]),
+    [
+      ["09.00-10.00", "Sesi 1", "tanpa-pasangan", 0],
+      ["11.00-12.00", "Sesi 2", "tanpa-pasangan", 0],
+      ["13.00-14.00", "Sesi 3", "tanpa-pasangan", 0],
+      ["15.00-16.00", "Sesi 4", "tanpa-pasangan", 0],
+      ["17.00-18.00", "Sesi 5", "tanpa-pasangan", 0],
+      ["19.00-20.00", "Sesi 6", "tanpa-pasangan", 0],
+    ],
+  );
+  assert.equal(r.tanpaPasangan[0].sesi[1].v25.gmv, 425544000);
 
   const jumat = r.hari[0].sesi;
   assert.deepEqual(

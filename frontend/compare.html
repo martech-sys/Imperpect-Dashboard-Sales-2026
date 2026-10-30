@@ -166,7 +166,11 @@
                           class="border-b border-gray-100 text-gray-400 dark:border-gray-800 dark:text-gray-500"
                         >
                           <td class="px-5 py-3">
-                            <span class="font-medium" x-text="t.nama"></span>
+                            <a
+                              :href="'#hari-t-' + t.tanggal2025"
+                              class="hover:text-brand-500 font-medium"
+                              x-text="t.nama"
+                            ></a>
                             <span
                               class="text-theme-xs block"
                               x-text="formatTanggalSedang(t.tanggal2025) + ' · tidak ada di 2026'"
@@ -191,7 +195,7 @@
                         >
                           <td class="px-5 py-3">
                             <a
-                              :href="'#hari-' + h.hari"
+                              :href="'#hari-d-' + h.hari"
                               class="hover:text-brand-500 font-semibold text-gray-800 dark:text-white/90"
                               x-text="h.nama"
                             ></a>
@@ -311,9 +315,9 @@
             </div>
 
             <!-- Per sesi, satu kartu per hari -->
-            <template x-for="h in data.hari" :key="h.hari">
+            <template x-for="h in hariRincian" :key="h.kunci">
               <section
-                :id="'hari-' + h.hari"
+                :id="'hari-' + h.kunci"
                 class="mb-6 scroll-mt-24 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
               >
                 <div
@@ -326,7 +330,7 @@
                     ></h3>
                     <p
                       class="text-theme-xs mt-0.5 text-gray-500 dark:text-gray-400"
-                      x-text="'Day ' + h.hari + ' 2026 · ' + h.sesi.filter((r) => !r.luarSesi && r.sesi2026).length + ' sesi'"
+                      x-text="subJudulHari(h)"
                     ></p>
                   </div>
                   <div
@@ -409,7 +413,7 @@
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right text-gray-800 tabular-nums dark:text-white/90"
-                            x-text="r.status === 'belum' ? '–' : formatAngka(r.v26.unit)"
+                            x-text="!ada26(r) ? '–' : formatAngka(r.v26.unit)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right text-gray-500 tabular-nums dark:text-gray-400"
@@ -417,7 +421,7 @@
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right text-gray-800 tabular-nums dark:text-white/90"
-                            x-text="r.status === 'belum' ? '–' : formatAngka(r.v26.trx)"
+                            x-text="!ada26(r) ? '–' : formatAngka(r.v26.trx)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
@@ -425,13 +429,13 @@
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
-                            x-text="r.status === 'belum' ? '–' : formatRupiah(r.v26.gmv)"
+                            x-text="!ada26(r) ? '–' : formatRupiah(r.v26.gmv)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right font-medium tabular-nums"
                             :class="r.status === 'selesai' ? warnaGrowth(r.growthGmv) : 'text-gray-400'"
                             :title="r.status === 'berjalan' ? 'Sesi masih berjalan' : ''"
-                            x-text="r.status === 'belum' ? '–' : growth(r.growthGmv)"
+                            x-text="!ada26(r) ? '–' : growth(r.growthGmv)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
@@ -439,7 +443,7 @@
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
-                            x-text="r.status !== 'belum' && r.aov26 ? formatRupiah(r.aov26) : '–'"
+                            x-text="ada26(r) && r.aov26 ? formatRupiah(r.aov26) : '–'"
                           ></td>
                           <td class="px-5 py-2.5">
                             <div class="w-36 space-y-1">
@@ -471,7 +475,7 @@
                         ></td>
                         <td
                           class="px-3 py-3 text-right tabular-nums"
-                          x-text="formatAngka(h.v26.unit)"
+                          x-text="h.tanpa ? '–' : formatAngka(h.v26.unit)"
                         ></td>
                         <td
                           class="px-3 py-3 text-right tabular-nums"
@@ -479,7 +483,7 @@
                         ></td>
                         <td
                           class="px-3 py-3 text-right tabular-nums"
-                          x-text="formatAngka(h.v26.trx)"
+                          x-text="h.tanpa ? '–' : formatAngka(h.v26.trx)"
                         ></td>
                         <td
                           class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
@@ -487,12 +491,12 @@
                         ></td>
                         <td
                           class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
-                          x-text="formatRupiah(h.v26.gmv)"
+                          x-text="h.tanpa ? '–' : formatRupiah(h.v26.gmv)"
                         ></td>
                         <td
                           class="px-3 py-3 text-right tabular-nums"
                           :class="h.status === 'selesai' ? warnaGrowth(h.growthGmv) : 'text-gray-400'"
-                          x-text="h.status === 'belum' ? '–' : growth(h.growthGmv)"
+                          x-text="h.status === 'belum' || h.tanpa ? '–' : growth(h.growthGmv)"
                         ></td>
                         <td
                           class="px-3 py-3 text-right whitespace-nowrap tabular-nums"

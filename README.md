@@ -71,8 +71,11 @@ Day 3: 09.00-10.00, 11.00-12.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20
 ```
 
 - Nomor sesi diberikan otomatis menurut urutan jam: `Day 1 | Sesi 1 (09.00-10.00)`.
-- Batas: jam mulai termasuk, jam selesai tidak (transaksi 10.00 tepat sudah bukan sesi 09.00-10.00).
-- Transaksi di luar semua rentang hari itu masuk baris **`Day N | Di luar sesi`**, supaya total
+- Label sesi mengikuti jadwal tiket, tetapi **transaksi dipotong dari jam mulai sesi sampai jam
+  mulai sesi berikutnya** (buffer antrean kasir). Contoh Day 1: Sesi 1 (09.00-10.00) menampung
+  transaksi 09.00–12.59, Sesi 2 (13.00-14.00) 13.00–14.59, dan seterusnya. **Sesi terakhir hari
+  itu menampung sampai akhir hari.**
+- Transaksi sebelum sesi pertama hari itu masuk baris **`Day N | Di luar sesi`**, supaya total
   tabel tetap sama dengan total penjualan event. Baris ini hanya muncul bila ada isinya; sesi
   terjadwal selalu tampil walau masih nol.
 - Jadwal yang salah tulis atau rentang yang bertumpuk ditolak saat start, dengan pesan yang

@@ -374,7 +374,10 @@
                 <span class="font-medium">Unit sold</span> = jumlah qty,
                 <span class="font-medium">TRX</span> = jumlah invoice,
                 <span class="font-medium">GMV</span> = jumlah total harga barang
-                per produk. Transaksi berstatus Cancel/Open tidak dihitung.
+                per produk. Tiap sesi menampung transaksi dari jam mulainya
+                sampai jam mulai sesi berikutnya (buffer antrean kasir; sesi
+                terakhir sampai tutup). Transaksi berstatus Cancel/Open tidak
+                dihitung.
                 Invoice yang barangnya jatuh ke beberapa baris/channel dihitung
                 di masing-masing, tetapi sekali saja di TRX TOTAL. Klik label
                 baris untuk melihat rincian transaksinya.

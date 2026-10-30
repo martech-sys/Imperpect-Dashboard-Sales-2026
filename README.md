@@ -168,9 +168,11 @@ Event 2026 (live) dibandingkan dengan Imperfect Sale 2025 (20–23 Nov 2025, Pas
 
 - Hari dipasangkan menurut **nama hari** (Jumat vs Jumat, Sabtu vs Sabtu, Minggu vs Minggu), sesi
   menurut **jam mulai**. Kamis 2025 tidak punya pasangan dan hanya ikut "Seluruh event".
-- Dasar hitung kedua tahun sama: **GMV = total bayar per invoice** (MAX `total_bayar`, karena
+- Dasar hitung kedua tahun sama: **GMV Net = total bayar per invoice** (MAX `total_bayar`, karena
   nilainya berulang di tiap baris produk) — berbeda dengan tab lain yang memakai
-  `total_harga_barang`. TRX = jumlah invoice, Unit = jumlah qty, invoice ikut jam baris
+  `total_harga_barang`. Sebagai pembanding ditampilkan juga **GMV Gross 2026** (jumlah
+  `total_harga_barang`, sama dengan GMV menu lain); selisihnya = diskon/promo. Gross 2025 tidak
+  tersedia karena angka 2025 yang tersimpan hanya total bayar. TRX = jumlah invoice, Unit = jumlah qty, invoice ikut jam baris
   pertamanya, potongan sesi sampai jam mulai sesi berikutnya.
 - Angka 2025 tetap di `server/compare.js` (`BASELINE_2025`, hasil query manual channel
   IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH), jadi tidak menambah beban database.

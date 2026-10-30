@@ -34,7 +34,7 @@ const STATUS = {
   },
 };
 
-const KOSONG = { unit: 0, trx: 0, gmv: 0 };
+const KOSONG = { unit: 0, trx: 0, gmv: 0, gross: 0 };
 
 /** Tab Compare 2025: event 2026 (live) vs Imperfect Sale 2025 per hari × sesi. */
 export function comparePage() {
@@ -82,14 +82,15 @@ export function comparePage() {
         const r = this.data.ringkas;
         return [
           {
-            label: "GMV 2026 (live)",
+            label: "GMV Net 2026 (live)",
             nilai: formatRupiahRingkas(r.v26.gmv),
             penuh: formatRupiah(r.v26.gmv),
             sub: `${formatPersen(r.progresPasangan)} dari Jumat–Minggu 2025`,
+            sub2: `Gross ${formatRupiahRingkas(r.v26.gross || 0)} · diskon ${formatRupiahRingkas(Math.max(0, (r.v26.gross || 0) - r.v26.gmv))}`,
             progres: r.progresPasangan,
           },
           {
-            label: "GMV sesi selesai vs 2025",
+            label: "GMV Net sesi selesai vs 2025",
             nilai: this.growth(s.growthGmv),
             warna: this.warnaGrowth(s.growthGmv),
             penuh: `${formatRupiah(s.v26.gmv)} vs ${formatRupiah(s.v25.gmv)}`,
@@ -195,8 +196,9 @@ export function comparePage() {
           "unit_2026",
           "trx_2025",
           "trx_2026",
-          "gmv_2025",
-          "gmv_2026",
+          "gmv_net_2025",
+          "gmv_net_2026",
+          "gmv_gross_2026",
           "growth_gmv_persen",
           "aov_2025",
           "aov_2026",
@@ -216,6 +218,7 @@ export function comparePage() {
             r.v26.trx,
             r.v25.gmv,
             r.v26.gmv,
+            r.v26.gross || 0,
             r.growthGmv === null ? "" : r.growthGmv.toFixed(1),
             r.aov25,
             r.aov26,

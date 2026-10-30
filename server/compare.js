@@ -86,12 +86,15 @@ const BASELINE_2025 = {
   ],
 };
 
-const kosong = () => ({ unit: 0, trx: 0, gmv: 0 });
+// gross = jumlah total_harga_barang (harga sebelum diskon), hanya untuk 2026:
+// angka 2025 yang tersimpan hanya GMV net (total bayar).
+const kosong = () => ({ unit: 0, trx: 0, gmv: 0, gross: 0 });
 
 function tambah(a, b) {
   a.unit += b.unit;
   a.trx += b.trx;
   a.gmv += b.gmv;
+  a.gross += b.gross || 0;
   return a;
 }
 
@@ -139,7 +142,14 @@ function perInvoice(rows) {
     const kunci = r.invoice || `tanpa-invoice-${i}`;
     let v = inv.get(kunci);
     if (!v) {
-      v = { hari: r.hari, sesi: r.sesi, menit: r.menit, unit: 0, gmv: 0 };
+      v = {
+        hari: r.hari,
+        sesi: r.sesi,
+        menit: r.menit,
+        unit: 0,
+        gmv: 0,
+        gross: 0,
+      };
       inv.set(kunci, v);
     }
     const lebihAwal =
@@ -149,6 +159,7 @@ function perInvoice(rows) {
       Object.assign(v, { hari: r.hari, sesi: r.sesi, menit: r.menit });
     v.unit += r.qty || 0;
     v.gmv = Math.max(v.gmv, r.total_bayar || 0);
+    v.gross += r.total_harga_barang || 0;
   });
   return [...inv.values()];
 }
@@ -160,7 +171,12 @@ function compare(rows, event, opts = {}) {
   const per26 = new Map();
   perInvoice(rows).forEach((v) => {
     if (!per26.has(v.sesi)) per26.set(v.sesi, kosong());
-    tambah(per26.get(v.sesi), { unit: v.unit, trx: 1, gmv: v.gmv });
+    tambah(per26.get(v.sesi), {
+      unit: v.unit,
+      trx: 1,
+      gmv: v.gmv,
+      gross: v.gross,
+    });
   });
   const ambil26 = (key) => ({ ...(per26.get(key) || kosong()) });
 
@@ -380,12 +396,12 @@ function insight({ hari, sampaiKini, ringkas, tanpaPasangan }) {
         "Belum ada sesi 2026 yang selesai — perbandingan muncul begitu sesi pertama lewat.",
     );
     if (ringkas.v26.gmv)
-      out.push(`GMV 2026 sejauh ini ${rupiahRingkas(ringkas.v26.gmv)}.`);
+      out.push(`GMV Net 2026 sejauh ini ${rupiahRingkas(ringkas.v26.gmv)}.`);
     return out;
   }
 
   out.push(
-    `${s.sesi} sesi sudah selesai: GMV 2026 ${rupiahRingkas(s.v26.gmv)} vs ${rupiahRingkas(s.v25.gmv)} pada hari & sesi yang sama tahun lalu` +
+    `${s.sesi} sesi sudah selesai: GMV Net 2026 ${rupiahRingkas(s.v26.gmv)} vs ${rupiahRingkas(s.v25.gmv)} pada hari & sesi yang sama tahun lalu` +
       (s.growthGmv === null ? "." : ` (${pct(s.growthGmv)}).`),
   );
   if (s.growthTrx !== null && s.growthAov !== null) {
@@ -397,13 +413,20 @@ function insight({ hari, sampaiKini, ringkas, tanpaPasangan }) {
     `Progres terhadap total 2025: ${ringkas.progresPasangan.toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari Jumat–Minggu 2025 (${rupiahRingkas(ringkas.v25Pasangan.gmv)}) dan ${ringkas.progresSemua.toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari seluruh event 2025 termasuk ${tanpaPasangan.map((t) => t.nama).join(", ") || "-"} (${rupiahRingkas(ringkas.v25Semua.gmv)}).`,
   );
 
+  if (ringkas.v26.gross > 0) {
+    const diskon = Math.max(0, ringkas.v26.gross - ringkas.v26.gmv);
+    out.push(
+      `GMV Gross 2026 (harga barang, sama dengan menu lain) ${rupiahRingkas(ringkas.v26.gross)} vs GMV Net ${rupiahRingkas(ringkas.v26.gmv)} — selisih diskon/promo ${rupiahRingkas(diskon)} (${((diskon / ringkas.v26.gross) * 100).toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari gross).`,
+    );
+  }
+
   const selesai = baris.filter(({ r }) => r.status === "selesai");
   const terbaik = baris
     .filter(({ r }) => r.status !== "belum" && r.v26.gmv > 0)
     .sort((a, b) => b.r.v26.gmv - a.r.v26.gmv)[0];
   if (terbaik) {
     out.push(
-      `Sesi 2026 dengan GMV tertinggi sejauh ini: ${label(terbaik.h, terbaik.r)} — ${rupiahRingkas(terbaik.r.v26.gmv)}` +
+      `Sesi 2026 dengan GMV Net tertinggi sejauh ini: ${label(terbaik.h, terbaik.r)} — ${rupiahRingkas(terbaik.r.v26.gmv)}` +
         (terbaik.r.growthGmv === null
           ? "."
           : ` (${pct(terbaik.r.growthGmv)} vs ${rupiahRingkas(terbaik.r.v25.gmv)} di 2025).`),

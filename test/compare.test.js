@@ -86,9 +86,21 @@ test("compare: Jumat 2026 dipasangkan dengan Jumat 2025, per jam sesi", () => {
     ],
   );
   // Sesi 1 2026 menampung 09.00–12.59: invoice A (500rb) + B (100rb)
-  assert.deepEqual(jumat[1].v26, { unit: 4, trx: 2, gmv: 600000 });
+  // GMV net = total bayar; gross = harga barang (2 × 100rb + 100rb)
+  assert.deepEqual(jumat[1].v26, {
+    unit: 4,
+    trx: 2,
+    gmv: 600000,
+    gross: 300000,
+  });
   assert.deepEqual(jumat[1].v25, { unit: 2768, trx: 245, gmv: 411451800 });
-  assert.deepEqual(jumat[0].v26, { unit: 1, trx: 1, gmv: 10000 });
+  assert.deepEqual(jumat[0].v26, {
+    unit: 1,
+    trx: 1,
+    gmv: 10000,
+    gross: 100000,
+  });
+  assert.equal(r.ringkas.v26.gross, 500000);
 
   // Pembanding "sampai kini" hanya memakai potongan yang sudah selesai
   assert.equal(r.sampaiKini.sesi, 1);

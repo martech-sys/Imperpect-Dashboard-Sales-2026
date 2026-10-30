@@ -124,7 +124,7 @@ function mockGoogle() {
     files: [
       { id: "f1", name: "Klamby", modifiedTime: "t1" },
       { id: "f2", name: "Rurik", modifiedTime: "t1" },
-      { id: "f3", name: "Rekap INTERNAL", modifiedTime: "t1" },
+      { id: "f3", name: "Internal", modifiedTime: "t1" },
     ],
     csv: {
       f1: "No HP,Nama,qty,trx value\n081234567890,Dewi,2,1000000",

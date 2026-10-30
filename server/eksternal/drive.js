@@ -13,8 +13,8 @@
  *   pertama. Keduanya lewat Drive API — Sheets API hanya 60 baca/menit.
  * - File yang gagal dibaca tetap memakai isi terakhirnya dan dilaporkan per
  *   brand. Nama file = nama brand.
- * - File yang namanya mengandung kata di `cfg.exclude` (bawaan "internal")
- *   dilewati: bukan Sheet brand eksternal.
+ * - File yang namanya persis salah satu nama di `cfg.exclude` (bawaan
+ *   "internal", huruf besar/kecil sama) dilewati: bukan Sheet brand eksternal.
  */
 
 const crypto = require("node:crypto");
@@ -30,12 +30,12 @@ function createDriveSource(cfg) {
     throw new Error("Isi DRIVE_FOLDER (link atau ID folder Google Drive)");
   const maxRows = Math.max(2, cfg.maxRows || 5000);
   const concurrency = Math.max(1, cfg.concurrency || 5);
-  const exclude = (cfg.exclude || []).map((k) => k.toLowerCase());
+  const exclude = new Set((cfg.exclude || []).map((k) => k.toLowerCase()));
   const dilewati = (nama) =>
-    exclude.some((k) =>
+    exclude.has(
       String(nama || "")
-        .toLowerCase()
-        .includes(k),
+        .trim()
+        .toLowerCase(),
     );
   const urls = {
     token: "https://oauth2.googleapis.com/token",

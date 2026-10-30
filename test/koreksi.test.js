@@ -77,3 +77,40 @@ test("rincian: bisa dicari lewat no_order, menandai tanggal kasir", () => {
   assert.equal(r.rows[0].tanggal, "2026-10-30");
   assert.equal(r.rows[0].tanggal_tercatat, "2026-10-31");
 });
+
+test("manual: order yang belum ada di database disisipkan, lalu dikoreksi ke 30 Okt", () => {
+  const {
+    tambahManual,
+    barisManual,
+    brandDariSku,
+  } = require("../server/manual");
+  const ev = {
+    ...EVENT,
+    warehouse: ["MAIN IMPERFECT WAREHOUS 2026", "TEBUS MURAH IMPERFECT 2026"],
+  };
+  // database belum memuat apa pun → semua 65 baris manual masuk
+  const semua = tambahManual([], ev);
+  assert.equal(semua.length, 65);
+  const { rows } = siapkan(semua, ev);
+  assert.ok(rows.every((r) => r.tanggal === "2026-10-30" && r.hari === 1));
+  const bayar = new Map(rows.map((r) => [r.invoice, r.total_bayar]));
+  assert.equal(
+    [...bayar.values()].reduce((a, b) => a + b, 0),
+    15172000, // total 9 order di layar kasir
+  );
+
+  // database sudah memuat satu order (lewat invoice_number) → tidak dobel
+  const db = [
+    { ...barisManual()[0], invoice: "INV-001268202", no_order: null },
+  ];
+  const gabung = tambahManual(db, ev);
+  assert.equal(gabung.filter((r) => r.invoice === "INV-001268202").length, 1);
+  assert.equal(gabung.length, 65);
+
+  assert.equal(
+    brandDariSku("LAYK8605", "LAYK86-LADY FIT STRIVE TOP"),
+    "LADYFIT",
+  );
+  assert.equal(brandDariSku("LHGV7409", "SCOTTISH SCARF"), "HEYLOCAL");
+  assert.equal(brandDariSku("ZXXX", ""), "ZOMA BASIC");
+});

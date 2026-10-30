@@ -1,5 +1,7 @@
 "use strict";
 
+const { tambahManual } = require("./manual");
+
 /**
  * Sumber data: tabel `laporan_penjualan` di warehouse `we_data_store`, sama
  * dengan papan TV IMPERPECT-SALES-2026. Bedanya, papan TV hanya butuh satu
@@ -109,7 +111,9 @@ function createPostgresSource(cfg, event, deps = {}, uji = null) {
     name: "postgres",
     async fetch() {
       const res = await pool.query(sql, params);
-      if (!modeUji) return { rows: res.rows, event };
+      // Transaksi yang belum masuk database disisipkan dari server/manual.js
+      // (hanya order yang belum ada di hasil query).
+      if (!modeUji) return { rows: tambahManual(res.rows, event), event };
       return { rows: res.rows, event: eventUji(event, uji, res.rows), uji };
     },
     close: () => pool.end(),

@@ -69,6 +69,13 @@ benarnya). Saat data dibaca, transaksi itu dipindah ke tanggal yang benar dengan
 sehingga masuk ke Day & sesi yang benar dan tidak terhitung di hari yang salah — di semua menu.
 Saat ini: 15 order MAIN IMPERFECT WAREHOUS 2026 tercatat 31 Okt, dipindah ke 30 Okt 2026.
 
+Transaksi yang **belum masuk database** bisa disisipkan sementara lewat `server/manual.js` (diambil
+dari ekspor kasir "daftar_penjualan_barang"). Baris manual hanya ditambahkan bila order-nya
+(`no_order` / `invoice_number`) belum ada di hasil query; begitu database memuatnya, data database
+yang dipakai sehingga tidak pernah terhitung dua kali. Brand diambil dari huruf depan SKU (B
+BOONABOO, L HEYLOCAL — atau LADYFIT bila nama barang memuat "LADY FIT", M HEYMALE, N NOSTALGY, P
+PREPPSTUDIO, S SHUWA MODEST, W THE WAREHOUSE PROJECT, Z ZOMA BASIC).
+
 ### Sesi
 
 Sesi ditentukan dari kolom `tanggal` dan `waktu`. **Day 1 = `EVENT_DARI`**. Jadwalnya diisi lewat

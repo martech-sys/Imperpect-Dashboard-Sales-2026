@@ -189,6 +189,76 @@
                 </template>
               </div>
 
+              <!-- Target per brand -->
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 dark:border-gray-800"
+              >
+                <table class="w-full min-w-180 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">Brand</th>
+                      <th class="px-3 py-3 font-medium">Kategori</th>
+                      <th class="px-3 py-3 text-right font-medium">Target</th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Aktual GMV
+                      </th>
+                      <th class="px-5 py-3 font-medium">Capaian</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-theme-sm">
+                    <template x-for="b in data.target.brands" :key="b.kunci">
+                      <tr
+                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                        :class="targetPilih === 'b:' + b.kunci ? 'bg-brand-50/60 dark:bg-brand-500/10' : ''"
+                        @click="targetPilih = targetPilih === 'b:' + b.kunci ? '' : 'b:' + b.kunci"
+                        :title="'Klik untuk melihat target per sesi ' + b.brand"
+                      >
+                        <td
+                          class="px-5 py-2.5 font-medium text-gray-800 dark:text-white/90"
+                          x-text="b.brand"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-gray-500 dark:text-gray-400"
+                          x-text="b.kategori"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatRupiah(b.target)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="formatRupiah(b.aktual)"
+                        ></td>
+                        <td class="px-5 py-2.5">
+                          <div class="flex items-center gap-2">
+                            <div
+                              class="h-1.5 w-28 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                            >
+                              <div
+                                class="h-full bg-orange-400"
+                                :style="'width:' + Math.min(100, b.target ? (b.aktual / b.target) * 100 : 0) + '%'"
+                              ></div>
+                            </div>
+                            <span
+                              class="text-theme-xs text-gray-600 tabular-nums dark:text-gray-400"
+                              x-text="formatPersen(b.target ? (b.aktual / b.target) * 100 : 0)"
+                            ></span>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Breakdown per sesi -->
+              <h4
+                class="text-theme-sm border-t border-gray-200 px-5 pt-4 pb-3 font-semibold text-gray-800 md:px-6 dark:border-gray-800 dark:text-white/90"
+              >
+                Breakdown per sesi
+              </h4>
               <div
                 class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
                 :class="loading ? 'opacity-60' : 'opacity-100'"
@@ -297,70 +367,6 @@
                       ></td>
                     </tr>
                   </tfoot>
-                </table>
-              </div>
-
-              <!-- Target per brand -->
-              <div
-                class="custom-scrollbar overflow-x-auto border-t border-gray-200 dark:border-gray-800"
-              >
-                <table class="w-full min-w-180 text-left">
-                  <thead>
-                    <tr
-                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
-                    >
-                      <th class="px-5 py-3 font-medium">Brand</th>
-                      <th class="px-3 py-3 font-medium">Kategori</th>
-                      <th class="px-3 py-3 text-right font-medium">Target</th>
-                      <th class="px-3 py-3 text-right font-medium">
-                        Aktual GMV
-                      </th>
-                      <th class="px-5 py-3 font-medium">Capaian</th>
-                    </tr>
-                  </thead>
-                  <tbody class="text-theme-sm">
-                    <template x-for="b in data.target.brands" :key="b.kunci">
-                      <tr
-                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
-                        :class="targetPilih === 'b:' + b.kunci ? 'bg-brand-50/60 dark:bg-brand-500/10' : ''"
-                        @click="targetPilih = targetPilih === 'b:' + b.kunci ? '' : 'b:' + b.kunci"
-                        :title="'Klik untuk melihat target per sesi ' + b.brand"
-                      >
-                        <td
-                          class="px-5 py-2.5 font-medium text-gray-800 dark:text-white/90"
-                          x-text="b.brand"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-gray-500 dark:text-gray-400"
-                          x-text="b.kategori"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
-                          x-text="formatRupiah(b.target)"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
-                          x-text="formatRupiah(b.aktual)"
-                        ></td>
-                        <td class="px-5 py-2.5">
-                          <div class="flex items-center gap-2">
-                            <div
-                              class="h-1.5 w-28 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
-                            >
-                              <div
-                                class="h-full bg-orange-400"
-                                :style="'width:' + Math.min(100, b.target ? (b.aktual / b.target) * 100 : 0) + '%'"
-                              ></div>
-                            </div>
-                            <span
-                              class="text-theme-xs text-gray-600 tabular-nums dark:text-gray-400"
-                              x-text="formatPersen(b.target ? (b.aktual / b.target) * 100 : 0)"
-                            ></span>
-                          </div>
-                        </td>
-                      </tr>
-                    </template>
-                  </tbody>
                 </table>
               </div>
               <p

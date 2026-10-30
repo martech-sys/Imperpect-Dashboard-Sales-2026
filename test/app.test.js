@@ -167,7 +167,11 @@ test("gerbang password: data tertutup sebelum masuk", async () => {
   assert.equal(benar.status, 200);
   const cookie = benar.headers["set-cookie"].split(";")[0];
 
-  const trx = await panggil(app, { url: "/api/transactions", cookie });
+  // brand=X: baris dari database tiruan (bukan transaksi manual server/manual.js)
+  const trx = await panggil(app, {
+    url: "/api/transactions?brand=X",
+    cookie,
+  });
   assert.equal(trx.status, 200);
   assert.equal(trx.json.rows[0].brand, "X");
 

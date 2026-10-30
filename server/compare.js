@@ -86,15 +86,12 @@ const BASELINE_2025 = {
   ],
 };
 
-// gross = jumlah total_harga_barang (harga sebelum diskon), hanya untuk 2026:
-// angka 2025 yang tersimpan hanya GMV net (total bayar).
-const kosong = () => ({ unit: 0, trx: 0, gmv: 0, gross: 0 });
+const kosong = () => ({ unit: 0, trx: 0, gmv: 0 });
 
 function tambah(a, b) {
   a.unit += b.unit;
   a.trx += b.trx;
   a.gmv += b.gmv;
-  a.gross += b.gross || 0;
   return a;
 }
 
@@ -142,14 +139,7 @@ function perInvoice(rows) {
     const kunci = r.invoice || `tanpa-invoice-${i}`;
     let v = inv.get(kunci);
     if (!v) {
-      v = {
-        hari: r.hari,
-        sesi: r.sesi,
-        menit: r.menit,
-        unit: 0,
-        gmv: 0,
-        gross: 0,
-      };
+      v = { hari: r.hari, sesi: r.sesi, menit: r.menit, unit: 0, gmv: 0 };
       inv.set(kunci, v);
     }
     const lebihAwal =
@@ -159,7 +149,6 @@ function perInvoice(rows) {
       Object.assign(v, { hari: r.hari, sesi: r.sesi, menit: r.menit });
     v.unit += r.qty || 0;
     v.gmv = Math.max(v.gmv, r.total_bayar || 0);
-    v.gross += r.total_harga_barang || 0;
   });
   return [...inv.values()];
 }
@@ -171,12 +160,7 @@ function compare(rows, event, opts = {}) {
   const per26 = new Map();
   perInvoice(rows).forEach((v) => {
     if (!per26.has(v.sesi)) per26.set(v.sesi, kosong());
-    tambah(per26.get(v.sesi), {
-      unit: v.unit,
-      trx: 1,
-      gmv: v.gmv,
-      gross: v.gross,
-    });
+    tambah(per26.get(v.sesi), { unit: v.unit, trx: 1, gmv: v.gmv });
   });
   const ambil26 = (key) => ({ ...(per26.get(key) || kosong()) });
 
@@ -412,13 +396,6 @@ function insight({ hari, sampaiKini, ringkas, tanpaPasangan }) {
   out.push(
     `Progres terhadap total 2025: ${ringkas.progresPasangan.toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari Jumat–Minggu 2025 (${rupiahRingkas(ringkas.v25Pasangan.gmv)}) dan ${ringkas.progresSemua.toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari seluruh event 2025 termasuk ${tanpaPasangan.map((t) => t.nama).join(", ") || "-"} (${rupiahRingkas(ringkas.v25Semua.gmv)}).`,
   );
-
-  if (ringkas.v26.gross > 0) {
-    const diskon = Math.max(0, ringkas.v26.gross - ringkas.v26.gmv);
-    out.push(
-      `GMV Gross 2026 (harga barang, sama dengan menu lain) ${rupiahRingkas(ringkas.v26.gross)} vs GMV Net ${rupiahRingkas(ringkas.v26.gmv)} — selisih diskon/promo ${rupiahRingkas(diskon)} (${((diskon / ringkas.v26.gross) * 100).toLocaleString("id-ID", { maximumFractionDigits: 1 })}% dari gross).`,
-    );
-  }
 
   const selesai = baris.filter(({ r }) => r.status === "selesai");
   const terbaik = baris

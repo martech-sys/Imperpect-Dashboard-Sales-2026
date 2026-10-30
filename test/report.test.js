@@ -216,3 +216,30 @@ test("CSV memakai urutan kolom tabel, pemisah titik koma, dan BOM", () => {
   assert.ok(!csv.includes("hpp"));
   assert.equal(csv.split("\n").length, 6);
 });
+
+test("EVENT_DATA_DARI lebih awal: tanggal sebelum Day 1 jadi Day 0, sesi event tidak bergeser", () => {
+  const ev = { ...event, dataDari: "2026-10-29" };
+  const raw = [
+    baris({
+      invoice: "U1",
+      tanggal: "2026-10-29",
+      waktu: "09:30:00",
+      total_harga_barang: "50000.0000",
+    }),
+    baris({ invoice: "A", tanggal: "2026-10-30", waktu: "09:30:00" }),
+  ];
+  const { rows: r } = siapkan(raw, ev);
+  assert.equal(r[0].hari, 0);
+  assert.equal(r[0].sesi, "0-0");
+  assert.equal(r[1].sesi, "1-1");
+
+  const p = report.pivot(r, ev, {});
+  assert.equal(p.rows[0].label, "Day 0 | Di luar sesi");
+  assert.equal(p.rows[0].total.gmv, 50000);
+  assert.equal(p.rows[1].label, "Day 1 | Sesi 1 (09.00-10.00)");
+
+  const perHari = report.pivot(r, ev, { baris: "hari" });
+  assert.equal(perHari.rows[0].label, "Day 0 · 29 Okt");
+  assert.equal(report.opsiFilter(r, ev).hari[0].label, "Day 0 · 29 Okt");
+  assert.equal(report.pivot(r, ev, { hari: "0" }).total.trx, 1);
+});

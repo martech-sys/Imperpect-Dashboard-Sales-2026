@@ -95,7 +95,10 @@ function createPostgresSource(cfg, event, deps = {}, uji = null) {
   const custom = (cfg.query || "").trim();
   const modeUji = !custom && uji;
   let sql = custom || buildQuery(cfg, event);
-  let params = custom ? [] : [event.warehouse, event.dari, event.sampai];
+  // Batas bawah data: EVENT_DATA_DARI (boleh sebelum Day 1), bawaannya EVENT_DARI.
+  let params = custom
+    ? []
+    : [event.warehouse, event.dataDari || event.dari, event.sampai];
   if (modeUji) {
     sql = buildQueryUji(cfg, event);
     params = [uji.warehouse, uji.limit];

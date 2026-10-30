@@ -151,7 +151,11 @@ function createPenentuSesi(sesi, tanggalMulai) {
       menit === null
         ? null
         : daftar.find((s) => menit >= s.mulai && menit < s.selesai);
-    return { hari, menit, sesi: kena ? kena.key : hari ? `${hari}-0` : null };
+    return {
+      hari,
+      menit,
+      sesi: kena ? kena.key : hari !== null ? `${hari}-0` : null,
+    };
   };
 }
 

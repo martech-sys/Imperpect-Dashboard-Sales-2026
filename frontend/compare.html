@@ -49,7 +49,9 @@
                 </h2>
                 <p class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400">
                   Hari yang sama (Jumat vs Jumat, Sabtu vs Sabtu, Minggu vs
-                  Minggu) dan jam sesi yang sama · GMV = total bayar
+                  Minggu) dan jam sesi yang sama · GMV Net = total bayar
+                  (setelah diskon); GMV Gross = harga barang, sama dengan menu
+                  lain
                 </p>
                 <p
                   class="text-theme-sm mt-1 flex items-center gap-2 text-gray-500 dark:text-gray-400"
@@ -125,6 +127,11 @@
                     class="text-theme-xs mt-1.5 text-gray-500 tabular-nums dark:text-gray-400"
                     x-text="k.sub"
                   ></p>
+                  <p
+                    x-show="k.sub2"
+                    class="text-theme-xs mt-0.5 text-gray-500 tabular-nums dark:text-gray-400"
+                    x-text="k.sub2"
+                  ></p>
                 </div>
               </template>
             </div>
@@ -143,7 +150,7 @@
                   class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
                   :class="loading ? 'opacity-60' : 'opacity-100'"
                 >
-                  <table class="w-full min-w-160 text-left">
+                  <table class="w-full min-w-180 text-left">
                     <thead>
                       <tr
                         class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
@@ -152,10 +159,13 @@
                         <th class="px-3 py-3 text-right font-medium">TRX 25</th>
                         <th class="px-3 py-3 text-right font-medium">TRX 26</th>
                         <th class="px-3 py-3 text-right font-medium">
-                          GMV 2025
+                          GMV Net 2025
                         </th>
                         <th class="px-3 py-3 text-right font-medium">
-                          GMV 2026
+                          GMV Net 2026
+                        </th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV Gross 2026
                         </th>
                         <th class="px-5 py-3 text-right font-medium">Growth</th>
                       </tr>
@@ -185,6 +195,7 @@
                             class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
                             x-text="formatRupiah(t.v25.gmv)"
                           ></td>
+                          <td class="px-3 py-3 text-right">–</td>
                           <td class="px-3 py-3 text-right">–</td>
                           <td class="px-5 py-3 text-right">–</td>
                         </tr>
@@ -226,6 +237,10 @@
                             x-text="formatRupiah(h.v26.gmv)"
                           ></td>
                           <td
+                            class="px-3 py-3 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatRupiah(h.v26.gross)"
+                          ></td>
+                          <td
                             class="px-5 py-3 text-right font-medium tabular-nums"
                             :class="h.status === 'selesai' ? warnaGrowth(h.growthGmv) : 'text-gray-400'"
                             :title="h.status === 'selesai' ? '' : 'Hari belum selesai — angka 2026 masih bertambah'"
@@ -256,6 +271,10 @@
                           x-text="formatRupiah(data.ringkas.v26.gmv)"
                         ></td>
                         <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v26.gross)"
+                        ></td>
+                        <td
                           class="px-5 py-3 text-right text-gray-500 tabular-nums dark:text-gray-400"
                           x-text="formatPersen(data.ringkas.progresPasangan) + ' tercapai'"
                         ></td>
@@ -279,6 +298,10 @@
                         <td
                           class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
                           x-text="formatRupiah(data.ringkas.v26.gmv)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(data.ringkas.v26.gross)"
                         ></td>
                         <td
                           class="px-5 py-3 text-right tabular-nums"
@@ -352,7 +375,7 @@
                   class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
                   :class="loading ? 'opacity-60' : 'opacity-100'"
                 >
-                  <table class="w-full min-w-260 text-left">
+                  <table class="w-full min-w-280 text-left">
                     <thead>
                       <tr
                         class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
@@ -368,19 +391,22 @@
                         <th class="px-3 py-3 text-right font-medium">TRX 25</th>
                         <th class="px-3 py-3 text-right font-medium">TRX 26</th>
                         <th class="px-3 py-3 text-right font-medium">
-                          GMV 2025
+                          GMV Net 2025
                         </th>
                         <th class="px-3 py-3 text-right font-medium">
-                          GMV 2026
+                          GMV Net 2026
                         </th>
                         <th class="px-3 py-3 text-right font-medium">Growth</th>
+                        <th class="px-3 py-3 text-right font-medium">
+                          GMV Gross 2026
+                        </th>
                         <th class="px-3 py-3 text-right font-medium">
                           Rata-rata/TRX 25
                         </th>
                         <th class="px-3 py-3 text-right font-medium">
                           Rata-rata/TRX 26
                         </th>
-                        <th class="w-44 px-5 py-3 font-medium">GMV</th>
+                        <th class="w-44 px-5 py-3 font-medium">GMV Net</th>
                       </tr>
                     </thead>
                     <tbody class="text-theme-sm">
@@ -436,6 +462,10 @@
                             :class="r.status === 'selesai' ? warnaGrowth(r.growthGmv) : 'text-gray-400'"
                             :title="r.status === 'berjalan' ? 'Sesi masih berjalan' : ''"
                             x-text="!ada26(r) ? '–' : growth(r.growthGmv)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="!ada26(r) ? '–' : formatRupiah(r.v26.gross)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
@@ -500,6 +530,10 @@
                         ></td>
                         <td
                           class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                          x-text="h.tanpa ? '–' : formatRupiah(h.v26.gross)"
+                        ></td>
+                        <td
+                          class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
                           x-text="h.aov25 ? formatRupiah(h.aov25) : '–'"
                         ></td>
                         <td
@@ -520,14 +554,16 @@
               <span class="font-medium">Cara hitung.</span> 2025 = channel
               IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH, 20–23 Nov 2025
               (angka tetap). 2026 = warehouse event, live. Kedua tahun memakai
-              dasar yang sama: GMV = total bayar per invoice (MAX total_bayar,
-              bukan total harga barang seperti tab lain), TRX = jumlah invoice,
-              Unit = jumlah qty, status Cancel/Batal/Open tidak dihitung. Sesi
-              dihitung dari jam mulainya sampai jam mulai sesi berikutnya;
-              invoice ikut jam baris pertamanya. Growth berwarna hanya untuk
-              sesi/hari yang sudah selesai — sesi yang sedang berjalan masih
-              bertambah. Kartu KPI "vs 2025" hanya menjumlahkan sesi yang sudah
-              selesai.
+              dasar yang sama: GMV Net = total bayar per invoice (MAX
+              total_bayar, setelah diskon). GMV Gross 2026 = jumlah total harga
+              barang (sebelum diskon), sama dengan GMV di menu lain — selisih
+              keduanya adalah diskon/promo; angka gross 2025 tidak tersedia. TRX
+              = jumlah invoice, Unit = jumlah qty, status Cancel/Batal/Open
+              tidak dihitung. Sesi dihitung dari jam mulainya sampai jam mulai
+              sesi berikutnya; invoice ikut jam baris pertamanya. Growth
+              berwarna hanya untuk sesi/hari yang sudah selesai — sesi yang
+              sedang berjalan masih bertambah. Kartu KPI "vs 2025" hanya
+              menjumlahkan sesi yang sudah selesai.
             </p>
           </div>
         </main>

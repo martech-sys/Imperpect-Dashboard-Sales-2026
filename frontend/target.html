@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Target penjualan Imperfect Sale 2026 per sesi dan per brand dibandingkan aktual."
+    />
+    <title>Target 2026 | Imperfect Sale</title>
+  </head>
+  <body
+    x-data="targetPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <div class="flex h-screen overflow-hidden">
+      <include src="./partials/sidebar.html"></include>
+
+      <div
+        class="relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+      >
+        <include src="./partials/overlay.html" />
+        <include src="./partials/header.html" />
+
+        <main>
+          <div
+            class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6"
+          >
+            <div
+              x-show="error"
+              x-cloak
+              role="alert"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-6 rounded-xl border p-4"
+              x-text="error"
+            ></div>
+
+            <!-- Judul + status -->
+            <div
+              class="mb-6 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+            >
+              <div>
+                <h2
+                  class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                >
+                  Target Imperfect Sale 2026
+                </h2>
+                <p class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400">
+                  Target brand dibagi ke tiap sesi · aktual = GMV total harga
+                  barang, sama dengan menu lain
+                </p>
+                <p
+                  class="text-theme-sm mt-1 flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                >
+                  <span
+                    class="inline-block size-2 shrink-0 rounded-full"
+                    :class="statusData.warna"
+                  ></span>
+                  <span x-text="statusData.teks"></span>
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="refresh({ segar: true })"
+                  :disabled="loading"
+                  class="text-theme-sm shadow-theme-xs inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 px-4 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+                >
+                  <svg
+                    class="size-4"
+                    :class="loading ? 'animate-spin' : ''"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M16.25 10a6.25 6.25 0 1 1-1.83-4.42M16.25 3.75v3.5h-3.5"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  @click="exportCsv()"
+                  :disabled="!data.target.sesi.length"
+                  class="bg-brand-500 hover:bg-brand-600 shadow-theme-xs text-theme-sm inline-flex h-11 items-center gap-2 rounded-lg px-4 font-medium text-white transition disabled:opacity-60"
+                >
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Insight -->
+            <section
+              class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 md:p-6 dark:border-gray-800 dark:bg-white/3"
+            >
+              <h3
+                class="mb-3 text-lg font-semibold text-gray-800 dark:text-white/90"
+              >
+                Insight
+              </h3>
+              <ul class="grid gap-x-8 gap-y-2.5 lg:grid-cols-2">
+                <template x-for="(t, i) in data.insight" :key="i">
+                  <li
+                    class="text-theme-sm flex gap-2.5 leading-relaxed text-gray-700 dark:text-gray-300"
+                  >
+                    <span
+                      class="mt-2 inline-block size-1.5 shrink-0 rounded-full bg-orange-400"
+                    ></span>
+                    <span x-text="t"></span>
+                  </li>
+                </template>
+              </ul>
+            </section>
+
+            <!-- Target per sesi -->
+            <section
+              class="mb-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+            >
+              <div
+                class="flex flex-wrap items-start justify-between gap-3 p-5 md:px-6"
+              >
+                <div>
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                  >
+                    Target 2026 per sesi
+                  </h3>
+                  <p
+                    class="text-theme-xs mt-0.5 max-w-2xl text-gray-500 dark:text-gray-400"
+                  >
+                    Target dibagi ke
+                    <span x-text="data.target.jumlahSesi"></span> sesi dengan
+                    dua cara: <span class="font-medium">rata</span> (sama tiap
+                    sesi) dan <span class="font-medium">proporsional</span>
+                    (mengikuti porsi GMV Net sesi yang sama di 2025).
+                  </p>
+                </div>
+                <select
+                  x-model="targetPilih"
+                  aria-label="Pilih brand atau kategori target"
+                  class="focus:border-brand-300 focus:ring-brand-500/10 h-11 rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                >
+                  <template x-for="o in opsiTarget" :key="o.value">
+                    <option
+                      :value="o.value"
+                      x-text="o.label"
+                      :selected="o.value === targetPilih"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+
+              <div
+                class="grid grid-cols-2 gap-4 border-t border-gray-200 p-5 md:px-6 xl:grid-cols-4 dark:border-gray-800"
+              >
+                <template x-for="k in targetKpi" :key="k.label">
+                  <div>
+                    <p
+                      class="text-theme-xs text-gray-500 dark:text-gray-400"
+                      x-text="k.label"
+                    ></p>
+                    <p
+                      class="mt-1 text-lg font-bold tabular-nums"
+                      :class="k.warna || 'text-gray-800 dark:text-white/90'"
+                      :title="k.penuh || ''"
+                      x-text="k.nilai"
+                    ></p>
+                    <div
+                      x-show="k.progres !== undefined"
+                      class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                    >
+                      <div
+                        class="h-full bg-orange-400"
+                        :style="'width:' + Math.min(100, k.progres || 0) + '%'"
+                      ></div>
+                    </div>
+                    <p
+                      x-show="k.sub"
+                      class="text-theme-xs mt-1 text-gray-500 tabular-nums dark:text-gray-400"
+                      x-text="k.sub"
+                    ></p>
+                  </div>
+                </template>
+              </div>
+
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 transition-opacity dark:border-gray-800"
+                :class="loading ? 'opacity-60' : 'opacity-100'"
+              >
+                <table class="w-full min-w-220 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">Sesi 2026</th>
+                      <th class="px-3 py-3 font-medium">Status</th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Porsi 2025
+                      </th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Target rata
+                      </th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Target proporsional
+                      </th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Aktual GMV
+                      </th>
+                      <th class="px-3 py-3 text-right font-medium">vs rata</th>
+                      <th class="px-5 py-3 text-right font-medium">
+                        vs proporsional
+                      </th>
+                    </tr>
+                  </thead>
+                  <template x-for="g in targetPerHari" :key="g.hari">
+                    <tbody class="text-theme-sm">
+                      <template x-for="s in g.sesi" :key="s.jam">
+                        <tr
+                          class="border-b border-gray-100 dark:border-gray-800"
+                          :class="s.status === 'berjalan' ? 'bg-success-50/40 dark:bg-success-500/5' : ''"
+                        >
+                          <td class="px-5 py-2.5 whitespace-nowrap">
+                            <span
+                              class="font-medium text-gray-800 dark:text-white/90"
+                              x-text="s.nama + ' ' + s.jam"
+                            ></span>
+                            <span
+                              class="text-theme-xs block text-gray-500 dark:text-gray-400"
+                              x-text="'Day ' + s.hari + ' · ' + s.sesi2026"
+                            ></span>
+                          </td>
+                          <td class="px-3 py-2.5">
+                            <span
+                              class="text-theme-xs inline-flex rounded-full px-2 py-0.5 font-medium whitespace-nowrap"
+                              :class="status(s.status).kelas"
+                              x-text="status(s.status).teks"
+                            ></span>
+                          </td>
+                          <td
+                            class="px-3 py-2.5 text-right text-gray-500 tabular-nums dark:text-gray-400"
+                            x-text="formatPersen(s.bobot * 100)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
+                            x-text="formatRupiah(s.rata)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
+                            x-text="formatRupiah(s.prop)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                            x-text="s.status === 'belum' ? '–' : formatRupiah(s.aktual)"
+                          ></td>
+                          <td
+                            class="px-3 py-2.5 text-right font-medium tabular-nums"
+                            :class="warnaCapai(s.capaiRata, s.status)"
+                            x-text="s.status === 'belum' || s.capaiRata === null ? '–' : formatPersen(s.capaiRata)"
+                          ></td>
+                          <td
+                            class="px-5 py-2.5 text-right font-medium tabular-nums"
+                            :class="warnaCapai(s.capaiProp, s.status)"
+                            x-text="s.status === 'belum' || s.capaiProp === null ? '–' : formatPersen(s.capaiProp)"
+                          ></td>
+                        </tr>
+                      </template>
+                      <tr
+                        class="border-b border-gray-200 bg-gray-50 text-sm font-semibold text-gray-800 dark:border-gray-800 dark:bg-white/5 dark:text-white"
+                      >
+                        <td class="px-5 py-2.5" colspan="3">
+                          Subtotal <span x-text="g.nama"></span>
+                        </td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(g.rata)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(g.prop)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
+                          x-text="formatRupiah(g.aktual)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right tabular-nums"
+                          x-text="g.rata ? formatPersen((g.aktual / g.rata) * 100) : '–'"
+                        ></td>
+                        <td
+                          class="px-5 py-2.5 text-right tabular-nums"
+                          x-text="g.prop ? formatPersen((g.aktual / g.prop) * 100) : '–'"
+                        ></td>
+                      </tr>
+                    </tbody>
+                  </template>
+                  <tfoot>
+                    <tr
+                      class="bg-gray-100 text-sm font-bold text-gray-800 dark:bg-gray-800 dark:text-white"
+                    >
+                      <td class="px-5 py-3" colspan="3">TOTAL</td>
+                      <td
+                        class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(targetTerpilih)"
+                      ></td>
+                      <td
+                        class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(targetTerpilih)"
+                      ></td>
+                      <td
+                        class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
+                        x-text="formatRupiah(targetSesi.reduce((a, s) => a + s.aktual, 0))"
+                      ></td>
+                      <td
+                        class="px-3 py-3 text-right tabular-nums"
+                        colspan="2"
+                        x-text="targetTerpilih ? formatPersen((targetSesi.reduce((a, s) => a + s.aktual, 0) / targetTerpilih) * 100) + ' dari target' : '–'"
+                      ></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <!-- Target per brand -->
+              <div
+                class="custom-scrollbar overflow-x-auto border-t border-gray-200 dark:border-gray-800"
+              >
+                <table class="w-full min-w-180 text-left">
+                  <thead>
+                    <tr
+                      class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                    >
+                      <th class="px-5 py-3 font-medium">Brand</th>
+                      <th class="px-3 py-3 font-medium">Kategori</th>
+                      <th class="px-3 py-3 text-right font-medium">Target</th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Target rata / sesi
+                      </th>
+                      <th class="px-3 py-3 text-right font-medium">
+                        Aktual GMV
+                      </th>
+                      <th class="px-5 py-3 font-medium">Capaian</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-theme-sm">
+                    <template x-for="b in data.target.brands" :key="b.kunci">
+                      <tr
+                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                        :class="targetPilih === 'b:' + b.kunci ? 'bg-brand-50/60 dark:bg-brand-500/10' : ''"
+                        @click="targetPilih = targetPilih === 'b:' + b.kunci ? '' : 'b:' + b.kunci"
+                        :title="'Klik untuk melihat target per sesi ' + b.brand"
+                      >
+                        <td
+                          class="px-5 py-2.5 font-medium text-gray-800 dark:text-white/90"
+                          x-text="b.brand"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-gray-500 dark:text-gray-400"
+                          x-text="b.kategori"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
+                          x-text="formatRupiah(b.target)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
+                          x-text="formatRupiah(data.target.jumlahSesi ? b.target / data.target.jumlahSesi : 0)"
+                        ></td>
+                        <td
+                          class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                          x-text="formatRupiah(b.aktual)"
+                        ></td>
+                        <td class="px-5 py-2.5">
+                          <div class="flex items-center gap-2">
+                            <div
+                              class="h-1.5 w-28 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"
+                            >
+                              <div
+                                class="h-full bg-orange-400"
+                                :style="'width:' + Math.min(100, b.target ? (b.aktual / b.target) * 100 : 0) + '%'"
+                              ></div>
+                            </div>
+                            <span
+                              class="text-theme-xs text-gray-600 tabular-nums dark:text-gray-400"
+                              x-text="formatPersen(b.target ? (b.aktual / b.target) * 100 : 0)"
+                            ></span>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+              <p
+                class="text-theme-xs border-t border-gray-100 px-5 py-3 leading-relaxed text-gray-500 md:px-6 dark:border-gray-800 dark:text-gray-400"
+              >
+                Aktual = GMV dari total harga barang (sebelum diskon), sama
+                dengan GMV di menu lain, per sesi menurut jam transaksinya.
+                Porsi 2025 untuk target proporsional memakai GMV Net 2025. Nama
+                brand dicocokkan dengan principal_brand. Persentase capaian
+                berwarna hanya untuk sesi yang sudah selesai. Klik baris brand
+                untuk melihat target per sesinya.
+                <template x-if="data.target.luarTarget.length">
+                  <span
+                    x-text="' Brand di luar daftar target (tidak dihitung): ' + data.target.luarTarget.map((b) => b.brand + ' ' + formatRupiahRingkas(b.gmv)).join(', ') + '.'"
+                  ></span>
+                </template>
+              </p>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

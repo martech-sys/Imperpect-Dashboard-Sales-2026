@@ -9,6 +9,7 @@ Dashboard penjualan event Imperfect Sale:
 | `/transactions` | **Rincian Transaksi** — satu baris per produk, dikelompokkan per invoice, dengan ekspor CSV |
 | `/eksternal`    | **Ringkasan Eksternal** — penjualan brand eksternal per brand, dari Sheet per brand di Drive |
 | `/compare`      | **Compare 2025** — event 2026 (live) vs Imperfect Sale 2025 per hari × sesi, dengan insight |
+| `/target`       | **Target 2026** — target brand dibagi per sesi (rata & proporsional 2025) vs aktual GMV |
 | `/signin`       | Masuk (hanya bila `DASHBOARD_PASSWORD` diisi)                                             |
 
 - **Tampilan** mengikuti dashboard [OFFLINE-STORE](https://github.com/martech-sys/OFFLINE-STORE):
@@ -174,13 +175,23 @@ Event 2026 (live) dibandingkan dengan Imperfect Sale 2025 (20–23 Nov 2025, Pas
   pertamanya, potongan sesi sampai jam mulai sesi berikutnya.
 - Angka 2025 tetap di `server/compare.js` (`BASELINE_2025`, hasil query manual channel
   IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH), jadi tidak menambah beban database.
-- **Target 2026** (per brand, di `server/target.js`) dibagi ke 17 sesi dengan dua cara: **rata**
-  (target ÷ jumlah sesi) dan **proporsional** (target × porsi GMV Net sesi pasangan di 2025).
-  Aktual target = jumlah `total_harga_barang` per brand (sama dengan GMV menu lain);
-  brand dicocokkan dengan `principal_brand` tanpa memedulikan huruf besar/kecil & spasi. Bisa
-  dipilih per kategori atau per brand, dan muncul juga sebagai insight.
 - Kartu "vs 2025" dan growth berwarna hanya menghitung sesi yang **sudah selesai**; sesi yang sedang
   berjalan ditandai dan disebut terpisah di insight.
+
+## Target 2026
+
+Target penjualan per brand (di `server/target.js`: Menswear Rp 1 M, Womenswear Rp 4,08 M) dibagi
+ke 17 sesi 2026 dengan dua cara:
+
+- **Rata**: target ÷ jumlah sesi.
+- **Proporsional**: target × porsi GMV Net sesi pasangannya di 2025 (hari & jam yang sama, angka
+  dari tab Compare 2025), sehingga sesi yang tahun lalu ramai mendapat target lebih besar.
+
+Aktual = jumlah `total_harga_barang` per brand (sama dengan GMV menu lain), per sesi menurut jam
+transaksinya. Brand dicocokkan dengan `principal_brand` tanpa memedulikan huruf besar/kecil, spasi,
+dan tanda baca; brand yang terjual tetapi tidak ada di daftar target ditampilkan terpisah. Halaman
+bisa dipilih per kategori atau per brand, berisi KPI, insight, tabel per sesi, tabel per brand,
+dan ekspor CSV.
 
 ## Ringkasan Eksternal
 
@@ -421,6 +432,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `GET /api/transactions.csv`  | ekspor rincian dengan filter yang sama                                  |
 | `GET /api/ringkasan`         | gabungan internal + eksternal: total, per sumber, per brand             |
 | `GET /api/compare`           | 2026 vs Imperfect Sale 2025 per hari × sesi + insight                   |
+| `GET /api/target`            | target 2026 per sesi & brand vs aktual + insight                        |
 | `GET /api/eksternal`         | ringkasan brand eksternal + KPI                                         |
 | `GET /api/eksternal/brand`   | detail satu brand eksternal. Parameter: `brand`                         |
 | `GET /api/health`            | kesegaran data dan variabel yang terisi, tanpa isi transaksi            |

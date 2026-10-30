@@ -6,6 +6,7 @@ const { compare, perInvoice } = require("../server/compare");
 const { parseSesi } = require("../server/sesi");
 const { siapkan } = require("../server/store");
 const { createApp } = require("../server/app");
+const { laporanTarget } = require("../server/target");
 
 const EVENT = { dari: "2026-10-30", sampai: "2026-11-01", sesi: parseSesi("") };
 
@@ -145,7 +146,7 @@ test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari harga
     baris({ invoice: "B", brand: "LAINNYA", total_bayar: 50000 }),
   ];
   const { rows } = siapkan(raw, EVENT);
-  const r = compare(rows, EVENT, { now: NOW });
+  const r = laporanTarget(rows, EVENT, { now: NOW });
   const t = r.target;
   assert.equal(t.total, 5082782902);
   assert.equal(t.jumlahSesi, 17);
@@ -158,5 +159,23 @@ test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari harga
   assert.deepEqual(s1.aktual, { heymale: 200000, heylocal: 100000 });
   assert.equal(t.brands.find((b) => b.kunci === "heymale").aktual, 200000);
   assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 100000 }]);
-  assert.ok(r.insightTarget.some((x) => /Dibagi rata/.test(x)));
+  assert.ok(r.insight.some((x) => /Dibagi rata/.test(x)));
+  // Compare 2025 tidak lagi memuat target
+  assert.equal(compare(rows, EVENT, { now: NOW }).target, undefined);
+});
+
+test("GET /api/target (mode demo)", async () => {
+  const app = createApp({ DEMO_MODE: "1" });
+  const res = {
+    setHeader() {},
+    end(b) {
+      this.body = b;
+    },
+  };
+  await app.handle({ url: "/api/target", method: "GET", headers: {} }, res);
+  assert.equal(res.statusCode, 200);
+  const body = JSON.parse(res.body);
+  assert.equal(body.target.jumlahSesi, 17);
+  assert.ok(body.insight.length > 0);
+  await app.close();
 });

@@ -12,7 +12,7 @@
   "rewrites": [{ "source": "/api/:path*", "destination": "/api" }],
   "headers": [
     {
-      "source": "/(|transactions|eksternal|ringkasan|compare|signin)",
+      "source": "/(|transactions|eksternal|ringkasan|compare|target|signin)",
       "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     }
   ]

@@ -217,7 +217,7 @@ export function comparePage() {
             penuh: formatRupiah(total),
           },
           {
-            label: "Aktual GMV Net",
+            label: "Aktual GMV (harga barang)",
             nilai: formatRupiahRingkas(aktual),
             penuh: formatRupiah(aktual),
             sub: total

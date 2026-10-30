@@ -8,10 +8,10 @@
  *                    (hari & jam yang sama), sehingga sesi yang tahun lalu
  *                    ramai mendapat target lebih besar.
  *
- * Aktual per brand = GMV Net (total bayar) invoice dibagi ke brand-brand di
- * dalamnya menurut porsi total_harga_barang — total bayar hanya tercatat per
- * invoice, bukan per brand. Nama brand dicocokkan tanpa memedulikan huruf
- * besar/kecil, spasi, dan tanda baca (principal_brand).
+ * Aktual per brand = jumlah total_harga_barang (sama dengan GMV menu lain).
+ * Proporsi sesi tetap memakai GMV Net 2025 (satu-satunya angka 2025 yang
+ * tersedia). Nama brand dicocokkan tanpa memedulikan huruf besar/kecil,
+ * spasi, dan tanda baca (principal_brand).
  */
 
 const TARGET_2026 = [
@@ -40,48 +40,19 @@ const kunciBrand = (nama) =>
     .replace(/[^a-z0-9]/g, "");
 
 /**
- * GMV Net per brand tiap invoice: total bayar invoice (MAX, berulang di tiap
- * baris) dibagi menurut porsi harga barang; bila harga kosong menurut qty,
- * lalu rata. Invoice ikut sesi baris pertamanya, sama dengan compare.js.
- * → Map kunci sesi → Map kunci brand → { nama, gmv }
+ * GMV per brand per sesi = jumlah total_harga_barang barisnya (harga sebelum
+ * diskon), sama dengan GMV di menu Sesi × Channel. Sesi mengikuti jam tiap
+ * baris. → Map kunci sesi → Map kunci brand → { nama, gmv }
  */
 function gmvBrandPerSesi(rows) {
-  const inv = new Map();
-  rows.forEach((r, i) => {
-    if (r.hari === null || r.hari === undefined) return;
-    const kunci = r.invoice || `tanpa-invoice-${i}`;
-    let v = inv.get(kunci);
-    if (!v) {
-      v = { hari: r.hari, sesi: r.sesi, menit: r.menit, bayar: 0, baris: [] };
-      inv.set(kunci, v);
-    }
-    const lebihAwal =
-      r.hari < v.hari ||
-      (r.hari === v.hari && (r.menit ?? Infinity) < (v.menit ?? Infinity));
-    if (lebihAwal)
-      Object.assign(v, { hari: r.hari, sesi: r.sesi, menit: r.menit });
-    v.bayar = Math.max(v.bayar, r.total_bayar || 0);
-    v.baris.push(r);
-  });
-
   const hasil = new Map();
-  inv.forEach((v) => {
-    const bobotDari = [(r) => r.total_harga_barang, (r) => r.qty, () => 1];
-    for (const bobot of bobotDari) {
-      const jumlah = v.baris.reduce(
-        (s, r) => s + Math.max(0, bobot(r) || 0),
-        0,
-      );
-      if (jumlah <= 0) continue;
-      if (!hasil.has(v.sesi)) hasil.set(v.sesi, new Map());
-      const perBrand = hasil.get(v.sesi);
-      v.baris.forEach((r) => {
-        const k = kunciBrand(r.brand);
-        if (!perBrand.has(k)) perBrand.set(k, { nama: r.brand, gmv: 0 });
-        perBrand.get(k).gmv += (v.bayar * Math.max(0, bobot(r) || 0)) / jumlah;
-      });
-      return;
-    }
+  rows.forEach((r) => {
+    if (!r.sesi) return;
+    if (!hasil.has(r.sesi)) hasil.set(r.sesi, new Map());
+    const perBrand = hasil.get(r.sesi);
+    const k = kunciBrand(r.brand);
+    if (!perBrand.has(k)) perBrand.set(k, { nama: r.brand, gmv: 0 });
+    perBrand.get(k).gmv += r.total_harga_barang || 0;
   });
   return hasil;
 }

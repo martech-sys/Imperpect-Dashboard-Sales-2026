@@ -176,7 +176,7 @@ Event 2026 (live) dibandingkan dengan Imperfect Sale 2025 (20–23 Nov 2025, Pas
   IMPERFECT SALE 2025 + IMPERFECT SALE TEBUS MURAH), jadi tidak menambah beban database.
 - **Target 2026** (per brand, di `server/target.js`) dibagi ke 17 sesi dengan dua cara: **rata**
   (target ÷ jumlah sesi) dan **proporsional** (target × porsi GMV Net sesi pasangan di 2025).
-  Aktual per brand = GMV Net invoice dibagi menurut porsi harga barang tiap brand di invoice itu;
+  Aktual target = jumlah `total_harga_barang` per brand (sama dengan GMV menu lain);
   brand dicocokkan dengan `principal_brand` tanpa memedulikan huruf besar/kecil & spasi. Bisa
   dipilih per kategori atau per brand, dan muncul juga sebagai insight.
 - Kartu "vs 2025" dan growth berwarna hanya menghitung sesi yang **sudah selesai**; sesi yang sedang

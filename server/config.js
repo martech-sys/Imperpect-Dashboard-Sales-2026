@@ -105,6 +105,11 @@ function loadConfig(env) {
       email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
       privateKey: env.GOOGLE_PRIVATE_KEY,
       maxRows: parseInt(env.DRIVE_MAX_ROWS || "5000", 10),
+      // Sheet yang namanya mengandung salah satu kata ini tidak dibaca
+      // (mis. Sheet "internal" di folder yang sama). Kosong = baca semua.
+      exclude: daftar(
+        env.DRIVE_EXCLUDE === undefined ? "internal" : env.DRIVE_EXCLUDE,
+      ).map((k) => k.toLowerCase()),
     },
     auth: {
       password: env.DASHBOARD_PASSWORD || "",

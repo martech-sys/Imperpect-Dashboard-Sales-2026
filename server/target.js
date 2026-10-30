@@ -4,11 +4,9 @@ const { compare, rupiahRingkas } = require("./compare");
 
 /**
  * Target penjualan Imperfect Sale 2026 per brand (GMV), dibagi ke tiap sesi
- * event dengan dua cara:
- *   - rata         : target ÷ jumlah sesi 2026
- *   - proporsional : target × porsi GMV Net sesi pasangannya di 2025
- *                    (hari & jam yang sama), sehingga sesi yang tahun lalu
- *                    ramai mendapat target lebih besar.
+ * event secara proporsional: target × porsi GMV Net sesi pasangannya di 2025
+ * (hari & jam yang sama), sehingga sesi yang tahun lalu ramai mendapat target
+ * lebih besar.
  *
  * Aktual per brand = jumlah total_harga_barang (sama dengan GMV menu lain).
  * Proporsi sesi tetap memakai GMV Net 2025 (satu-satunya angka 2025 yang
@@ -149,7 +147,6 @@ function insightTarget(t) {
   if (!t.total || !n) return out;
   const jumlah = (o) => Object.values(o).reduce((a, b) => a + b, 0);
   const aktual = t.brands.reduce((a, b) => a + b.aktual, 0);
-  const rata = t.total / n;
   const label = (s) => `${s.nama} ${s.jam}`;
   const persenTeks = (x) =>
     `${x.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
@@ -159,16 +156,15 @@ function insightTarget(t) {
   );
   const urut = [...t.sesi].sort((a, b) => b.bobot - a.bobot);
   out.push(
-    `Dibagi rata: ${rupiahRingkas(rata)} per sesi (${n} sesi). Dibagi menurut porsi penjualan 2025: tertinggi ${label(urut[0])} ${rupiahRingkas(t.total * urut[0].bobot)} (${persenTeks(urut[0].bobot * 100)}), terendah ${label(urut[urut.length - 1])} ${rupiahRingkas(t.total * urut[urut.length - 1].bobot)} (${persenTeks(urut[urut.length - 1].bobot * 100)}).`,
+    `Target per sesi mengikuti porsi penjualan 2025 (${n} sesi): tertinggi ${label(urut[0])} ${rupiahRingkas(t.total * urut[0].bobot)} (${persenTeks(urut[0].bobot * 100)}), terendah ${label(urut[urut.length - 1])} ${rupiahRingkas(t.total * urut[urut.length - 1].bobot)} (${persenTeks(urut[urut.length - 1].bobot * 100)}).`,
   );
 
   const selesai = t.sesi.filter((s) => s.status === "selesai");
   if (selesai.length) {
     const akt = selesai.reduce((a, s) => a + jumlah(s.aktual), 0);
     const tProp = selesai.reduce((a, s) => a + s.bobot, 0) * t.total;
-    const tRata = selesai.length * rata;
     out.push(
-      `${selesai.length} sesi selesai: aktual ${rupiahRingkas(akt)} vs target proporsional ${rupiahRingkas(tProp)} (${persenTeks((akt / tProp) * 100)}) dan vs target rata ${rupiahRingkas(tRata)} (${persenTeks((akt / tRata) * 100)}).`,
+      `${selesai.length} sesi selesai: aktual ${rupiahRingkas(akt)} vs target proporsional ${rupiahRingkas(tProp)} (${persenTeks((akt / tProp) * 100)}).`,
     );
   }
   const berikut = t.sesi.find(
@@ -177,7 +173,7 @@ function insightTarget(t) {
   if (berikut) {
     const akt = jumlah(berikut.aktual);
     out.push(
-      `${label(berikut)} ${berikut.status === "berjalan" ? "sedang berjalan" : "berikutnya"}: target proporsional ${rupiahRingkas(t.total * berikut.bobot)}, target rata ${rupiahRingkas(rata)}` +
+      `${label(berikut)} ${berikut.status === "berjalan" ? "sedang berjalan" : "berikutnya"}: target ${rupiahRingkas(t.total * berikut.bobot)}` +
         (berikut.status === "berjalan"
           ? `; aktual sejauh ini ${rupiahRingkas(akt)}.`
           : "."),

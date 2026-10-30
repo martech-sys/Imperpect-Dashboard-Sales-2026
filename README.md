@@ -9,7 +9,7 @@ Dashboard penjualan event Imperfect Sale:
 | `/transactions` | **Rincian Transaksi** — satu baris per produk, dikelompokkan per invoice, dengan ekspor CSV |
 | `/eksternal`    | **Ringkasan Eksternal** — penjualan brand eksternal per brand, dari Sheet per brand di Drive |
 | `/compare`      | **Compare 2025** — event 2026 (live) vs Imperfect Sale 2025 per hari × sesi, dengan insight |
-| `/target`       | **Target 2026** — target brand dibagi per sesi (rata & proporsional 2025) vs aktual GMV |
+| `/target`       | **Target 2026** — target brand dibagi per sesi (proporsional porsi 2025) vs aktual GMV |
 | `/signin`       | Masuk (hanya bila `DASHBOARD_PASSWORD` diisi)                                             |
 
 - **Tampilan** mengikuti dashboard [OFFLINE-STORE](https://github.com/martech-sys/OFFLINE-STORE):
@@ -196,11 +196,9 @@ Event 2026 (live) dibandingkan dengan Imperfect Sale 2025 (20–23 Nov 2025, Pas
 ## Target 2026
 
 Target penjualan per brand (di `server/target.js`: Menswear Rp 1 M, Womenswear Rp 4,08 M) dibagi
-ke 17 sesi 2026 dengan dua cara:
-
-- **Rata**: target ÷ jumlah sesi.
-- **Proporsional**: target × porsi GMV Net sesi pasangannya di 2025 (hari & jam yang sama, angka
-  dari tab Compare 2025), sehingga sesi yang tahun lalu ramai mendapat target lebih besar.
+ke 17 sesi 2026 secara **proporsional**: target × porsi GMV Net sesi pasangannya di 2025 (hari &
+jam yang sama, angka dari tab Compare 2025), sehingga sesi yang tahun lalu ramai mendapat target
+lebih besar.
 
 Aktual = jumlah `total_harga_barang` per brand (sama dengan GMV menu lain), per sesi menurut jam
 transaksinya. Brand dicocokkan dengan `principal_brand` tanpa memedulikan huruf besar/kecil, spasi,

@@ -1,6 +1,9 @@
 "use strict";
 
 const { createPenentuSesi } = require("./sesi");
+const { createKoreksi } = require("./koreksi");
+
+const koreksiBawaan = createKoreksi();
 
 /**
  * Status yang tidak dihitung sebagai penjualan, sama dengan dashboard
@@ -33,8 +36,12 @@ const teks = (v) => {
   return t ? t : null;
 };
 
-/** Baris query → baris siap agregasi, lengkap dengan hari dan sesinya. */
-function siapkan(rawRows, event) {
+/**
+ * Baris query → baris siap agregasi, lengkap dengan hari dan sesinya.
+ * Transaksi di daftar koreksi (server/koreksi.js) dipindah ke tanggal yang
+ * benar sebelum hari & sesinya ditentukan.
+ */
+function siapkan(rawRows, event, tanggalBenar = koreksiBawaan) {
   const tentukan = createPenentuSesi(event.sesi, event.dari);
   const rows = [];
   let dibuang = 0;
@@ -43,7 +50,8 @@ function siapkan(rawRows, event) {
       dibuang += 1;
       continue;
     }
-    const tanggal = teks(r.tanggal);
+    const tanggalTercatat = teks(r.tanggal);
+    const tanggal = tanggalBenar(r) || tanggalTercatat;
     const waktu = teks(r.waktu);
     const posisi = tentukan(tanggal, waktu);
     rows.push({
@@ -68,6 +76,8 @@ function siapkan(rawRows, event) {
       promo_kode: teks(r.promo_kode),
       promo_value: angka(r.promo_value),
       status: teks(r.status),
+      // tanggal di sistem kasir bila dikoreksi (lihat server/koreksi.js)
+      tanggal_tercatat: tanggal === tanggalTercatat ? null : tanggalTercatat,
     });
   }
   return { rows, dibuang };

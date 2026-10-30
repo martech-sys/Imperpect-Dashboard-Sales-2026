@@ -61,6 +61,14 @@ Isinya sama dengan tabel sesi yang dipakai selama event:
   channel.
 - Status `Cancel` dan `Open` tidak dihitung (sama dengan OFFLINE-STORE), di halaman mana pun.
 
+### Koreksi tanggal kasir
+
+Transaksi yang tanggalnya salah tercatat karena setelan tanggal di perangkat kasir dicantumkan di
+`server/koreksi.js` (per `no_order` atau `invoice_number`, beserta tanggal salah dan tanggal
+benarnya). Saat data dibaca, transaksi itu dipindah ke tanggal yang benar dengan jam yang sama,
+sehingga masuk ke Day & sesi yang benar dan tidak terhitung di hari yang salah — di semua menu.
+Saat ini: 15 order MAIN IMPERFECT WAREHOUS 2026 tercatat 31 Okt, dipindah ke 30 Okt 2026.
+
 ### Sesi
 
 Sesi ditentukan dari kolom `tanggal` dan `waktu`. **Day 1 = `EVENT_DARI`**. Jadwalnya diisi lewat

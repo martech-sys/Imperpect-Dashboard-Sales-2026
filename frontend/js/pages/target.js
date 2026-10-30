@@ -20,8 +20,8 @@ const STATUS = {
 };
 
 /**
- * Tab Target 2026: target brand dibagi ke tiap sesi (rata & proporsional
- * porsi penjualan 2025) dibandingkan aktual GMV (total harga barang).
+ * Tab Target 2026: target brand dibagi ke tiap sesi secara proporsional
+ * (porsi penjualan 2025) dibandingkan aktual GMV (total harga barang).
  */
 export function targetPage() {
   return compose(
@@ -85,16 +85,13 @@ export function targetPage() {
         const t = this.data.target;
         const total = this.targetTerpilih;
         const kunci = this.brandTerpilih.map((b) => b.kunci);
-        const rata = t.jumlahSesi ? total / t.jumlahSesi : 0;
         return t.sesi.map((s) => {
           const aktual = kunci.reduce((a, k) => a + (s.aktual[k] || 0), 0);
           const prop = total * s.bobot;
           return {
             ...s,
-            rata,
             prop,
             aktual,
-            capaiRata: rata ? (aktual / rata) * 100 : null,
             capaiProp: prop ? (aktual / prop) * 100 : null,
           };
         });
@@ -110,14 +107,12 @@ export function targetPage() {
               hari: s.hari,
               nama: s.nama,
               sesi: [],
-              rata: 0,
               prop: 0,
               aktual: 0,
             };
             grup.push(g);
           }
           g.sesi.push(s);
-          g.rata += s.rata;
           g.prop += s.prop;
           g.aktual += s.aktual;
         });
@@ -169,9 +164,7 @@ export function targetPage() {
               const sisa = this.targetSesi.filter(
                 (s) => s.status !== "selesai",
               ).length;
-              return sisa
-                ? `${formatRupiahRingkas(Math.max(0, total - aktual) / sisa)} per sesi tersisa (${sisa} sesi)`
-                : "semua sesi selesai";
+              return sisa ? `${sisa} sesi tersisa` : "semua sesi selesai";
             })(),
           },
         ];
@@ -206,10 +199,8 @@ export function targetPage() {
           "sesi_2026",
           "status",
           "porsi_2025_persen",
-          "target_rata",
           "target_proporsional",
           "aktual_gmv",
-          "capaian_vs_rata_persen",
           "capaian_vs_proporsional_persen",
         ];
         const baris = this.targetSesi.map((s) => [
@@ -218,10 +209,8 @@ export function targetPage() {
           s.sesi2026,
           s.status,
           (s.bobot * 100).toFixed(2),
-          Math.round(s.rata),
           Math.round(s.prop),
           s.aktual,
-          s.capaiRata === null ? "" : s.capaiRata.toFixed(1),
           s.capaiProp === null ? "" : s.capaiProp.toFixed(1),
         ]);
         const isi = [kepala, ...baris].map((r) => r.join(";")).join("\n");

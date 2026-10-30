@@ -159,7 +159,7 @@ test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari harga
   assert.deepEqual(s1.aktual, { heymale: 200000, heylocal: 100000 });
   assert.equal(t.brands.find((b) => b.kunci === "heymale").aktual, 200000);
   assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 100000 }]);
-  assert.ok(r.insight.some((x) => /Dibagi rata/.test(x)));
+  assert.ok(r.insight.some((x) => /porsi penjualan 2025/.test(x)));
   // Compare 2025 tidak lagi memuat target
   assert.equal(compare(rows, EVENT, { now: NOW }).target, undefined);
 });

@@ -136,10 +136,9 @@
                     class="text-theme-xs mt-0.5 max-w-2xl text-gray-500 dark:text-gray-400"
                   >
                     Target dibagi ke
-                    <span x-text="data.target.jumlahSesi"></span> sesi dengan
-                    dua cara: <span class="font-medium">rata</span> (sama tiap
-                    sesi) dan <span class="font-medium">proporsional</span>
-                    (mengikuti porsi GMV Net sesi yang sama di 2025).
+                    <span x-text="data.target.jumlahSesi"></span> sesi secara
+                    <span class="font-medium">proporsional</span>, mengikuti
+                    porsi GMV Net sesi yang sama di 2025.
                   </p>
                 </div>
                 <select
@@ -205,15 +204,11 @@
                         Porsi 2025
                       </th>
                       <th class="px-3 py-3 text-right font-medium">
-                        Target rata
-                      </th>
-                      <th class="px-3 py-3 text-right font-medium">
                         Target proporsional
                       </th>
                       <th class="px-3 py-3 text-right font-medium">
                         Aktual GMV
                       </th>
-                      <th class="px-3 py-3 text-right font-medium">vs rata</th>
                       <th class="px-5 py-3 text-right font-medium">
                         vs proporsional
                       </th>
@@ -249,20 +244,11 @@
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
-                            x-text="formatRupiah(s.rata)"
-                          ></td>
-                          <td
-                            class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
                             x-text="formatRupiah(s.prop)"
                           ></td>
                           <td
                             class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
                             x-text="s.status === 'belum' ? '–' : formatRupiah(s.aktual)"
-                          ></td>
-                          <td
-                            class="px-3 py-2.5 text-right font-medium tabular-nums"
-                            :class="warnaCapai(s.capaiRata, s.status)"
-                            x-text="s.status === 'belum' || s.capaiRata === null ? '–' : formatPersen(s.capaiRata)"
                           ></td>
                           <td
                             class="px-5 py-2.5 text-right font-medium tabular-nums"
@@ -279,19 +265,11 @@
                         </td>
                         <td
                           class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
-                          x-text="formatRupiah(g.rata)"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
                           x-text="formatRupiah(g.prop)"
                         ></td>
                         <td
                           class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
                           x-text="formatRupiah(g.aktual)"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-right tabular-nums"
-                          x-text="g.rata ? formatPersen((g.aktual / g.rata) * 100) : '–'"
                         ></td>
                         <td
                           class="px-5 py-2.5 text-right tabular-nums"
@@ -311,15 +289,10 @@
                       ></td>
                       <td
                         class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
-                        x-text="formatRupiah(targetTerpilih)"
-                      ></td>
-                      <td
-                        class="px-3 py-3 text-right whitespace-nowrap tabular-nums"
                         x-text="formatRupiah(targetSesi.reduce((a, s) => a + s.aktual, 0))"
                       ></td>
                       <td
-                        class="px-3 py-3 text-right tabular-nums"
-                        colspan="2"
+                        class="px-5 py-3 text-right tabular-nums"
                         x-text="targetTerpilih ? formatPersen((targetSesi.reduce((a, s) => a + s.aktual, 0) / targetTerpilih) * 100) + ' dari target' : '–'"
                       ></td>
                     </tr>
@@ -339,9 +312,6 @@
                       <th class="px-5 py-3 font-medium">Brand</th>
                       <th class="px-3 py-3 font-medium">Kategori</th>
                       <th class="px-3 py-3 text-right font-medium">Target</th>
-                      <th class="px-3 py-3 text-right font-medium">
-                        Target rata / sesi
-                      </th>
                       <th class="px-3 py-3 text-right font-medium">
                         Aktual GMV
                       </th>
@@ -367,10 +337,6 @@
                         <td
                           class="px-3 py-2.5 text-right whitespace-nowrap text-gray-700 tabular-nums dark:text-gray-300"
                           x-text="formatRupiah(b.target)"
-                        ></td>
-                        <td
-                          class="px-3 py-2.5 text-right whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
-                          x-text="formatRupiah(data.target.jumlahSesi ? b.target / data.target.jumlahSesi : 0)"
                         ></td>
                         <td
                           class="px-3 py-2.5 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"

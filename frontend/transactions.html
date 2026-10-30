@@ -198,7 +198,7 @@
                       type="search"
                       x-model="search"
                       @input="onSearchInput()"
-                      placeholder="Cari invoice, SKU, produk, brand…"
+                      placeholder="Cari invoice, no. order, SKU, produk, brand…"
                       class="dark:bg-dark-900 focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 ps-10 pe-4 text-sm text-gray-800 focus:ring-3 focus:outline-hidden sm:w-72 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                       aria-label="Cari transaksi"
                     />
@@ -304,9 +304,18 @@
                         ></td>
                         <td
                           class="text-theme-sm px-4 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
-                          :title="row.invoiceBaru ? (row.invoice || '') : ''"
-                          x-text="row.invoiceBaru ? invoicePendek(row.invoice) : ''"
-                        ></td>
+                          :title="row.invoiceBaru ? [row.invoice, row.no_order].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ') : ''"
+                        >
+                          <span
+                            x-text="row.invoiceBaru ? invoicePendek(row.invoice) : ''"
+                          ></span>
+                          <span
+                            x-show="row.invoiceBaru && row.tanggal_tercatat"
+                            class="text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 ms-1.5 inline-flex rounded-full px-2 py-0.5 font-medium dark:text-orange-400"
+                            :title="'Tanggal di kasir ' + formatTanggalRingkas(row.tanggal_tercatat) + ', dikoreksi ke ' + formatTanggalRingkas(row.tanggal)"
+                            x-text="'tgl kasir ' + formatTanggalRingkas(row.tanggal_tercatat)"
+                          ></span>
+                        </td>
                         <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
                           x-text="teks(row.sku_produk)"

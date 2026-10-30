@@ -63,6 +63,7 @@ function siapkan(rawRows, event, tanggalBenar = koreksiBawaan) {
       sesi: posisi.sesi,
       channel: teks(r.channel) || "(tanpa channel)",
       invoice: teks(r.invoice),
+      no_order: teks(r.no_order),
       payment_note: teks(r.payment_note),
       total_bayar: angka(r.total_bayar),
       qty: angka(r.qty) || 0,

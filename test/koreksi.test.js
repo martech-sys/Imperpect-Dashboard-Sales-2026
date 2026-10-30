@@ -58,3 +58,22 @@ test("koreksi: nomor yang sama di tanggal lain tidak dipindah", () => {
   assert.equal(benar({ invoice: "INV-1", tanggal: "2026-11-01" }), null);
   assert.equal(benar({ invoice: "INV-2", tanggal: "2026-10-31" }), null);
 });
+
+test("rincian: bisa dicari lewat no_order, menandai tanggal kasir", () => {
+  const { transactions } = require("../server/report");
+  const raw = [
+    baris({
+      invoice: "INV-001268906",
+      invoice_number: "INV-001268906",
+      no_order: "JP/IMPWH/IMPRFCT24/20261031/135333",
+      waktu: "13:55:00",
+    }),
+    baris({ invoice: "INV-1", no_order: "JP/X/1" }),
+  ];
+  const { rows } = siapkan(raw, EVENT);
+  const r = transactions(rows, { q: "20261031/135333" });
+  assert.equal(r.total, 1);
+  assert.equal(r.rows[0].invoice, "INV-001268906");
+  assert.equal(r.rows[0].tanggal, "2026-10-30");
+  assert.equal(r.rows[0].tanggal_tercatat, "2026-10-31");
+});

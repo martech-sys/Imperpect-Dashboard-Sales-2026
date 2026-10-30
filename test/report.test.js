@@ -159,6 +159,9 @@ test("rincian: urutan kolom, total bayar hanya di baris pertama invoice", () => 
     "total_bayar",
     "payment_note",
     "status",
+    // tampilan saja, tidak ikut CSV
+    "no_order",
+    "tanggal_tercatat",
   ]);
   assert.deepEqual(
     r.rows.map((x) => x.total_bayar),

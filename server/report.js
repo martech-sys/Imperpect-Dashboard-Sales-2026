@@ -85,6 +85,7 @@ const metodeBayar = (r) => r.payment_note || TANPA_METODE;
 
 const KOLOM_CARI = [
   "invoice",
+  "no_order",
   "sku_produk",
   "nama_produk",
   "brand",
@@ -367,6 +368,10 @@ function keluaran(rows) {
     const pertama = !sudah.has(r.invoice);
     sudah.add(r.invoice);
     const o = Object.fromEntries(KOLOM_DETAIL.map(([k]) => [k, r[k]]));
+    // Untuk tampilan saja (tidak ikut CSV): nomor order kasir & tanggal asli
+    // transaksi yang dikoreksi.
+    o.no_order = r.no_order;
+    o.tanggal_tercatat = r.tanggal_tercatat;
     if (!pertama) {
       o.total_bayar = null;
       o.promo_value = null;

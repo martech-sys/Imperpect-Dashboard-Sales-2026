@@ -200,6 +200,8 @@ Isi tab:
 - Nomor HP disamarkan (`0812-xxxx-7890`) dan nama dipendekkan (`Dewi L.`) di server; nomor lengkap
   tidak pernah dikirim ke browser.
 - Penjualan eksternal **tidak** dijumlahkan ke halaman Sesi × Channel dan Rincian Transaksi.
+- Sheet yang namanya mengandung kata **internal** (mis. "Rekap Internal") dilewati, tidak dihitung
+  sebagai brand eksternal. Ganti/tambah katanya lewat `DRIVE_EXCLUDE`.
 
 Tanpa `DRIVE_FOLDER`, tab ini menampilkan data contoh (status oranye). Akun layanan yang salah
 atau folder yang belum di-share tampil sebagai galat dengan pesan aslinya.
@@ -384,6 +386,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `DRIVE_FOLDER`                    | –                                                          | Folder Sheet brand eksternal. Lihat [Ringkasan Eksternal](#ringkasan-eksternal).            |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`     | –                                                          | Key JSON akun layanan (atau `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`).          |
 | `DRIVE_MAX_ROWS`                  | `5000`                                                     | Baris maksimum yang dibaca per Sheet brand.                                                  |
+| `DRIVE_EXCLUDE`                   | `internal`                                                 | Sheet yang namanya mengandung kata ini (pisah koma, huruf besar/kecil sama) tidak dibaca.    |
 | `DEMO_MODE`                       | `false`                                                    | Paksa data contoh walau database terisi.                                                     |
 | `PORT`                            | `3000`                                                     | Port server lokal.                                                                           |
 

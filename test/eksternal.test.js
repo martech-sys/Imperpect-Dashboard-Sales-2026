@@ -124,10 +124,12 @@ function mockGoogle() {
     files: [
       { id: "f1", name: "Klamby", modifiedTime: "t1" },
       { id: "f2", name: "Rurik", modifiedTime: "t1" },
+      { id: "f3", name: "Rekap INTERNAL", modifiedTime: "t1" },
     ],
     csv: {
       f1: "No HP,Nama,qty,trx value\n081234567890,Dewi,2,1000000",
       f2: "No HP,Nama,qty,trx value",
+      f3: "No HP,Nama,qty,trx value\n081234567890,Dewi,1,999999999",
     },
     fail: new Set(),
   };
@@ -173,6 +175,7 @@ test("Drive: hanya file yang berubah dibaca ulang; file gagal memakai isi terakh
       folder: "https://drive.google.com/drive/folders/FOLDER_ID_123",
       json: SA,
       urls: g.urls,
+      exclude: ["internal"],
     });
     const a = await src.fetch();
     assert.deepEqual(

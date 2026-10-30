@@ -127,20 +127,20 @@ test("GET /api/compare (mode demo)", async () => {
   await app.close();
 });
 
-test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari total bayar", () => {
+test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari harga barang", () => {
   const raw = [
-    // invoice A: dua brand, total bayar 300rb dibagi menurut harga 200rb : 100rb
+    // invoice A: dua brand; aktual = harga barang, bukan total bayar 270rb
     baris({
       invoice: "A",
       brand: "HEYMALE",
       total_harga_barang: 200000,
-      total_bayar: 300000,
+      total_bayar: 270000,
     }),
     baris({
       invoice: "A",
       brand: "Heylocal",
       total_harga_barang: 100000,
-      total_bayar: 300000,
+      total_bayar: 270000,
     }),
     baris({ invoice: "B", brand: "LAINNYA", total_bayar: 50000 }),
   ];
@@ -157,6 +157,6 @@ test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari total
   assert.ok(Math.abs(s1.bobot - 411451800 / (5700899671 - 79000)) < 1e-12);
   assert.deepEqual(s1.aktual, { heymale: 200000, heylocal: 100000 });
   assert.equal(t.brands.find((b) => b.kunci === "heymale").aktual, 200000);
-  assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 50000 }]);
+  assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 100000 }]);
   assert.ok(r.insightTarget.some((x) => /Dibagi rata/.test(x)));
 });

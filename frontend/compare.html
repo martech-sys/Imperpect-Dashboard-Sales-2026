@@ -432,7 +432,7 @@
                         Target proporsional
                       </th>
                       <th class="px-3 py-3 text-right font-medium">
-                        Aktual GMV Net
+                        Aktual GMV
                       </th>
                       <th class="px-3 py-3 text-right font-medium">vs rata</th>
                       <th class="px-5 py-3 text-right font-medium">
@@ -564,7 +564,7 @@
                         Target rata / sesi
                       </th>
                       <th class="px-3 py-3 text-right font-medium">
-                        Aktual GMV Net
+                        Aktual GMV
                       </th>
                       <th class="px-5 py-3 font-medium">Capaian</th>
                     </tr>
@@ -621,11 +621,12 @@
               <p
                 class="text-theme-xs border-t border-gray-100 px-5 py-3 leading-relaxed text-gray-500 md:px-6 dark:border-gray-800 dark:text-gray-400"
               >
-                Aktual = GMV Net (total bayar). Total bayar tercatat per
-                invoice, jadi untuk brand dibagi menurut porsi harga barang di
-                invoice itu. Nama brand dicocokkan dengan principal_brand.
-                Persentase capaian berwarna hanya untuk sesi yang sudah selesai.
-                Klik baris brand untuk melihat target per sesinya.
+                Aktual = GMV dari total harga barang (sebelum diskon), sama
+                dengan GMV di menu lain, per sesi menurut jam transaksinya.
+                Porsi 2025 untuk target proporsional memakai GMV Net 2025. Nama
+                brand dicocokkan dengan principal_brand. Persentase capaian
+                berwarna hanya untuk sesi yang sudah selesai. Klik baris brand
+                untuk melihat target per sesinya.
                 <template x-if="data.target.luarTarget.length">
                   <span
                     x-text="' Brand di luar daftar target (tidak dihitung): ' + data.target.luarTarget.map((b) => b.brand + ' ' + formatRupiahRingkas(b.gmv)).join(', ') + '.'"

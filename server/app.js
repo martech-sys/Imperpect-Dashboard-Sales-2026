@@ -9,6 +9,7 @@ const report = require("./report");
 const eksternal = require("./eksternal");
 const { ringkasanAll } = require("./ringkasan");
 const { compare } = require("./compare");
+const { laporanTarget } = require("./target");
 
 /**
  * Seluruh endpoint /api/*, dipakai bersama server Node (server/index.js) dan
@@ -19,6 +20,7 @@ const { compare } = require("./compare");
  *   GET  /api/transactions      rincian per baris produk (paginasi)
  *   GET  /api/transactions.csv  ekspor rincian
  *   GET  /api/compare           2026 vs Imperfect Sale 2025 per hari × sesi
+ *   GET  /api/target            target 2026 per sesi & brand vs aktual
  *   GET  /api/health            kesegaran data, tanpa isi transaksi
  *   POST /api/auth/login        { password }
  *   POST /api/auth/logout
@@ -308,6 +310,17 @@ function createApp(env, deps = {}) {
           res,
           200,
           { ...compare(d.rows, d.event), kesegaran: d.kesegaran },
+          cdn,
+        );
+      }
+
+      if (path === "/api/target") {
+        const d = await data(res, segar);
+        if (!d) return undefined;
+        return json(
+          res,
+          200,
+          { ...laporanTarget(d.rows, d.event), kesegaran: d.kesegaran },
           cdn,
         );
       }

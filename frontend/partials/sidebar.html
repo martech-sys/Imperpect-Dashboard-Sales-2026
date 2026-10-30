@@ -148,6 +148,25 @@
               <span class="menu-item-text" :class="sidebarToggle ? 'xl:hidden' : ''">Compare 2025</span>
             </a>
           </li>
+
+          <li>
+            <a
+              href="/target"
+              class="menu-item group"
+              :class="page === 'target' ? 'menu-item-active' : 'menu-item-inactive'"
+            >
+              <svg
+                class="shrink-0"
+                :class="page === 'target' ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                width="24" height="24" viewBox="0 0 24 24" fill="none"
+              >
+                <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="12" cy="12" r="1.25" fill="currentColor" />
+              </svg>
+              <span class="menu-item-text" :class="sidebarToggle ? 'xl:hidden' : ''">Target 2026</span>
+            </a>
+          </li>
         </ul>
       </div>
     </nav>

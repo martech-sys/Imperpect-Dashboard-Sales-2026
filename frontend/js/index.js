@@ -7,6 +7,7 @@ import { eksternalPage } from "./pages/eksternal.js";
 import { pivotPage } from "./pages/pivot.js";
 import { ringkasanPage } from "./pages/ringkasan.js";
 import { signinPage } from "./pages/signin.js";
+import { targetPage } from "./pages/target.js";
 import { transactionsPage } from "./pages/transactions.js";
 
 // Mode gelap dipasang sebelum Alpine berjalan supaya halaman tidak berkedip terang dulu.
@@ -25,6 +26,7 @@ Alpine.data("transactionsPage", transactionsPage);
 Alpine.data("eksternalPage", eksternalPage);
 Alpine.data("ringkasanPage", ringkasanPage);
 Alpine.data("comparePage", comparePage);
+Alpine.data("targetPage", targetPage);
 Alpine.data("signinPage", signinPage);
 
 window.Alpine = Alpine;

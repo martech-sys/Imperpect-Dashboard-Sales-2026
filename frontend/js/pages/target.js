@@ -76,6 +76,35 @@ export function targetPage() {
         return semua;
       },
 
+      /** Brand dikelompokkan per kategori, dengan subtotal target & aktual. */
+      get brandPerKategori() {
+        const grup = [];
+        this.data.target.brands.forEach((b) => {
+          let g = grup.find((x) => x.nama === b.kategori);
+          if (!g) {
+            g = { nama: b.kategori, brands: [], target: 0, aktual: 0 };
+            grup.push(g);
+          }
+          g.brands.push(b);
+          g.target += b.target;
+          g.aktual += b.aktual;
+        });
+        return grup;
+      },
+
+      get totalBrand() {
+        return this.data.target.brands.reduce(
+          (a, b) => ({
+            target: a.target + b.target,
+            aktual: a.aktual + b.aktual,
+          }),
+          { target: 0, aktual: 0 },
+        );
+      },
+
+      /** Bar & persen capaian. */
+      capai: (aktual, target) => (target ? (aktual / target) * 100 : 0),
+
       get targetTerpilih() {
         return this.brandTerpilih.reduce((a, b) => a + b.target, 0);
       },

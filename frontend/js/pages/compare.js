@@ -57,7 +57,18 @@ export function comparePage() {
           progresSemua: 0,
         },
         insight: [],
+        insightTarget: [],
+        target: {
+          total: 0,
+          kategori: [],
+          brands: [],
+          jumlahSesi: 0,
+          sesi: [],
+          luarTarget: [],
+        },
       },
+      /** "" = semua brand target, "k:<kategori>", atau "b:<kunci brand>". */
+      targetPilih: "",
 
       formatAngka,
       formatPersen,
@@ -110,6 +121,144 @@ export function comparePage() {
             sub: `${formatRupiahRingkas(s.aov26 || 0)} vs ${formatRupiahRingkas(s.aov25 || 0)}`,
           },
         ];
+      },
+
+      // ---------------------------------------------------------------
+      // Target
+      // ---------------------------------------------------------------
+
+      get opsiTarget() {
+        const t = this.data.target;
+        return [
+          { value: "", label: "Semua brand target" },
+          ...t.kategori.map((k) => ({
+            value: `k:${k.nama}`,
+            label: `${k.nama} (semua brand)`,
+          })),
+          ...t.brands.map((b) => ({
+            value: `b:${b.kunci}`,
+            label: `${b.brand} · ${b.kategori}`,
+          })),
+        ];
+      },
+
+      get brandTerpilih() {
+        const p = this.targetPilih;
+        const semua = this.data.target.brands;
+        if (p.startsWith("k:"))
+          return semua.filter((b) => b.kategori === p.slice(2));
+        if (p.startsWith("b:"))
+          return semua.filter((b) => b.kunci === p.slice(2));
+        return semua;
+      },
+
+      get targetTerpilih() {
+        return this.brandTerpilih.reduce((a, b) => a + b.target, 0);
+      },
+
+      /** Baris per sesi untuk pilihan target saat ini. */
+      get targetSesi() {
+        const t = this.data.target;
+        const total = this.targetTerpilih;
+        const kunci = this.brandTerpilih.map((b) => b.kunci);
+        const rata = t.jumlahSesi ? total / t.jumlahSesi : 0;
+        return t.sesi.map((s) => {
+          const aktual = kunci.reduce((a, k) => a + (s.aktual[k] || 0), 0);
+          const prop = total * s.bobot;
+          return {
+            ...s,
+            rata,
+            prop,
+            aktual,
+            capaiRata: rata ? (aktual / rata) * 100 : null,
+            capaiProp: prop ? (aktual / prop) * 100 : null,
+          };
+        });
+      },
+
+      /** targetSesi dikelompokkan per hari, dengan subtotal. */
+      get targetPerHari() {
+        const grup = [];
+        this.targetSesi.forEach((s) => {
+          let g = grup.find((x) => x.hari === s.hari);
+          if (!g) {
+            g = {
+              hari: s.hari,
+              nama: s.nama,
+              sesi: [],
+              rata: 0,
+              prop: 0,
+              aktual: 0,
+            };
+            grup.push(g);
+          }
+          g.sesi.push(s);
+          g.rata += s.rata;
+          g.prop += s.prop;
+          g.aktual += s.aktual;
+        });
+        return grup;
+      },
+
+      get targetAktual() {
+        return this.brandTerpilih.reduce((a, b) => a + b.aktual, 0);
+      },
+
+      get targetKpi() {
+        const total = this.targetTerpilih;
+        const aktual = this.targetAktual;
+        const selesai = this.targetSesi.filter((s) => s.status === "selesai");
+        const aktSelesai = selesai.reduce((a, s) => a + s.aktual, 0);
+        const propSelesai = selesai.reduce((a, s) => a + s.prop, 0);
+        return [
+          {
+            label: "Target",
+            nilai: formatRupiahRingkas(total),
+            penuh: formatRupiah(total),
+          },
+          {
+            label: "Aktual GMV Net",
+            nilai: formatRupiahRingkas(aktual),
+            penuh: formatRupiah(aktual),
+            sub: total
+              ? `${formatPersen((aktual / total) * 100)} dari target`
+              : "",
+            progres: total ? (aktual / total) * 100 : 0,
+          },
+          {
+            label: "Sesi selesai vs target proporsional",
+            nilai: propSelesai
+              ? formatPersen((aktSelesai / propSelesai) * 100)
+              : "–",
+            warna: propSelesai
+              ? aktSelesai >= propSelesai
+                ? "text-success-600 dark:text-success-500"
+                : "text-error-600 dark:text-error-500"
+              : "",
+            sub: `${formatRupiahRingkas(aktSelesai)} vs ${formatRupiahRingkas(propSelesai)} · ${selesai.length} sesi`,
+          },
+          {
+            label: "Sisa target",
+            nilai: formatRupiahRingkas(Math.max(0, total - aktual)),
+            penuh: formatRupiah(Math.max(0, total - aktual)),
+            sub: (() => {
+              const sisa = this.targetSesi.filter(
+                (s) => s.status !== "selesai",
+              ).length;
+              return sisa
+                ? `${formatRupiahRingkas(Math.max(0, total - aktual) / sisa)} per sesi tersisa (${sisa} sesi)`
+                : "semua sesi selesai";
+            })(),
+          },
+        ];
+      },
+
+      /** Warna capaian: hijau ≥ 100%, merah < 100%, abu-abu bila sesi belum selesai. */
+      warnaCapai(nilai, status) {
+        if (nilai === null || status !== "selesai") return "text-gray-400";
+        return nilai >= 100
+          ? "text-success-600 dark:text-success-500"
+          : "text-error-600 dark:text-error-500";
       },
 
       /**

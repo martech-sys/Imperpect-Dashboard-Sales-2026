@@ -380,12 +380,12 @@ function insight({ hari, sampaiKini, ringkas, tanpaPasangan }) {
         "Belum ada sesi 2026 yang selesai — perbandingan muncul begitu sesi pertama lewat.",
     );
     if (ringkas.v26.gmv)
-      out.push(`GMV Net 2026 sejauh ini ${rupiahRingkas(ringkas.v26.gmv)}.`);
+      out.push(`GMV 2026 sejauh ini ${rupiahRingkas(ringkas.v26.gmv)}.`);
     return out;
   }
 
   out.push(
-    `${s.sesi} sesi sudah selesai: GMV Net 2026 ${rupiahRingkas(s.v26.gmv)} vs ${rupiahRingkas(s.v25.gmv)} pada hari & sesi yang sama tahun lalu` +
+    `${s.sesi} sesi sudah selesai: GMV 2026 ${rupiahRingkas(s.v26.gmv)} vs ${rupiahRingkas(s.v25.gmv)} pada hari & sesi yang sama tahun lalu` +
       (s.growthGmv === null ? "." : ` (${pct(s.growthGmv)}).`),
   );
   if (s.growthTrx !== null && s.growthAov !== null) {
@@ -403,7 +403,7 @@ function insight({ hari, sampaiKini, ringkas, tanpaPasangan }) {
     .sort((a, b) => b.r.v26.gmv - a.r.v26.gmv)[0];
   if (terbaik) {
     out.push(
-      `Sesi 2026 dengan GMV Net tertinggi sejauh ini: ${label(terbaik.h, terbaik.r)} — ${rupiahRingkas(terbaik.r.v26.gmv)}` +
+      `Sesi 2026 dengan GMV tertinggi sejauh ini: ${label(terbaik.h, terbaik.r)} — ${rupiahRingkas(terbaik.r.v26.gmv)}` +
         (terbaik.r.growthGmv === null
           ? "."
           : ` (${pct(terbaik.r.growthGmv)} vs ${rupiahRingkas(terbaik.r.v25.gmv)} di 2025).`),

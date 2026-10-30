@@ -567,11 +567,10 @@ const BRAND_HURUF = {
 };
 
 /**
- * Brand dari huruf depan SKU. Huruf L dipakai HEYLOCAL dan LADYFIT; barang
- * yang namanya memuat "LADY FIT" dianggap LADYFIT.
+ * Brand dari huruf depan SKU. Seluruh huruf L (termasuk barang LADY FIT)
+ * digabung ke HEYLOCAL.
  */
-function brandDariSku(sku, nama) {
-  if (/LADY\s*FIT/i.test(nama || "")) return "LADYFIT";
+function brandDariSku(sku) {
   return (
     BRAND_HURUF[
       String(sku || "")
@@ -604,7 +603,7 @@ function barisManual() {
       total_bayar: totalBayar,
       qty,
       total_harga_barang: harga,
-      brand: brandDariSku(sku, nama),
+      brand: brandDariSku(sku),
       sku_produk: sku,
       nama_produk: nama,
       kategori: null,

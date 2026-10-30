@@ -91,6 +91,28 @@ export function pivotPage() {
         );
         if (this.usang(muatan)) return;
         terapkan(data);
+        // Filter tersimpan yang sudah tidak ada (mis. brand yang hilang dari
+        // data) membuat tabel nol padahal dropdown tampak "semua" — dibuang.
+        if (this.buangFilterUsang(data.options)) this.refresh();
+      },
+
+      /** → true bila brand/hari tersimpan tidak ada lagi di pilihan dan direset. */
+      buangFilterUsang(options) {
+        let berubah = false;
+        if (this.brand && !(options?.brands || []).includes(this.brand)) {
+          this.brand = "";
+          berubah = true;
+        }
+        if (
+          this.hari &&
+          !(options?.hari || []).some(
+            (h) => String(h.value) === String(this.hari),
+          )
+        ) {
+          this.hari = "";
+          berubah = true;
+        }
+        return berubah;
       },
 
       saveState() {

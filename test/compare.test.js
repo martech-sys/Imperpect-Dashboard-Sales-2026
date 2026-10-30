@@ -126,3 +126,37 @@ test("GET /api/compare (mode demo)", async () => {
   assert.ok(Array.isArray(body.insight));
   await app.close();
 });
+
+test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari total bayar", () => {
+  const raw = [
+    // invoice A: dua brand, total bayar 300rb dibagi menurut harga 200rb : 100rb
+    baris({
+      invoice: "A",
+      brand: "HEYMALE",
+      total_harga_barang: 200000,
+      total_bayar: 300000,
+    }),
+    baris({
+      invoice: "A",
+      brand: "Heylocal",
+      total_harga_barang: 100000,
+      total_bayar: 300000,
+    }),
+    baris({ invoice: "B", brand: "LAINNYA", total_bayar: 50000 }),
+  ];
+  const { rows } = siapkan(raw, EVENT);
+  const r = compare(rows, EVENT, { now: NOW });
+  const t = r.target;
+  assert.equal(t.total, 5082782902);
+  assert.equal(t.jumlahSesi, 17);
+  const jumlahBobot = t.sesi.reduce((a, s) => a + s.bobot, 0);
+  assert.ok(Math.abs(jumlahBobot - 1) < 1e-9);
+  // bobot Jumat 09.00 = GMV 2025 Jumat Sesi 1 / GMV 2025 semua sesi pasangan
+  const s1 = t.sesi[0];
+  assert.equal(s1.jam, "09.00-10.00");
+  assert.ok(Math.abs(s1.bobot - 411451800 / (5700899671 - 79000)) < 1e-12);
+  assert.deepEqual(s1.aktual, { heymale: 200000, heylocal: 100000 });
+  assert.equal(t.brands.find((b) => b.kunci === "heymale").aktual, 200000);
+  assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 50000 }]);
+  assert.ok(r.insightTarget.some((x) => /Dibagi rata/.test(x)));
+});

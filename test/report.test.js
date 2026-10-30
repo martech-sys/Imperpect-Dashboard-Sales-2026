@@ -56,7 +56,7 @@ const RAW = [
   }),
   baris({
     invoice: "C",
-    waktu: "11:00:00",
+    waktu: "08:30:00", // sebelum sesi pertama: di luar sesi
     brand: "X",
     total_harga_barang: "70000.0000",
   }),
@@ -136,7 +136,7 @@ test("pivot per hari, brand, dan jam; filter hari", () => {
   const perJam = report.pivot(rows, event, { baris: "jam", hari: "1" });
   assert.deepEqual(
     perJam.rows.map((r) => r.label),
-    ["09.00-10.00", "11.00-12.00", "13.00-14.00"],
+    ["08.00-09.00", "09.00-10.00", "13.00-14.00"],
   );
   assert.equal(perJam.total.trx, 3);
 });
@@ -182,7 +182,7 @@ test("rincian: pencarian dan urutan", () => {
   const asc = report.transactions(rows, { sortBy: "tanggal", sortDir: "asc" });
   assert.deepEqual(
     asc.rows.map((r) => r.invoice),
-    ["A", "A", "C", "B", "D"],
+    ["C", "A", "A", "B", "D"],
   );
 });
 

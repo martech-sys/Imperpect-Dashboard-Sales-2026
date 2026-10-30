@@ -41,14 +41,18 @@ test("salah tulis dan rentang bertumpuk ditolak dengan pesan yang jelas", () => 
   );
 });
 
-test("transaksi masuk sesi: mulai termasuk, selesai tidak; sisanya di luar sesi", () => {
+test("potongan sesi: dari jam mulai sampai jam mulai sesi berikutnya (antrean kasir)", () => {
   const tentukan = createPenentuSesi(
-    parseSesi("Day 1: 09.00-10.00"),
+    parseSesi("Day 1: 09.00-10.00, 13.00-14.00"),
     "2026-10-30",
   );
+  assert.equal(tentukan("2026-10-30", "08:59:59").sesi, "1-0");
   assert.equal(tentukan("2026-10-30", "09:00:00").sesi, "1-1");
-  assert.equal(tentukan("2026-10-30", "09:59:59").sesi, "1-1");
-  assert.equal(tentukan("2026-10-30", "10:00:00").sesi, "1-0");
+  assert.equal(tentukan("2026-10-30", "10:00:00").sesi, "1-1");
+  assert.equal(tentukan("2026-10-30", "12:59:59").sesi, "1-1");
+  assert.equal(tentukan("2026-10-30", "13:00:00").sesi, "1-2");
+  // sesi terakhir menampung sampai akhir hari
+  assert.equal(tentukan("2026-10-30", "21:45:00").sesi, "1-2");
   assert.equal(tentukan("2026-10-31", "09:30:00").sesi, "2-0");
   assert.equal(tentukan("2026-10-31", "09:30:00").hari, 2);
   assert.equal(tentukan("2026-10-30", null).sesi, "1-0");

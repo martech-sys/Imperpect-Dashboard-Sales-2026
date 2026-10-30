@@ -10,7 +10,9 @@
 --   * TRX      : jumlah invoice berbeda (invoice_number, atau no_order bila kosong)
 --   * GMV      : SUM(total_harga_barang)  — bukan total_bayar
 --   * Brand    : principal_brand
---   * Sesi     : jadwal tiket (Day 1 = 30 Okt); jam mulai termasuk, jam selesai tidak
+--   * Sesi     : jadwal tiket (Day 1 = 30 Okt). Label = jadwal tiket, tetapi
+--                transaksi dipotong dari jam mulai sesi sampai jam mulai sesi
+--                berikutnya (sesi terakhir: sampai akhir hari) — buffer antrean kasir
 --
 -- Cara pakai: buka DBeaver/TablePlus/psql dengan user read-only warehouse,
 -- blok SATU query (dari WITH sampai titik koma), jalankan, lalu ekspor hasilnya
@@ -61,7 +63,8 @@ SELECT COALESCE(channel, 'TOTAL')                       AS channel,
 
 -- -----------------------------------------------------------------------------
 -- 2. PENJUALAN PER SESI × CHANNEL (sama dengan halaman utama)
---    Sesi terjadwal selalu tampil walau 0; "Di luar sesi" hanya bila ada isinya.
+--    Sesi terjadwal selalu tampil walau 0; "Di luar sesi" (sebelum sesi pertama
+--    hari itu) hanya bila ada isinya.
 -- -----------------------------------------------------------------------------
 WITH baris AS (
   SELECT tanggal::date                                                 AS tanggal,
@@ -88,12 +91,18 @@ sesi (hari, nomor, mulai, selesai) AS (
          (3, 3, TIME '13:00', TIME '14:00'), (3, 4, TIME '15:00', TIME '16:00'),
          (3, 5, TIME '17:00', TIME '18:00'), (3, 6, TIME '19:00', TIME '20:00')
 ),
+potong AS (   -- potongan sesi: jam mulai s/d jam mulai sesi berikutnya
+  SELECT hari, nomor, mulai,
+         LEAD(mulai) OVER (PARTITION BY hari ORDER BY mulai) AS batas
+    FROM sesi
+),
 berlabel AS (
   SELECT b.*, (b.tanggal - DATE '2026-10-30') + 1 AS hari, s.nomor
     FROM baris b
-    LEFT JOIN sesi s
+    LEFT JOIN potong s
       ON s.hari = (b.tanggal - DATE '2026-10-30') + 1
-     AND b.waktu >= s.mulai AND b.waktu < s.selesai
+     AND b.waktu >= s.mulai
+     AND (s.batas IS NULL OR b.waktu < s.batas)
 ),
 agg AS (
   SELECT hari, nomor,

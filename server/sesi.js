@@ -9,9 +9,12 @@
  *   Day 1: 09.00-10.00, 13.00-14.00, 15.00-16.00
  *   Day 2: 09.00-10.00, 11.00-12.00
  *
- * Nomor sesi diberikan menurut urutan jam di hari itu. Transaksi yang jatuh di
- * luar semua rentang hari itu masuk ke baris "Di luar sesi" milik harinya,
- * supaya total tabel tetap sama dengan total penjualan event.
+ * Nomor sesi diberikan menurut urutan jam di hari itu. Label sesi mengikuti
+ * jadwal tiket, tetapi transaksi dipotong per sesi dari jam MULAI sesi itu
+ * sampai jam mulai sesi berikutnya (sesi terakhir: sampai akhir hari), karena
+ * antrean kasir masih berjalan sesudah jam selesai sesi. Transaksi sebelum
+ * sesi pertama hari itu masuk "Di luar sesi" milik harinya, supaya total
+ * tabel tetap sama dengan total penjualan event.
  */
 
 const DEFAULT_SESI = [
@@ -128,9 +131,12 @@ function menitDari(waktu) {
 
 /**
  * Penentu sesi: hari ke-berapa event (dari tanggal pertama) dan sesi mana.
- * Batas sesi: mulai termasuk, selesai tidak — 10.00 tepat sudah bukan sesi
- * 09.00-10.00.
+ * Potongan sesi: dari jam mulainya (termasuk) sampai jam mulai sesi berikutnya
+ * (tidak termasuk); sesi terakhir sampai 23.59. Contoh Day 1: Sesi 1
+ * (09.00-10.00) menampung 09.00–12.59, karena Sesi 2 mulai 13.00.
  */
+const AKHIR_HARI = 24 * 60;
+
 function createPenentuSesi(sesi, tanggalMulai) {
   const awal = Date.parse(`${tanggalMulai}T00:00:00Z`);
   const perHari = new Map();
@@ -147,10 +153,16 @@ function createPenentuSesi(sesi, tanggalMulai) {
         : null;
     const menit = menitDari(waktu);
     const daftar = perHari.get(hari) || [];
-    const kena =
+    // daftar sudah urut jam mulai (parseSesi)
+    const i =
       menit === null
-        ? null
-        : daftar.find((s) => menit >= s.mulai && menit < s.selesai);
+        ? -1
+        : daftar.findIndex(
+            (s, n) =>
+              menit >= s.mulai &&
+              menit < (daftar[n + 1] ? daftar[n + 1].mulai : AKHIR_HARI),
+          );
+    const kena = i >= 0 ? daftar[i] : null;
     return {
       hari,
       menit,

@@ -82,14 +82,14 @@ export function comparePage() {
         const r = this.data.ringkas;
         return [
           {
-            label: "GMV Net 2026 (live)",
+            label: "GMV 2026 (live)",
             nilai: formatRupiahRingkas(r.v26.gmv),
             penuh: formatRupiah(r.v26.gmv),
             sub: `${formatPersen(r.progresPasangan)} dari Jumat–Minggu 2025`,
             progres: r.progresPasangan,
           },
           {
-            label: "GMV Net sesi selesai vs 2025",
+            label: "GMV sesi selesai vs 2025",
             nilai: this.growth(s.growthGmv),
             warna: this.warnaGrowth(s.growthGmv),
             penuh: `${formatRupiah(s.v26.gmv)} vs ${formatRupiah(s.v25.gmv)}`,

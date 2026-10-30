@@ -109,7 +109,7 @@ test("manual: order yang belum ada di database disisipkan, lalu dikoreksi ke 30 
 
   assert.equal(
     brandDariSku("LAYK8605", "LAYK86-LADY FIT STRIVE TOP"),
-    "LADYFIT",
+    "HEYLOCAL",
   );
   assert.equal(brandDariSku("LHGV7409", "SCOTTISH SCARF"), "HEYLOCAL");
   assert.equal(brandDariSku("ZXXX", ""), "ZOMA BASIC");

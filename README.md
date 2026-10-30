@@ -73,7 +73,7 @@ Transaksi yang **belum masuk database** bisa disisipkan sementara lewat `server/
 dari ekspor kasir "daftar_penjualan_barang"). Baris manual hanya ditambahkan bila order-nya
 (`no_order` / `invoice_number`) belum ada di hasil query; begitu database memuatnya, data database
 yang dipakai sehingga tidak pernah terhitung dua kali. Brand diambil dari huruf depan SKU (B
-BOONABOO, L HEYLOCAL — atau LADYFIT bila nama barang memuat "LADY FIT", M HEYMALE, N NOSTALGY, P
+BOONABOO, L HEYLOCAL (termasuk barang LADY FIT), M HEYMALE, N NOSTALGY, P
 PREPPSTUDIO, S SHUWA MODEST, W THE WAREHOUSE PROJECT, Z ZOMA BASIC).
 
 ### Sesi

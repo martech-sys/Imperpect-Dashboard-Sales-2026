@@ -105,11 +105,14 @@ function loadConfig(env) {
       email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
       privateKey: env.GOOGLE_PRIVATE_KEY,
       maxRows: parseInt(env.DRIVE_MAX_ROWS || "5000", 10),
-      // Sheet yang namanya persis salah satu nama ini (huruf besar/kecil sama)
-      // tidak dibaca, mis. Sheet "Internal" di folder yang sama. Kosong = baca semua.
+      // Sheet yang namanya sama dengan salah satu nama ini (huruf besar/kecil,
+      // spasi & tanda baca diabaikan) tidak dibaca, mis. Sheet "Internal" di
+      // folder yang sama. Kosong = baca semua.
       exclude: daftar(
-        env.DRIVE_EXCLUDE === undefined ? "internal" : env.DRIVE_EXCLUDE,
-      ).map((k) => k.toLowerCase()),
+        env.DRIVE_EXCLUDE === undefined
+          ? "internal, Mayoutfit"
+          : env.DRIVE_EXCLUDE,
+      ),
     },
     auth: {
       password: env.DASHBOARD_PASSWORD || "",

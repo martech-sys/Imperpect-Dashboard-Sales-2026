@@ -20,8 +20,9 @@
 
 // Link atau ID folder Drive yang sama dengan DRIVE_FOLDER di Vercel.
 var FOLDER = 'https://drive.google.com/drive/folders/ISI_ID_FOLDER';
-// Sheet yang namanya persis salah satu nama ini dilewati (sama dengan DRIVE_EXCLUDE).
-var EXCLUDE = ['internal'];
+// Sheet yang namanya sama dengan salah satu nama ini dilewati (sama dengan DRIVE_EXCLUDE;
+// huruf besar/kecil, spasi & tanda baca diabaikan).
+var EXCLUDE = ['internal', 'Mayoutfit'];
 
 function ringkasanEksternal() {
   var folderId = (FOLDER.match(/\/folders\/([a-zA-Z0-9_-]+)/) || [])[1] || FOLDER.trim();
@@ -32,8 +33,8 @@ function ringkasanEksternal() {
   var semuaPembeli = {};
   while (files.hasNext()) {
     var f = files.next();
-    var namaKecil = f.getName().trim().toLowerCase();
-    if (EXCLUDE.some(function (k) { return namaKecil === k.toLowerCase(); })) continue;
+    var kunci = function (n) { return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); };
+    if (EXCLUDE.some(function (k) { return kunci(f.getName()) === kunci(k); })) continue;
     var r = { brand: f.getName(), trx: 0, unit: 0, gmv: 0, pembeli: {}, dilewati: [], diubah: f.getLastUpdated(), galat: '' };
     try {
       var nilai = SpreadsheetApp.openById(f.getId()).getSheets()[0].getDataRange().getDisplayValues();

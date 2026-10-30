@@ -254,11 +254,17 @@ test("cache CDN hanya tanpa gerbang password", async () => {
   assert.equal(b.headers["vercel-cdn-cache-control"], undefined);
 });
 
-test("bawaan sementara: data dibaca mulai 29 Okt, Day 1 tetap 30 Okt", async () => {
+test("data hanya dari EVENT_DARI, kecuali EVENT_DATA_DARI diisi", async () => {
   const env = { ...ENV_DB };
   delete env.EVENT_DATA_DARI;
   const app = createApp(env, { Pool: PoolTiruan });
   await panggil(app, { url: "/api/pivot" });
+  assert.equal(PoolTiruan.params[1], "2026-10-30");
+  const uji = createApp(
+    { ...ENV_DB, EVENT_DATA_DARI: "2026-10-29" },
+    { Pool: PoolTiruan },
+  );
+  await panggil(uji, { url: "/api/pivot" });
   assert.equal(PoolTiruan.params[1], "2026-10-29");
   const salah = createApp({ ...ENV_DB, EVENT_DATA_DARI: "2026-11-05" });
   assert.equal((await panggil(salah, { url: "/api/app" })).status, 500);

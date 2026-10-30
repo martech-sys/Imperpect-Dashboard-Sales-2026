@@ -32,13 +32,13 @@ const UJI_WAREHOUSE_BAWAAN = "";
 const UJI_MATI = /^(off|false|0|-)?$/i;
 
 /**
- * Data mulai dibaca dari tanggal ini, walau Day 1 tetap EVENT_DARI. Dipakai
- * sementara untuk mengecek transaksi uji 29 Okt di dashboard live: tanggal
+ * Data mulai dibaca dari tanggal ini, walau Day 1 tetap EVENT_DARI: tanggal
  * sebelum EVENT_DARI tampil sebagai "Day 0" (seluruhnya "Di luar sesi"),
- * sehingga hari & sesi event tidak bergeser. Kosongkan untuk kembali normal
- * (data hanya dari EVENT_DARI). Bisa ditimpa EVENT_DATA_DARI.
+ * sehingga hari & sesi event tidak bergeser. Kosong = data hanya dari
+ * EVENT_DARI. Dipakai sementara untuk mengecek transaksi uji (mis. isi
+ * EVENT_DATA_DARI=2026-10-29 di Vercel).
  */
-const DATA_DARI_BAWAAN = "2026-10-29";
+const DATA_DARI_BAWAAN = "";
 
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);

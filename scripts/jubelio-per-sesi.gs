@@ -76,6 +76,10 @@ function laporanJubelio() {
     var dashboard = jbDashboard_();
     jbTulisLaporan_(ringkas, sesi, dashboard, order, hasil);
     jbTulisOrder_(order);
+    Logger.log('Kolom laporan: ' + hasil.kolom.join(' | '));
+    Logger.log('Baris laporan: ' + hasil.mentah + ', kolom tanggal: "' + hasil.kolomTanggal +
+      '", tanggal tidak terbaca: ' + hasil.gagalTanggal +
+      (hasil.contohGagal.length ? ' (contoh: ' + hasil.contohGagal.join(' ; ') + ')' : ''));
     Logger.log('Pesanan: ' + order.length + ', cancel: ' + hasil.cancel +
       ', lokasi: ' + JSON.stringify(hasil.perLokasi));
     Logger.log('Laporan: ' + jbSpreadsheet_().getUrl());
@@ -181,7 +185,10 @@ function jbTglJubelio_(d) {
  * per item), qty dijumlahkan, pesanan cancel/batal dibuang.
  */
 function jbOlahLaporan_(values) {
-  if (!values.length) return { order: [], cancel: 0, perLokasi: {}, tanpaJam: false };
+  if (!values.length) {
+    return { order: [], cancel: 0, perLokasi: {}, tanpaJam: false, kolom: [], mentah: 0,
+      kolomTanggal: '', gagalTanggal: 0, contohGagal: [] };
+  }
   var head = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
   function col(res, wajib) {
     for (var j = 0; j < res.length; j++) {
@@ -197,7 +204,7 @@ function jbOlahLaporan_(values) {
   var cStatus = col([/^status$/, /status/]);
   var cQty = col([/^(qty|jumlah|kuantitas)$/]);
 
-  var per = {}, urut = [], cancel = {}, tanpaJam = true;
+  var per = {}, urut = [], cancel = {}, tanpaJam = true, gagal = {}, contohGagal = [];
   for (var r = 1; r < values.length; r++) {
     var v = values[r];
     var no = String(v[cNo]).trim();
@@ -206,7 +213,13 @@ function jbOlahLaporan_(values) {
     var o = per[no];
     if (!o) {
       var waktu = jbWaktu_(v[cTgl]);
-      if (!waktu) continue;
+      if (!waktu) {
+        if (!gagal[no] && contohGagal.length < 3) {
+          contohGagal.push(Object.prototype.toString.call(v[cTgl]).slice(8, -1) + ' "' + String(v[cTgl]).slice(0, 40) + '"');
+        }
+        gagal[no] = true;
+        continue;
+      }
       if (Utilities.formatDate(waktu, JB_CONFIG.ZONA, 'HH:mm:ss') !== '00:00:00') tanpaJam = false;
       o = per[no] = {
         no: no,
@@ -225,29 +238,75 @@ function jbOlahLaporan_(values) {
     .sort(function (a, b) { return a.waktu - b.waktu; });
   var perLokasi = {};
   order.forEach(function (o) { perLokasi[o.lokasi] = (perLokasi[o.lokasi] || 0) + 1; });
-  return { order: order, cancel: Object.keys(cancel).length, perLokasi: perLokasi, tanpaJam: order.length > 0 && tanpaJam };
+  return {
+    order: order,
+    cancel: Object.keys(cancel).length,
+    perLokasi: perLokasi,
+    tanpaJam: order.length > 0 && tanpaJam,
+    kolom: values[0].map(String),
+    mentah: values.length - 1,
+    kolomTanggal: String(values[0][cTgl]),
+    gagalTanggal: Object.keys(gagal).length,
+    contohGagal: contohGagal
+  };
 }
 
 /** Nilai kolom tanggal laporan → Date (jam WIB), atau null. */
 function jbWaktu_(v) {
-  if (v instanceof Date) return isNaN(v) ? null : v;
+  if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v.getTime()) ? null : v;
   if (typeof v === 'number') {
     // nomor seri tanggal Excel (hari sejak 1899-12-30), jam WIB
-    return new Date(Math.round((v - 25569) * 86400000) - 7 * 3600000);
+    return v > 0 ? new Date(Math.round((v - 25569) * 86400000) - 7 * 3600000) : null;
   }
   var s = String(v == null ? '' : v).trim();
-  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?/.exec(s);
-  var d;
-  if (m) d = [m[1], m[2], m[3], m[4], m[5], m[6]];
-  m = m || /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[ ,]+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?)?/.exec(s);
-  if (m && !d) d = [m[3], m[2], m[1], m[4], m[5], m[6]];
-  if (!d) {
-    var t = /(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : s + '+07:00';
-    var x = new Date(t);
-    return isNaN(x) ? null : x;
+  if (!s) return null;
+  var BULAN = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8,
+    sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+  var jamDari = function (teks) {
+    var j = /(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*(am|pm)?/i.exec(teks);
+    if (!j) return [0, 0, 0];
+    var h = Number(j[1]);
+    if (j[4] && /pm/i.test(j[4]) && h < 12) h += 12;
+    if (j[4] && /am/i.test(j[4]) && h === 12) h = 0;
+    return [h, Number(j[2]), Number(j[3] || 0)];
+  };
+  var buat = function (y, mo, d, jam) {
+    var dua = function (n) { n = String(n); return n.length < 2 ? '0' + n : n; };
+    var x = new Date(y + '-' + dua(mo) + '-' + dua(d) + 'T' + dua(jam[0]) + ':' + dua(jam[1]) + ':' + dua(jam[2]) + '+07:00');
+    return isNaN(x.getTime()) ? null : x;
+  };
+  var m;
+  // ISO dengan zona waktu (mis. 2026-10-30T02:36:12.000Z)
+  if (/^\d{4}-\d{2}-\d{2}T.*(Z|[+-]\d{2}:?\d{2})$/.test(s)) {
+    var iso = new Date(s);
+    return isNaN(iso.getTime()) ? null : iso;
   }
-  var dua = function (n) { n = String(n || 0); return n.length < 2 ? '0' + n : n; };
-  return new Date(d[0] + '-' + dua(d[1]) + '-' + dua(d[2]) + 'T' + dua(d[3]) + ':' + dua(d[4]) + ':' + dua(d[5]) + '+07:00');
+  // 2026-10-30 09:36[:12]
+  if ((m = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(.*)$/.exec(s))) return buat(m[1], m[2], m[3], jamDari(m[4]));
+  // 30/10/2026 09:36 (atau 10/30/2026: dipilih yang masuk rentang event)
+  if ((m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})(.*)$/.exec(s))) {
+    var jam = jamDari(m[4]);
+    var a = Number(m[1]), b = Number(m[2]);
+    var dm = b <= 12 ? buat(m[3], b, a, jam) : null; // dd/mm
+    var md = a <= 12 ? buat(m[3], a, b, jam) : null; // mm/dd
+    var dalam = function (x) {
+      if (!x) return false;
+      var t = Utilities.formatDate(x, JB_CONFIG.ZONA, 'yyyy-MM-dd');
+      return t >= JB_CONFIG.DARI && t <= JB_CONFIG.SAMPAI;
+    };
+    if (dalam(dm)) return dm;
+    if (dalam(md)) return md;
+    return dm || md;
+  }
+  // 30 Okt 2026 09:36 / 30-Oct-2026 9:36 AM
+  if ((m = /^(?:[a-z]+,?\s+)?(\d{1,2})[\s-]+([a-z]{3})[a-z]*\.?[\s-]+(\d{4})(.*)$/i.exec(s)) && BULAN[m[2].toLowerCase()]) {
+    return buat(m[3], BULAN[m[2].toLowerCase()], m[1], jamDari(m[4]));
+  }
+  // Oct 30, 2026 9:36 AM / Fri Oct 30 2026 09:36:00
+  if ((m = /^(?:[a-z]+,?\s+)?([a-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})(.*)$/i.exec(s)) && BULAN[m[1].toLowerCase()]) {
+    return buat(m[3], BULAN[m[1].toLowerCase()], m[2], jamDari(m[4]));
+  }
+  return null;
 }
 
 function jbAngka_(s) {
@@ -397,7 +456,11 @@ function jbTulisLaporan_(ringkas, sesi, dashboard, order, info) {
   sh.getRange(1, 1).setValue('Laporan per sesi dari Jubelio (Sales List) · diperbarui ' + kini +
     ' WIB · order terakhir ' + akhir + ' · ' + order.length + ' order');
   sh.getRange(1, 1).setFontWeight('bold');
-  if (info && info.tanpaJam) {
+  if (!order.length) {
+    sh.getRange(2, 1).setValue('PERHATIAN: tidak ada pesanan yang terbaca dari laporan Jubelio (' +
+      (info ? info.mentah + ' baris laporan, ' + info.gagalTanggal + ' pesanan tanggalnya tidak terbaca' : '-') +
+      '). Cek Execution log.').setFontColor('#d92d20');
+  } else if (info && info.tanpaJam) {
     sh.getRange(2, 1).setValue('PERHATIAN: kolom tanggal laporan Jubelio tidak berisi jam, jadi semua pesanan masuk "Di luar sesi".')
       .setFontColor('#d92d20');
   }
@@ -463,7 +526,7 @@ function jbTulisLaporan_(ringkas, sesi, dashboard, order, info) {
   }));
   sh.getRange(mulaiStatus, 1, tabel.length, 3).setValues(tabel);
   sh.getRange(mulaiStatus, 1, 1, 3).setFontWeight('bold').setBackground('#ecf3ff');
-  sh.getRange(mulaiStatus + 1, 3, tabel.length - 1, 1).setNumberFormat('"Rp "#,##0');
+  if (tabel.length > 1) sh.getRange(mulaiStatus + 1, 3, tabel.length - 1, 1).setNumberFormat('"Rp "#,##0');
   sh.getRange(mulaiStatus + tabel.length + 1, 1).setValue(
     'GMV Jubelio = Grand Total per pesanan (total bayar). GMV Dashboard = total harga barang; selisih kecil bisa karena diskon/promo. ' +
     'Selisih besar di satu sesi biasanya berarti order itu belum masuk database dashboard.'

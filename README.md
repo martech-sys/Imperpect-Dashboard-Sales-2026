@@ -300,7 +300,10 @@ mengeluarkan semua sesi lama**. Percobaan login dibatasi 8 kali per 10 menit per
   order event langsung dari API Jubelio (login di Script Properties `JUBELIO_EMAIL` /
   `JUBELIO_PASSWORD`), lalu menulis TRX & GMV per Day × Sesi per gudang (aturan sesi sama dengan
   dashboard, termasuk buffer Day 2) beserta kolom dashboard dan selisihnya, ringkasan per status
-  order, dan daftar order. Berguna untuk melihat sesi mana yang ordernya belum masuk database.
+  order, dan daftar order ke spreadsheet baru (dibuat sekali, ID-nya di Script Property
+  `JUBELIO_REPORT_ID`). Bisa ditambahkan ke project Apps Script yang sudah ada: nama fungsi & variabel
+  berawalan `jb`/`Jubelio` supaya tidak bentrok. Berguna untuk melihat sesi mana yang ordernya belum
+  masuk database.
 
 ## Menjalankan
 

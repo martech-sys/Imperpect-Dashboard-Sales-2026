@@ -22,7 +22,7 @@
 var FOLDER = 'https://drive.google.com/drive/folders/ISI_ID_FOLDER';
 // Sheet yang namanya sama dengan salah satu nama ini dilewati (sama dengan DRIVE_EXCLUDE;
 // huruf besar/kecil, spasi & tanda baca diabaikan).
-var EXCLUDE = ['internal', 'Mayoutfit'];
+var EXCLUDE = ['internal'];
 
 function ringkasanEksternal() {
   var folderId = (FOLDER.match(/\/folders\/([a-zA-Z0-9_-]+)/) || [])[1] || FOLDER.trim();

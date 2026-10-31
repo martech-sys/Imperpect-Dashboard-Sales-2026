@@ -296,6 +296,11 @@ mengeluarkan semua sesi lama**. Percobaan login dibatasi 8 kali per 10 menit per
 - [`scripts/ringkasan-eksternal.gs`](scripts/ringkasan-eksternal.gs) — Apps Script yang membaca
   semua Sheet brand di folder Drive dan menulis ringkasan per brand (TRX, unit, GMV, pembeli,
   status) ke sebuah Google Sheet. Cara pakainya di kepala file.
+- [`scripts/jubelio-per-sesi.gs`](scripts/jubelio-per-sesi.gs) — Apps Script pembanding: membaca
+  order event langsung dari API Jubelio (login di Script Properties `JUBELIO_EMAIL` /
+  `JUBELIO_PASSWORD`), lalu menulis TRX & GMV per Day × Sesi per gudang (aturan sesi sama dengan
+  dashboard, termasuk buffer Day 2) beserta kolom dashboard dan selisihnya, ringkasan per status
+  order, dan daftar order. Berguna untuk melihat sesi mana yang ordernya belum masuk database.
 
 ## Menjalankan
 

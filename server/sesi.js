@@ -136,8 +136,8 @@ function menitDari(waktu) {
  * (09.00-10.00) menampung 09.00–12.59, karena Sesi 2 mulai 13.00.
  *
  * Buffer per hari (EVENT_SESI_BUFFER, menit) menggeser setiap batas antar sesi
- * ke belakang: dengan buffer 30, Sesi 1 Day 2 menampung 09.00–11.29 dan Sesi 2
- * mulai 11.30. Awal sesi pertama dan akhir sesi terakhir tidak bergeser.
+ * ke belakang: dengan buffer 15, Sesi 1 Day 2 menampung 09.00–11.14 dan Sesi 2
+ * mulai 11.15. Awal sesi pertama dan akhir sesi terakhir tidak bergeser.
  */
 const AKHIR_HARI = 24 * 60;
 

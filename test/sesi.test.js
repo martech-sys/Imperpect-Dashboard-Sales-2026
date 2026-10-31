@@ -65,23 +65,23 @@ test("jam dibaca dari time maupun timestamp", () => {
   assert.equal(menitDari(""), null);
 });
 
-test("buffer per hari: batas antar sesi Day 2 digeser 30 menit", () => {
+test("buffer per hari: batas antar sesi Day 2 digeser 15 menit", () => {
   const {
     parseSesi,
     parseBuffer,
     pasangPotongan,
     createPenentuSesi,
   } = require("../server/sesi");
-  const sesi = pasangPotongan(parseSesi(""), parseBuffer("2:30"));
+  const sesi = pasangPotongan(parseSesi(""), parseBuffer("2:15"));
   const t = createPenentuSesi(sesi, "2026-10-30");
   const di = (tgl, w) => t(tgl, w).sesi;
-  // Day 2: Sesi 1 09.00–11.29, Sesi 2 11.30–13.29, Sesi 6 19.30–23.59
+  // Day 2: Sesi 1 09.00–11.14, Sesi 2 11.15–13.14, Sesi 6 19.15–23.59
   assert.equal(di("2026-10-31", "08:59"), "2-0");
   assert.equal(di("2026-10-31", "09:00"), "2-1");
-  assert.equal(di("2026-10-31", "11:29"), "2-1");
-  assert.equal(di("2026-10-31", "11:30"), "2-2");
-  assert.equal(di("2026-10-31", "19:29"), "2-5");
-  assert.equal(di("2026-10-31", "19:30"), "2-6");
+  assert.equal(di("2026-10-31", "11:14"), "2-1");
+  assert.equal(di("2026-10-31", "11:15"), "2-2");
+  assert.equal(di("2026-10-31", "19:14"), "2-5");
+  assert.equal(di("2026-10-31", "19:15"), "2-6");
   // Day 1 & Day 3 tanpa buffer
   assert.equal(di("2026-10-30", "12:59"), "1-1");
   assert.equal(di("2026-10-30", "13:00"), "1-2");

@@ -42,10 +42,10 @@ const DATA_DARI_BAWAAN = "";
 
 /**
  * Buffer potongan sesi per hari (menit): batas antar sesi digeser ke belakang.
- * Day 2: Sesi 1 menampung 09.00–11.29, Sesi 2 11.30–13.29, dst. Ganti lewat
- * EVENT_SESI_BUFFER (mis. "2:30, 3:30"); kosongkan untuk tanpa buffer.
+ * Day 2: Sesi 1 menampung 09.00–11.14, Sesi 2 11.15–13.14, dst. Ganti lewat
+ * EVENT_SESI_BUFFER (mis. "2:15, 3:15"); kosongkan untuk tanpa buffer.
  */
-const BUFFER_SESI_BAWAAN = "2:30";
+const BUFFER_SESI_BAWAAN = "2:15";
 
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);

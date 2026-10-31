@@ -92,9 +92,9 @@ Day 3: 09.00-10.00, 11.00-12.00, 13.00-14.00, 15.00-16.00, 17.00-18.00, 19.00-20
   mulai sesi berikutnya** (buffer antrean kasir). Contoh Day 1: Sesi 1 (09.00-10.00) menampung
   transaksi 09.00–12.59, Sesi 2 (13.00-14.00) 13.00–14.59, dan seterusnya. **Sesi terakhir hari
   itu menampung sampai akhir hari.**
-- **Buffer per hari** (`EVENT_SESI_BUFFER`, bawaan `2:30`): batas antar sesi Day 2 digeser 30
-  menit — Sesi 1 menampung 09.00–11.29, Sesi 2 11.30–13.29, …, Sesi 6 19.30–23.59. Awal sesi
-  pertama dan akhir sesi terakhir tidak bergeser. Contoh untuk dua hari: `2:30, 3:30`; kosongkan
+- **Buffer per hari** (`EVENT_SESI_BUFFER`, bawaan `2:15`): batas antar sesi Day 2 digeser 15
+  menit — Sesi 1 menampung 09.00–11.14, Sesi 2 11.15–13.14, …, Sesi 6 19.15–23.59. Awal sesi
+  pertama dan akhir sesi terakhir tidak bergeser. Contoh untuk dua hari: `2:15, 3:15`; kosongkan
   untuk tanpa buffer.
 - Transaksi sebelum sesi pertama hari itu masuk baris **`Day N | Di luar sesi`**, supaya total
   tabel tetap sama dengan total penjualan event. Baris ini hanya muncul bila ada isinya; sesi

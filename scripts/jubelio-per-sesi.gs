@@ -1,20 +1,24 @@
 /**
- * Laporan per sesi langsung dari API Jubelio — pembanding dashboard.
+ * Laporan per sesi langsung dari Jubelio — pembanding dashboard.
  *
- * Membaca order event dari Jubelio (cara yang sama dengan sumber Jubelio di
- * papan TV IMPERPECT-SALES-2026: POST /login, lalu GET /sales/orders/ per
- * halaman), lalu menulis dua tab di spreadsheet BARU yang dibuat otomatis
- * (link-nya muncul di Execution log; sheet lama tempat script ini terpasang
- * tidak diubah). Nama fungsi & variabel diberi awalan jb/Jubelio supaya tidak
- * bentrok dengan script lain di project yang sama:
- *   - "Jubelio per Sesi": TRX & GMV per Day × Sesi per gudang, plus kolom
+ * Mengambil data dengan cara yang sama seperti script "Sinkron Jubelio" papan
+ * TV: login → minta laporan Sales List (lokasi LDS, rentang event) → unduh
+ * Excel → baca. Hanya 3 request per run, jadi tidak kena batas request
+ * (HTTP 429) seperti GET /sales/orders/ per halaman.
+ *
+ * Hasilnya ditulis ke spreadsheet BARU yang dibuat otomatis (link-nya muncul
+ * di Execution log; sheet lama tempat script ini terpasang tidak diubah).
+ * Nama fungsi & variabel diberi awalan jb/Jubelio supaya tidak bentrok dengan
+ * script lain di project yang sama:
+ *   - "Jubelio per Sesi": TRX & GMV per Day × Sesi per lokasi, plus kolom
  *     dashboard dan selisihnya (bila DASHBOARD_URL diisi).
- *   - "Jubelio Order"   : satu baris per order (no. order, waktu WIB, gudang,
- *     status, nilai) untuk dicek satu per satu.
+ *   - "Jubelio Order"   : satu baris per pesanan (no. pesanan, waktu WIB,
+ *     lokasi, status, qty, grand total) untuk dicek satu per satu.
+ * Nama & nomor HP pelanggan dari laporan TIDAK ikut ditulis.
  *
  * Hitungan:
- *   TRX = jumlah order, GMV = grand_total order (total bayar).
- *   Order batal (internal_status CANCELED / is_canceled) tidak dihitung.
+ *   TRX = jumlah No Pesanan, GMV = Grand Total (sekali per pesanan, total
+ *   bayar). Pesanan dengan status cancel/batal tidak dihitung.
  *   Sesi = aturan yang sama dengan dashboard: jam mulai sesi s/d jam mulai
  *   sesi berikutnya (+ buffer per hari), sesi terakhir s/d akhir hari,
  *   sebelum sesi pertama = "Di luar sesi".
@@ -22,23 +26,26 @@
  * Cara pakai:
  *   1. Di project Apps Script yang sudah ada: klik + → Script, beri nama
  *      "jubelio", tempel file ini (jangan menimpa file lain).
- *   2. Project Settings → Script Properties, tambahkan:
- *        JUBELIO_EMAIL     email login API Jubelio
+ *   2. Services (ikon + di samping "Services") → Drive API → Add (untuk membaca
+ *      file Excel laporan). Lewati bila sudah ada.
+ *   3. Project Settings → Script Properties, tambahkan:
+ *        JUBELIO_EMAIL     email login Jubelio
  *        JUBELIO_PASSWORD  password-nya
  *      (jangan ditulis di kode).
- *   3. Isi DASHBOARD_URL di bawah (alamat dashboard Vercel) bila ingin kolom
+ *   4. Isi DASHBOARD_URL di bawah (alamat dashboard Vercel) bila ingin kolom
  *      pembanding dashboard.
- *   4. Pilih fungsi laporanJubelio → Run → izinkan akses. Run pertama membuat
+ *   5. Pilih fungsi laporanJubelio → Run → izinkan akses. Run pertama membuat
  *      spreadsheet "Laporan Jubelio per Sesi - Imperfect Sale 2026" di Drive;
  *      link-nya ada di Execution log. Run berikutnya menimpa file yang sama.
- *   5. Opsional: jalankan pasangJadwalJubelio sekali → laporan diperbarui tiap
+ *   6. Opsional: jalankan pasangJadwalJubelio sekali → laporan diperbarui tiap
  *      15 menit. Matikan dengan hapusJadwalJubelio.
  */
 
 var JB_CONFIG = {
   API: 'https://api2.jubelio.com',
-  // Nama gudang persis seperti di Jubelio (huruf besar/kecil & spasi diabaikan)
-  LOKASI: ['MAIN IMPERFECT WAREHOUS 2026', 'TEBUS MURAH IMPERFECT 2026'],
+  REPORT_API: 'https://open.jubelio.com/core-api',
+  LDS: [26, 64], // ID lokasi Jubelio, sama dengan script papan TV
+  PREFIX: '', // hanya No Pesanan berawalan ini (mis. 'JP'); '' = semua pesanan
   DARI: '2026-10-30', // Day 1
   SAMPAI: '2026-11-01',
   // Jadwal sesi per Day (label tiket), sama dengan dashboard
@@ -59,13 +66,22 @@ var JB_CONFIG = {
 };
 
 function laporanJubelio() {
-  var order = ambilOrderJubelio_();
-  var sesi = jbSesi_();
-  var ringkas = jbRingkas_(order, sesi);
-  var dashboard = jbDashboard_();
-  jbTulisLaporan_(ringkas, sesi, dashboard, order);
-  jbTulisOrder_(order);
-  Logger.log('Laporan: ' + jbSpreadsheet_().getUrl());
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) { Logger.log('Laporan sebelumnya masih jalan, dilewati.'); return; }
+  try {
+    var hasil = jbOlahLaporan_(ambilLaporanJubelio_());
+    var order = hasil.order;
+    var sesi = jbSesi_();
+    var ringkas = jbRingkas_(order, sesi);
+    var dashboard = jbDashboard_();
+    jbTulisLaporan_(ringkas, sesi, dashboard, order, hasil);
+    jbTulisOrder_(order);
+    Logger.log('Pesanan: ' + order.length + ', cancel: ' + hasil.cancel +
+      ', lokasi: ' + JSON.stringify(hasil.perLokasi));
+    Logger.log('Laporan: ' + jbSpreadsheet_().getUrl());
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -75,8 +91,6 @@ function laporanJubelio() {
 /**
  * UrlFetch dengan coba ulang saat Jubelio membatasi (HTTP 429) atau sibuk
  * (5xx): tunggu Retry-After bila ada, selain itu 5, 10, 20, 40, 60 detik.
- * Akun Jubelio yang sama dipakai papan TV, jadi batas request bisa terpakai
- * bersama.
  */
 function jbFetch_(url, opts) {
   var tunggu = [5, 10, 20, 40, 60];
@@ -92,10 +106,10 @@ function jbFetch_(url, opts) {
   }
 }
 
-function loginJubelio_() {
-  // token disimpan 6 jam supaya tidak login ulang tiap run (login juga kena batas)
+function loginJubelio_(baru) {
+  // token disimpan 6 jam supaya tidak login ulang tiap run
   var cache = CacheService.getScriptCache();
-  var simpan = cache.get('jb_token');
+  var simpan = baru ? null : cache.get('jb_token');
   if (simpan) return simpan;
   var p = PropertiesService.getScriptProperties();
   var email = p.getProperty('JUBELIO_EMAIL');
@@ -117,59 +131,133 @@ function loginJubelio_() {
   return body.token; // dipakai apa adanya di header Authorization, tanpa "Bearer"
 }
 
-/** → [{ no, waktu (Date), lokasi, status, nilai }] order event di gudang JB_CONFIG.LOKASI. */
-function ambilOrderJubelio_() {
+/** Laporan Sales List Jubelio (Excel) → isi tab pertamanya (baris 1 = judul kolom). */
+function ambilLaporanJubelio_() {
+  var akhir = new Date(JB_CONFIG.SAMPAI + 'T23:59:59+07:00');
+  if (akhir > new Date()) akhir = new Date();
+  var q = 'date_from=' + encodeURIComponent(jbTglJubelio_(new Date(JB_CONFIG.DARI + 'T00:00:00+07:00'))) +
+    '&date_to=' + encodeURIComponent(jbTglJubelio_(akhir)) +
+    '&reference=order&hpp=false&tz=Asia%2FJakarta&' +
+    JB_CONFIG.LDS.map(function (v, i) { return 'lds%5B' + i + '%5D=' + v; }).join('&');
+  var url = JB_CONFIG.REPORT_API + '/reports/sales-list/date-range/?' + q;
+
   var token = loginJubelio_();
-  var lokasi = JB_CONFIG.LOKASI.map(jbNorm_);
-  var hasil = [];
-  var halaman = 1;
-  var ukuran = 200;
-  var ulangLogin = false;
-  while (true) {
-    var q = {
-      page: halaman,
-      pageSize: ukuran,
-      sortBy: 'transaction_date',
-      sortDirection: 'ASC',
-      transactionDateFrom: JB_CONFIG.DARI + 'T00:00:00+07:00',
-      transactionDateTo: JB_CONFIG.SAMPAI + 'T23:59:59+07:00'
-    };
-    var url = JB_CONFIG.API + '/sales/orders/?' + Object.keys(q)
-      .map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
-    var res = jbFetch_(url, {
-      headers: { Authorization: token, Accept: 'application/json' },
-      muteHttpExceptions: true
-    });
-    if (res.getResponseCode() === 401 && !ulangLogin) {
-      // token tersimpan kedaluwarsa: login ulang sekali
-      CacheService.getScriptCache().remove('jb_token');
-      token = loginJubelio_();
-      ulangLogin = true;
-      continue;
-    }
-    if (res.getResponseCode() !== 200) {
-      throw new Error('Jubelio GET /sales/orders/ halaman ' + halaman + ': HTTP ' + res.getResponseCode());
-    }
-    var data = (JSON.parse(res.getContentText() || '{}').data) || [];
-    data.forEach(function (o) {
-      if (lokasi.indexOf(jbNorm_(o.location_name)) < 0) return;
-      var batal = o.is_canceled === true || String(o.internal_status || '').toUpperCase() === 'CANCELED';
-      if (batal) return;
-      var waktu = waktuJubelio_(o.transaction_date || o.created_date);
-      if (isNaN(waktu)) return;
-      hasil.push({
-        no: o.salesorder_no || String(o.salesorder_id),
-        waktu: waktu,
-        lokasi: o.location_name,
-        status: o.internal_status || o.status || '',
-        nilai: Math.round(Number(o.grand_total) || 0)
-      });
-    });
-    if (data.length < ukuran) break;
-    halaman++;
-    Utilities.sleep(1500); // jeda antar halaman supaya tidak kena batas request
+  var rep = jbFetch_(url, { headers: { Authorization: token }, muteHttpExceptions: true });
+  if (rep.getResponseCode() === 401) {
+    // token tersimpan kedaluwarsa: login ulang sekali
+    token = loginJubelio_(true);
+    rep = jbFetch_(url, { headers: { Authorization: token }, muteHttpExceptions: true });
   }
-  return hasil;
+  if (rep.getResponseCode() !== 200) {
+    throw new Error('Laporan Jubelio gagal (HTTP ' + rep.getResponseCode() + '): ' + rep.getContentText().slice(0, 200));
+  }
+  var parts = JSON.parse(rep.getContentText()).url.split('?');
+  var xlsx = jbFetch_(parts[0].replace(/\/+$/, '') + '/xlsx/?' + parts.slice(1).join('?'), { muteHttpExceptions: true });
+  if (xlsx.getResponseCode() !== 200) throw new Error('Unduh Excel Jubelio gagal (HTTP ' + xlsx.getResponseCode() + ')');
+
+  // Excel → Google Sheet sementara di My Drive → baca → buang
+  var blob = xlsx.getBlob().setContentType(MimeType.MICROSOFT_EXCEL);
+  var nama = 'tmp-jubelio-sesi-' + Date.now();
+  var tmpId = Drive.Files.create
+    ? Drive.Files.create({ name: nama, mimeType: MimeType.GOOGLE_SHEETS }, blob).id // Drive API v3
+    : Drive.Files.insert({ title: nama, mimeType: MimeType.GOOGLE_SHEETS }, blob, { convert: true }).id; // v2
+  try {
+    var ss = SpreadsheetApp.openById(tmpId);
+    // tanggal di Excel dibaca sebagai jam WIB
+    ss.setSpreadsheetTimeZone(JB_CONFIG.ZONA);
+    return ss.getSheets()[0].getDataRange().getValues();
+  } finally {
+    Drive.Files.remove(tmpId);
+  }
+}
+
+function jbTglJubelio_(d) {
+  return Utilities.formatDate(d, JB_CONFIG.ZONA, 'EEE MMM dd yyyy HH:mm:ss') + ' GMT+0700 (Western Indonesia Time)';
+}
+
+/**
+ * Isi laporan → satu entri per No Pesanan: { no, waktu, lokasi, status, qty,
+ * nilai }. Grand Total diambil SEKALI per pesanan (laporan bisa satu baris
+ * per item), qty dijumlahkan, pesanan cancel/batal dibuang.
+ */
+function jbOlahLaporan_(values) {
+  if (!values.length) return { order: [], cancel: 0, perLokasi: {}, tanpaJam: false };
+  var head = values[0].map(function (h) { return String(h).trim().toLowerCase(); });
+  function col(res, wajib) {
+    for (var j = 0; j < res.length; j++) {
+      for (var i = 0; i < head.length; i++) if (res[j].test(head[i])) return i;
+    }
+    if (wajib) throw new Error('Kolom "' + wajib + '" tidak ada di laporan Jubelio. Kolom: ' + values[0].join(', '));
+    return -1;
+  }
+  var cNo = col([/^no\.? pesanan$/], 'No Pesanan');
+  var cTotal = col([/^grand total$/], 'Grand Total');
+  var cTgl = col([/^(tanggal|tgl\.?) (transaksi|pesanan|order)/, /^(tanggal|tgl\.?)$/, /^(tanggal|tgl)/, /date/], 'Tanggal');
+  var cLokasi = col([/^lokasi$/, /lokasi|gudang/]);
+  var cStatus = col([/^status$/, /status/]);
+  var cQty = col([/^(qty|jumlah|kuantitas)$/]);
+
+  var per = {}, urut = [], cancel = {}, tanpaJam = true;
+  for (var r = 1; r < values.length; r++) {
+    var v = values[r];
+    var no = String(v[cNo]).trim();
+    if (!no || (JB_CONFIG.PREFIX && no.indexOf(JB_CONFIG.PREFIX) !== 0)) continue;
+    if (cStatus >= 0 && /cancel|batal/i.test(String(v[cStatus]))) { cancel[no] = true; continue; }
+    var o = per[no];
+    if (!o) {
+      var waktu = jbWaktu_(v[cTgl]);
+      if (!waktu) continue;
+      if (Utilities.formatDate(waktu, JB_CONFIG.ZONA, 'HH:mm:ss') !== '00:00:00') tanpaJam = false;
+      o = per[no] = {
+        no: no,
+        waktu: waktu,
+        lokasi: cLokasi >= 0 ? String(v[cLokasi]).trim() : '(lokasi)',
+        status: cStatus >= 0 ? String(v[cStatus]).trim() : '',
+        qty: 0,
+        nilai: jbAngka_(v[cTotal]) || 0
+      };
+      urut.push(no);
+    }
+    o.qty += cQty >= 0 ? (jbAngka_(v[cQty]) || 0) : 0;
+  }
+  var order = urut.map(function (no) { return per[no]; })
+    .filter(function (o) { return !cancel[o.no]; })
+    .sort(function (a, b) { return a.waktu - b.waktu; });
+  var perLokasi = {};
+  order.forEach(function (o) { perLokasi[o.lokasi] = (perLokasi[o.lokasi] || 0) + 1; });
+  return { order: order, cancel: Object.keys(cancel).length, perLokasi: perLokasi, tanpaJam: order.length > 0 && tanpaJam };
+}
+
+/** Nilai kolom tanggal laporan → Date (jam WIB), atau null. */
+function jbWaktu_(v) {
+  if (v instanceof Date) return isNaN(v) ? null : v;
+  if (typeof v === 'number') {
+    // nomor seri tanggal Excel (hari sejak 1899-12-30), jam WIB
+    return new Date(Math.round((v - 25569) * 86400000) - 7 * 3600000);
+  }
+  var s = String(v == null ? '' : v).trim();
+  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?/.exec(s);
+  var d;
+  if (m) d = [m[1], m[2], m[3], m[4], m[5], m[6]];
+  m = m || /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[ ,]+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?)?/.exec(s);
+  if (m && !d) d = [m[3], m[2], m[1], m[4], m[5], m[6]];
+  if (!d) {
+    var t = /(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : s + '+07:00';
+    var x = new Date(t);
+    return isNaN(x) ? null : x;
+  }
+  var dua = function (n) { n = String(n || 0); return n.length < 2 ? '0' + n : n; };
+  return new Date(d[0] + '-' + dua(d[1]) + '-' + dua(d[2]) + 'T' + dua(d[3]) + ':' + dua(d[4]) + ':' + dua(d[5]) + '+07:00');
+}
+
+function jbAngka_(s) {
+  if (typeof s === 'number') return isFinite(s) ? Math.round(s) : NaN;
+  s = String(s == null ? '' : s).trim().replace(/rp\.?/gi, '').replace(/\s/g, '');
+  if (!s) return NaN;
+  var m = s.match(/^(.*?)[.,](\d{1,2})$/);
+  if (m && /^[\d.,]*\d$/.test(m[1])) s = m[1];
+  s = s.replace(/[^\d-]/g, '');
+  return s ? parseInt(s, 10) : NaN;
 }
 
 // ---------------------------------------------------------------------------
@@ -296,18 +384,26 @@ function jbTab_(nama) {
   return sh;
 }
 
-function jbTulisLaporan_(ringkas, sesi, dashboard, order) {
+function jbTulisLaporan_(ringkas, sesi, dashboard, order, info) {
   var sh = jbTab_(JB_CONFIG.TAB_REPORT);
+  // kolom per lokasi mengikuti nama lokasi yang ada di laporan Jubelio
+  var lokasiList = [];
+  order.forEach(function (o) { if (lokasiList.indexOf(o.lokasi) < 0) lokasiList.push(o.lokasi); });
+  lokasiList.sort();
   var kini = Utilities.formatDate(new Date(), JB_CONFIG.ZONA, 'dd MMM yyyy HH:mm');
   var akhir = order.length
     ? Utilities.formatDate(order[order.length - 1].waktu, JB_CONFIG.ZONA, 'dd MMM HH:mm:ss')
     : '-';
-  sh.getRange(1, 1).setValue('Laporan per sesi dari API Jubelio · diperbarui ' + kini +
+  sh.getRange(1, 1).setValue('Laporan per sesi dari Jubelio (Sales List) · diperbarui ' + kini +
     ' WIB · order terakhir ' + akhir + ' · ' + order.length + ' order');
   sh.getRange(1, 1).setFontWeight('bold');
+  if (info && info.tanpaJam) {
+    sh.getRange(2, 1).setValue('PERHATIAN: kolom tanggal laporan Jubelio tidak berisi jam, jadi semua pesanan masuk "Di luar sesi".')
+      .setFontColor('#d92d20');
+  }
 
   var kepala = ['Sesi', 'Transaksi dihitung'];
-  JB_CONFIG.LOKASI.forEach(function (l) { kepala.push('TRX ' + l, 'GMV ' + l); });
+  lokasiList.forEach(function (l) { kepala.push('TRX ' + l, 'GMV ' + l); });
   kepala.push('TRX Jubelio', 'GMV Jubelio');
   if (dashboard) kepala.push('TRX Dashboard', 'GMV Dashboard', 'Selisih GMV');
 
@@ -315,7 +411,7 @@ function jbTulisLaporan_(ringkas, sesi, dashboard, order) {
   var tambah = function (key, label, dihitung) {
     var r = ringkas[key] || { lokasi: {}, total: { trx: 0, gmv: 0 } };
     var row = [label, dihitung];
-    JB_CONFIG.LOKASI.forEach(function (l) {
+    lokasiList.forEach(function (l) {
       var v = r.lokasi[jbNorm_(l)] || { trx: 0, gmv: 0 };
       row.push(v.trx, v.gmv);
     });
@@ -369,7 +465,7 @@ function jbTulisLaporan_(ringkas, sesi, dashboard, order) {
   sh.getRange(mulaiStatus, 1, 1, 3).setFontWeight('bold').setBackground('#ecf3ff');
   sh.getRange(mulaiStatus + 1, 3, tabel.length - 1, 1).setNumberFormat('"Rp "#,##0');
   sh.getRange(mulaiStatus + tabel.length + 1, 1).setValue(
-    'GMV Jubelio = grand_total (total bayar). GMV Dashboard = total harga barang; selisih kecil bisa karena diskon/promo. ' +
+    'GMV Jubelio = Grand Total per pesanan (total bayar). GMV Dashboard = total harga barang; selisih kecil bisa karena diskon/promo. ' +
     'Selisih besar di satu sesi biasanya berarti order itu belum masuk database dashboard.'
   ).setFontColor('#667085');
   sh.autoResizeColumns(1, kepala.length);
@@ -377,13 +473,13 @@ function jbTulisLaporan_(ringkas, sesi, dashboard, order) {
 
 function jbTulisOrder_(order) {
   var sh = jbTab_(JB_CONFIG.TAB_ORDER);
-  var data = [['No. order', 'Waktu (WIB)', 'Sesi', 'Gudang', 'Status', 'Nilai (grand_total)']];
+  var data = [['No. pesanan', 'Waktu (WIB)', 'Sesi', 'Lokasi', 'Status', 'Qty', 'Grand Total']];
   order.forEach(function (o) {
-    data.push([o.no, Utilities.formatDate(o.waktu, JB_CONFIG.ZONA, 'yyyy-MM-dd HH:mm:ss'), o.sesi || '', o.lokasi, o.status, o.nilai]);
+    data.push([o.no, Utilities.formatDate(o.waktu, JB_CONFIG.ZONA, 'yyyy-MM-dd HH:mm:ss'), o.sesi || '', o.lokasi, o.status, o.qty, o.nilai]);
   });
   sh.getRange(1, 1, data.length, data[0].length).setValues(data);
   sh.getRange(1, 1, 1, data[0].length).setFontWeight('bold').setBackground('#ecf3ff');
-  if (data.length > 1) sh.getRange(2, 6, data.length - 1, 1).setNumberFormat('"Rp "#,##0');
+  if (data.length > 1) sh.getRange(2, 7, data.length - 1, 1).setNumberFormat('"Rp "#,##0');
   sh.setFrozenRows(1);
   sh.autoResizeColumns(1, data[0].length);
 }
@@ -403,13 +499,6 @@ function hapusJadwalJubelio() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'laporanJubelio') ScriptApp.deleteTrigger(t);
   });
-}
-
-/** Waktu ISO dari Jubelio; tanpa zona waktu dianggap WIB. */
-function waktuJubelio_(v) {
-  var t = String(v || '');
-  if (t && !/(Z|[+-]\d{2}:?\d{2})$/.test(t)) t += '+07:00';
-  return new Date(t);
 }
 
 function jbNorm_(s) {

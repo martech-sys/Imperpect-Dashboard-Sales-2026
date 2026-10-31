@@ -72,14 +72,38 @@ function laporanJubelio() {
 // Jubelio
 // ---------------------------------------------------------------------------
 
+/**
+ * UrlFetch dengan coba ulang saat Jubelio membatasi (HTTP 429) atau sibuk
+ * (5xx): tunggu Retry-After bila ada, selain itu 5, 10, 20, 40, 60 detik.
+ * Akun Jubelio yang sama dipakai papan TV, jadi batas request bisa terpakai
+ * bersama.
+ */
+function jbFetch_(url, opts) {
+  var tunggu = [5, 10, 20, 40, 60];
+  for (var i = 0; ; i++) {
+    var res = UrlFetchApp.fetch(url, opts);
+    var kode = res.getResponseCode();
+    if ((kode !== 429 && kode < 500) || i >= tunggu.length) return res;
+    var h = res.getHeaders() || {};
+    var ra = Number(h['Retry-After'] || h['retry-after']);
+    var detik = ra > 0 ? Math.min(ra, 60) : tunggu[i];
+    Logger.log('Jubelio HTTP ' + kode + ', coba lagi dalam ' + detik + ' detik');
+    Utilities.sleep(detik * 1000);
+  }
+}
+
 function loginJubelio_() {
+  // token disimpan 6 jam supaya tidak login ulang tiap run (login juga kena batas)
+  var cache = CacheService.getScriptCache();
+  var simpan = cache.get('jb_token');
+  if (simpan) return simpan;
   var p = PropertiesService.getScriptProperties();
   var email = p.getProperty('JUBELIO_EMAIL');
   var password = p.getProperty('JUBELIO_PASSWORD');
   if (!email || !password) {
     throw new Error('Isi Script Properties JUBELIO_EMAIL dan JUBELIO_PASSWORD dulu (Project Settings).');
   }
-  var res = UrlFetchApp.fetch(JB_CONFIG.API + '/login', {
+  var res = jbFetch_(JB_CONFIG.API + '/login', {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify({ email: email, password: password }),
@@ -89,6 +113,7 @@ function loginJubelio_() {
   if (res.getResponseCode() !== 200 || !body.token) {
     throw new Error('Login Jubelio gagal: HTTP ' + res.getResponseCode());
   }
+  cache.put('jb_token', body.token, 6 * 3600);
   return body.token; // dipakai apa adanya di header Authorization, tanpa "Bearer"
 }
 
@@ -99,6 +124,7 @@ function ambilOrderJubelio_() {
   var hasil = [];
   var halaman = 1;
   var ukuran = 200;
+  var ulangLogin = false;
   while (true) {
     var q = {
       page: halaman,
@@ -110,10 +136,17 @@ function ambilOrderJubelio_() {
     };
     var url = JB_CONFIG.API + '/sales/orders/?' + Object.keys(q)
       .map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
-    var res = UrlFetchApp.fetch(url, {
+    var res = jbFetch_(url, {
       headers: { Authorization: token, Accept: 'application/json' },
       muteHttpExceptions: true
     });
+    if (res.getResponseCode() === 401 && !ulangLogin) {
+      // token tersimpan kedaluwarsa: login ulang sekali
+      CacheService.getScriptCache().remove('jb_token');
+      token = loginJubelio_();
+      ulangLogin = true;
+      continue;
+    }
     if (res.getResponseCode() !== 200) {
       throw new Error('Jubelio GET /sales/orders/ halaman ' + halaman + ': HTTP ' + res.getResponseCode());
     }
@@ -134,6 +167,7 @@ function ambilOrderJubelio_() {
     });
     if (data.length < ukuran) break;
     halaman++;
+    Utilities.sleep(1500); // jeda antar halaman supaya tidak kena batas request
   }
   return hasil;
 }

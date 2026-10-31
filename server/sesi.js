@@ -134,8 +134,61 @@ function menitDari(waktu) {
  * Potongan sesi: dari jam mulainya (termasuk) sampai jam mulai sesi berikutnya
  * (tidak termasuk); sesi terakhir sampai 23.59. Contoh Day 1: Sesi 1
  * (09.00-10.00) menampung 09.00–12.59, karena Sesi 2 mulai 13.00.
+ *
+ * Buffer per hari (EVENT_SESI_BUFFER, menit) menggeser setiap batas antar sesi
+ * ke belakang: dengan buffer 30, Sesi 1 Day 2 menampung 09.00–11.29 dan Sesi 2
+ * mulai 11.30. Awal sesi pertama dan akhir sesi terakhir tidak bergeser.
  */
 const AKHIR_HARI = 24 * 60;
+
+/** "2:30, 3:30" atau "Day 2: 30" → Map hari → menit buffer. */
+function parseBuffer(teks) {
+  const peta = new Map();
+  String(teks ?? "")
+    .split(/[,;\n]+/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .forEach((b) => {
+      const m = /^(?:day|hari)?\s*(\d+)\s*[:=]\s*(\d+)$/i.exec(b);
+      if (!m) {
+        throw new Error(
+          `EVENT_SESI_BUFFER: "${b}" tidak terbaca. Contoh: "2:30" (Day 2, 30 menit)`,
+        );
+      }
+      peta.set(Number(m[1]), Number(m[2]));
+    });
+  return peta;
+}
+
+/**
+ * Menambahkan potongan [dari, sampai) ke tiap sesi, memakai buffer per hari.
+ * Batas tidak pernah melewati jam mulai sesi sesudahnya + buffer.
+ */
+function pasangPotongan(sesi, buffer = new Map()) {
+  const perHari = new Map();
+  sesi.forEach((s) => {
+    if (!perHari.has(s.hari)) perHari.set(s.hari, []);
+    perHari.get(s.hari).push(s);
+  });
+  perHari.forEach((daftar, hari) => {
+    const geser = buffer.get(hari) || 0;
+    daftar.forEach((s, i) => {
+      const berikut = daftar[i + 1];
+      s.dari = i === 0 ? s.mulai : s.mulai + geser;
+      s.sampai = berikut
+        ? Math.min(AKHIR_HARI, berikut.mulai + geser)
+        : AKHIR_HARI;
+    });
+  });
+  return sesi;
+}
+
+/** Potongan satu sesi; tanpa pasangPotongan: jam mulai s/d mulai berikutnya. */
+function potongan(daftar, n) {
+  const s = daftar[n];
+  if (s.dari !== undefined) return [s.dari, s.sampai];
+  return [s.mulai, daftar[n + 1] ? daftar[n + 1].mulai : AKHIR_HARI];
+}
 
 function createPenentuSesi(sesi, tanggalMulai) {
   const awal = Date.parse(`${tanggalMulai}T00:00:00Z`);
@@ -157,11 +210,10 @@ function createPenentuSesi(sesi, tanggalMulai) {
     const i =
       menit === null
         ? -1
-        : daftar.findIndex(
-            (s, n) =>
-              menit >= s.mulai &&
-              menit < (daftar[n + 1] ? daftar[n + 1].mulai : AKHIR_HARI),
-          );
+        : daftar.findIndex((s, n) => {
+            const [dari, sampai] = potongan(daftar, n);
+            return menit >= dari && menit < sampai;
+          });
     const kena = i >= 0 ? daftar[i] : null;
     return {
       hari,
@@ -177,5 +229,7 @@ module.exports = {
   luarSesi,
   menitDari,
   createPenentuSesi,
+  parseBuffer,
+  pasangPotongan,
   jamTeks,
 };

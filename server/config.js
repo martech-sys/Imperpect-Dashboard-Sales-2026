@@ -1,6 +1,6 @@
 "use strict";
 
-const { parseSesi } = require("./sesi");
+const { parseSesi, parseBuffer, pasangPotongan } = require("./sesi");
 
 /**
  * Satu tempat yang menerjemahkan environment variable menjadi konfigurasi,
@@ -39,6 +39,13 @@ const UJI_MATI = /^(off|false|0|-)?$/i;
  * EVENT_DATA_DARI=2026-10-29 di Vercel).
  */
 const DATA_DARI_BAWAAN = "";
+
+/**
+ * Buffer potongan sesi per hari (menit): batas antar sesi digeser ke belakang.
+ * Day 2: Sesi 1 menampung 09.00–11.29, Sesi 2 11.30–13.29, dst. Ganti lewat
+ * EVENT_SESI_BUFFER (mis. "2:30, 3:30"); kosongkan untuk tanpa buffer.
+ */
+const BUFFER_SESI_BAWAAN = "2:30";
 
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);
@@ -82,7 +89,14 @@ function loadConfig(env) {
           "MAIN IMPERFECT WAREHOUS 2026, TEBUS MURAH IMPERFECT 2026",
       ),
       kolomChannel,
-      sesi: parseSesi(env.EVENT_SESI),
+      sesi: pasangPotongan(
+        parseSesi(env.EVENT_SESI),
+        parseBuffer(
+          env.EVENT_SESI_BUFFER === undefined
+            ? BUFFER_SESI_BAWAAN
+            : env.EVENT_SESI_BUFFER,
+        ),
+      ),
     },
     pg: {
       url: env.DATABASE_URL,

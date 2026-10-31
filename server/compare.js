@@ -195,7 +195,14 @@ function compare(rows, event, opts = {}) {
       const s26 = sesi26.find((s) => s.mulai === mulai);
       const s25 = b && b.sesi.find((s) => s[0] === mulai);
       const i26 = s26 ? sesi26.indexOf(s26) : -1;
-      const batas = s26 && sesi26[i26 + 1] ? sesi26[i26 + 1].mulai : 24 * 60;
+      // potongan sesi (termasuk buffer per hari, lihat sesi.js)
+      const dari = s26 && s26.dari !== undefined ? s26.dari : mulai;
+      const batas =
+        s26 && s26.sampai !== undefined
+          ? s26.sampai
+          : s26 && sesi26[i26 + 1]
+            ? sesi26[i26 + 1].mulai
+            : 24 * 60;
       const v25 = s25 ? { unit: s25[3], trx: s25[4], gmv: s25[5] } : kosong();
       const v26 = s26 ? ambil26(s26.key) : kosong();
       return {
@@ -203,9 +210,7 @@ function compare(rows, event, opts = {}) {
         mulai,
         sesi2025: s25 ? `Sesi ${s25[2]}` : null,
         sesi2026: s26 ? `Sesi ${s26.nomor}` : null,
-        status: s26
-          ? statusPotongan(tanggal, mulai, batas, kini)
-          : "tanpa-sesi",
+        status: s26 ? statusPotongan(tanggal, dari, batas, kini) : "tanpa-sesi",
         v25,
         v26,
         growthGmv: persen(v26.gmv, v25.gmv),

@@ -249,7 +249,7 @@ Isi tab:
 - Nomor HP disamarkan (`0812-xxxx-7890`) dan nama dipendekkan (`Dewi L.`) di server; nomor lengkap
   tidak pernah dikirim ke browser.
 - Penjualan eksternal **tidak** dijumlahkan ke halaman Sesi × Channel dan Rincian Transaksi.
-- Sheet bernama **Internal** dan **Mayoutfit** dilewati, tidak dihitung sebagai brand eksternal
+- Sheet bernama **Internal** dilewati, tidak dihitung sebagai brand eksternal
   (huruf besar/kecil, spasi, dan tanda baca diabaikan; Sheet lain yang namanya hanya mengandung
   kata itu tetap dibaca). Ganti/tambah namanya lewat `DRIVE_EXCLUDE`.
 
@@ -436,7 +436,7 @@ Pesan galat asli tampil di halaman dan di `/api/health` (`kesegaran.error`):
 | `DRIVE_FOLDER`                    | –                                                          | Folder Sheet brand eksternal. Lihat [Ringkasan Eksternal](#ringkasan-eksternal).            |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`     | –                                                          | Key JSON akun layanan (atau `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_PRIVATE_KEY`).          |
 | `DRIVE_MAX_ROWS`                  | `5000`                                                     | Baris maksimum yang dibaca per Sheet brand.                                                  |
-| `DRIVE_EXCLUDE`                   | `internal, Mayoutfit`                                      | Nama Sheet yang tidak dibaca (pisah koma; huruf besar/kecil, spasi & tanda baca diabaikan).  |
+| `DRIVE_EXCLUDE`                   | `internal`                                                 | Nama Sheet yang tidak dibaca (pisah koma; huruf besar/kecil, spasi & tanda baca diabaikan).  |
 | `DEMO_MODE`                       | `false`                                                    | Paksa data contoh walau database terisi.                                                     |
 | `PORT`                            | `3000`                                                     | Port server lokal.                                                                           |
 

@@ -14,8 +14,8 @@
  * - File yang gagal dibaca tetap memakai isi terakhirnya dan dilaporkan per
  *   brand. Nama file = nama brand.
  * - File yang namanya sama dengan salah satu nama di `cfg.exclude` (bawaan
- *   "internal" dan "Mayoutfit"; huruf besar/kecil, spasi, dan tanda baca
- *   diabaikan) dilewati: bukan Sheet brand eksternal / sedang disembunyikan.
+ *   "internal"; huruf besar/kecil, spasi, dan tanda baca diabaikan) dilewati:
+ *   bukan Sheet brand eksternal / sedang disembunyikan.
  */
 
 const crypto = require("node:crypto");

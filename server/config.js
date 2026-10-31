@@ -123,9 +123,7 @@ function loadConfig(env) {
       // spasi & tanda baca diabaikan) tidak dibaca, mis. Sheet "Internal" di
       // folder yang sama. Kosong = baca semua.
       exclude: daftar(
-        env.DRIVE_EXCLUDE === undefined
-          ? "internal, Mayoutfit"
-          : env.DRIVE_EXCLUDE,
+        env.DRIVE_EXCLUDE === undefined ? "internal" : env.DRIVE_EXCLUDE,
       ),
     },
     auth: {

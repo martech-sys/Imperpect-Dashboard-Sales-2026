@@ -49,8 +49,8 @@ export function formatRupiahRingkas(value) {
 
 function angkaDesimal(value) {
   return value.toLocaleString("id-ID", {
-    minimumFractionDigits: value >= 100 ? 0 : 1,
-    maximumFractionDigits: value >= 100 ? 0 : 1,
+    minimumFractionDigits: value >= 100 ? 0 : 2,
+    maximumFractionDigits: value >= 100 ? 0 : 2,
   });
 }
 

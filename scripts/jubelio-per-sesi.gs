@@ -46,6 +46,9 @@ var JB_CONFIG = {
   REPORT_API: 'https://open.jubelio.com/core-api',
   LDS: [26, 64], // ID lokasi Jubelio, sama dengan script papan TV
   PREFIX: '', // hanya No Pesanan berawalan ini (mis. 'JP'); '' = semua pesanan
+  // Nama kolom tanggal transaksi di laporan; '' = dipilih otomatis (kolom
+  // tanggal yang paling banyak terisi, utamakan transaksi/pesanan/order)
+  KOLOM_TANGGAL: '',
   DARI: '2026-10-30', // Day 1
   SAMPAI: '2026-11-01',
   // Jadwal sesi per Day (label tiket), sama dengan dashboard
@@ -77,6 +80,9 @@ function laporanJubelio() {
     jbTulisLaporan_(ringkas, sesi, dashboard, order, hasil);
     jbTulisOrder_(order);
     Logger.log('Kolom laporan: ' + hasil.kolom.join(' | '));
+    if (hasil.kandidatTanggal && hasil.kandidatTanggal.length) {
+      Logger.log('Kolom tanggal (terbaca dari 300 baris pertama): ' + hasil.kandidatTanggal.join(' | '));
+    }
     Logger.log('Baris laporan: ' + hasil.mentah + ', kolom tanggal: "' + hasil.kolomTanggal +
       '", tanggal tidak terbaca: ' + hasil.gagalTanggal +
       (hasil.contohGagal.length ? ' (contoh: ' + hasil.contohGagal.join(' ; ') + ')' : ''));
@@ -199,7 +205,8 @@ function jbOlahLaporan_(values) {
   }
   var cNo = col([/^no\.? pesanan$/], 'No Pesanan');
   var cTotal = col([/^grand total$/], 'Grand Total');
-  var cTgl = col([/^(tanggal|tgl\.?) (transaksi|pesanan|order)/, /^(tanggal|tgl\.?)$/, /^(tanggal|tgl)/, /date/], 'Tanggal');
+  var pilih = jbPilihKolomTanggal_(values, head);
+  var cTgl = pilih.indeks;
   var cLokasi = col([/^lokasi$/, /lokasi|gudang/]);
   var cStatus = col([/^status$/, /status/]);
   var cQty = col([/^(qty|jumlah|kuantitas)$/]);
@@ -246,8 +253,44 @@ function jbOlahLaporan_(values) {
     kolom: values[0].map(String),
     mentah: values.length - 1,
     kolomTanggal: String(values[0][cTgl]),
+    kandidatTanggal: pilih.kandidat,
     gagalTanggal: Object.keys(gagal).length,
     contohGagal: contohGagal
+  };
+}
+
+/**
+ * Kolom tanggal transaksi: JB_CONFIG.KOLOM_TANGGAL bila diisi; selain itu
+ * kolom bernama tanggal/tgl/date/waktu yang isinya paling banyak terbaca
+ * sebagai tanggal. Kolom transaksi/pesanan/order diutamakan, kolom
+ * manifest/kirim/bayar/jatuh tempo paling akhir.
+ */
+function jbPilihKolomTanggal_(values, head) {
+  if (JB_CONFIG.KOLOM_TANGGAL) {
+    var cari = String(JB_CONFIG.KOLOM_TANGGAL).trim().toLowerCase();
+    var idx = head.indexOf(cari);
+    if (idx < 0) throw new Error('Kolom "' + JB_CONFIG.KOLOM_TANGGAL + '" tidak ada. Kolom: ' + values[0].join(', '));
+    return { indeks: idx, kandidat: [] };
+  }
+  var contoh = values.slice(1, 301);
+  var kandidat = [];
+  head.forEach(function (h, i) {
+    if (!/tanggal|tgl|date|waktu|time/.test(h)) return;
+    var terbaca = contoh.filter(function (v) { return jbWaktu_(v[i]); }).length;
+    var prioritas = /transaksi|pesanan|order|transaction|dibuat|created/.test(h) ? 2
+      : /manifest|kirim|ship|bayar|pay|jatuh|due|update|ubah|selesai|complete/.test(h) ? 0 : 1;
+    kandidat.push({ indeks: i, nama: values[0][i], terbaca: terbaca, prioritas: prioritas });
+  });
+  var urut = kandidat.slice().sort(function (a, b) {
+    var aAda = a.terbaca > 0 ? 1 : 0, bAda = b.terbaca > 0 ? 1 : 0;
+    return (bAda - aAda) || (b.prioritas - a.prioritas) || (b.terbaca - a.terbaca);
+  });
+  if (!urut.length || !urut[0].terbaca) {
+    throw new Error('Tidak ada kolom tanggal yang terisi di laporan Jubelio. Kolom: ' + values[0].join(', '));
+  }
+  return {
+    indeks: urut[0].indeks,
+    kandidat: kandidat.map(function (k) { return k.nama + ' (' + k.terbaca + '/' + contoh.length + ')'; })
   };
 }
 

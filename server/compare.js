@@ -356,7 +356,11 @@ const rupiah = (n) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 function rupiahRingkas(n) {
   const abs = Math.abs(n);
-  const f = (x) => x.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+  const f = (x) =>
+    x.toLocaleString("id-ID", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   if (abs >= 1e9) return `Rp ${f(n / 1e9)} M`;
   if (abs >= 1e6) return `Rp ${f(n / 1e6)} jt`;
   return rupiah(n);

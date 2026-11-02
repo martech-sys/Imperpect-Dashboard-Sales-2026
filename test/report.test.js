@@ -56,7 +56,7 @@ const RAW = [
   }),
   baris({
     invoice: "C",
-    waktu: "08:30:00", // sebelum sesi pertama: di luar sesi
+    waktu: null, // tanpa jam: di luar sesi (sebelum sesi pertama ikut Sesi 1)
     brand: "X",
     total_harga_barang: "70000.0000",
   }),
@@ -136,7 +136,7 @@ test("pivot per hari, brand, dan jam; filter hari", () => {
   const perJam = report.pivot(rows, event, { baris: "jam", hari: "1" });
   assert.deepEqual(
     perJam.rows.map((r) => r.label),
-    ["08.00-09.00", "09.00-10.00", "13.00-14.00"],
+    ["09.00-10.00", "13.00-14.00", "(tanpa jam)"],
   );
   assert.equal(perJam.total.trx, 3);
 });

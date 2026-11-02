@@ -204,6 +204,9 @@ function compare(rows, event, opts = {}) {
             ? sesi26[i26 + 1].mulai
             : 24 * 60;
       const v25 = s25 ? { unit: s25[3], trx: s25[4], gmv: s25[5] } : kosong();
+      // Transaksi 2025 sebelum sesi pertama ikut sesi pertama (sama dengan 2026)
+      if (s25 && b.luar && s25[0] === Math.min(...b.sesi.map((x) => x[0])))
+        tambah(v25, { unit: b.luar[0], trx: b.luar[1], gmv: b.luar[2] });
       const v26 = s26 ? ambil26(s26.key) : kosong();
       return {
         jam: `${jamTeks(mulai)}-${jamTeks(s26 ? s26.selesai : s25[1])}`,
@@ -220,11 +223,9 @@ function compare(rows, event, opts = {}) {
       };
     });
 
-    // Di luar sesi (sebelum sesi pertama) bila salah satu tahun punya isi
-    const luar25 =
-      b && b.luar
-        ? { unit: b.luar[0], trx: b.luar[1], gmv: b.luar[2] }
-        : kosong();
+    // Di luar sesi: hanya transaksi 2026 tanpa jam (yang sebelum sesi pertama
+    // sudah ikut Sesi 1, begitu juga "luar" 2025 di atas)
+    const luar25 = kosong();
     const luar26 = ambil26(`${h}-0`);
     if (luar25.trx || luar26.trx) {
       baris.unshift({

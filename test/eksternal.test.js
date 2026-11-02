@@ -60,6 +60,29 @@ test("baris Total / Grand Total / Jumlah di bawah data tidak dihitung", () => {
   );
 });
 
+test("baris jumlah tanpa label & label di kolom lain tidak dihitung", () => {
+  const rows = parseCSV(
+    [
+      "No HP,Nama,qty,trx value,Catatan",
+      "0812345678,Dewi,2,100000,",
+      ",#tnt4y16o,1,160000,",
+      // =SUM tanpa label: tanpa HP & nama, nilainya = jumlah di atasnya
+      ",,3,260000,",
+      ",,,260000,TOTAL",
+      // nilai kebetulan sama tetapi punya nama: transaksi biasa
+      ",Rina,1,260000,",
+    ].join("\n"),
+  );
+  assert.deepEqual(
+    rowsToRecords(rows).map((r) => [r.baris, r.value]),
+    [
+      [2, "100000"],
+      [3, "160000"],
+      [6, "260000"],
+    ],
+  );
+});
+
 const FILES = [
   {
     brand: "Klamby",

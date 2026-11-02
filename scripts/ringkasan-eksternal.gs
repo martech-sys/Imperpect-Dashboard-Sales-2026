@@ -42,10 +42,17 @@ function ringkasanEksternal() {
       for (var i = idx.mulai; i < nilai.length; i++) {
         var b = nilai[i];
         if (b.join('').trim() === '') continue; // baris kosong
-        // baris ringkasan ("Total", "Grand Total", "Jumlah") bukan transaksi
-        var teks = [b[idx.p], idx.n >= 0 ? b[idx.n] : '', b[0]];
-        if (!normHp(b[idx.p]) && teks.some(function (x) { return /^(grand\s*|sub\s*)?total\b|^jumlah\b/i.test(String(x).trim()); })) continue;
+        // baris ringkasan bukan transaksi (aturan sama dengan dashboard):
+        // berlabel Total/Grand Total/Subtotal/Jumlah, atau tanpa nama & nilainya
+        // sama dengan jumlah semua baris di atasnya
         var v = toNum(b[idx.v]);
+        if (!normHp(b[idx.p])) {
+          var berlabel = b.some(function (x, k) {
+            return k !== idx.v && /^(grand\s*|sub\s*)?total\b|^jumlah\b/i.test(String(x).trim());
+          });
+          var tanpaNama = idx.n < 0 || String(b[idx.n]).trim() === '';
+          if (berlabel || (tanpaNama && r.trx >= 2 && v > 0 && v === r.gmv)) continue;
+        }
         if (!(v > 0)) { r.dilewati.push(i + 1); continue; }
         var q = idx.q >= 0 ? toNum(b[idx.q]) : 0;
         r.trx += 1;

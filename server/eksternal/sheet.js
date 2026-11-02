@@ -85,6 +85,19 @@ function parseCSV(text) {
   return rows.filter((r) => r.some((x) => String(x).trim() !== ""));
 }
 
+/**
+ * Baris ringkasan yang ditulis tim di bawah data (mis. "Total", "Grand
+ * Total", "Jumlah") bukan transaksi: nilainya jumlah semua baris di atasnya,
+ * jadi bila ikut dihitung GMV menjadi dua kali lipat.
+ */
+const POLA_TOTAL = /^(grand\s*|sub\s*)?total\b|^jumlah\b/i;
+function barisTotal(c, idx) {
+  if (normPhone(c[idx.p])) return false;
+  return [c[idx.p], idx.n >= 0 ? c[idx.n] : "", c[0]].some((x) =>
+    POLA_TOTAL.test(String(x == null ? "" : x).trim()),
+  );
+}
+
 /** Baris Sheet → { baris, phone, name, qty, value } (nilai mentah). */
 function rowsToRecords(rows) {
   if (!rows.length) return [];
@@ -114,6 +127,7 @@ function rowsToRecords(rows) {
   const out = [];
   for (let i = start; i < rows.length; i += 1) {
     const c = rows[i];
+    if (barisTotal(c, idx)) continue;
     out.push({
       baris: i + 1,
       phone: c[idx.p],
@@ -132,4 +146,5 @@ module.exports = {
   shortName,
   parseCSV,
   rowsToRecords,
+  barisTotal,
 };

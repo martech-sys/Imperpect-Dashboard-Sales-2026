@@ -37,6 +37,29 @@ test("kolom dikenali dari judulnya, urutan bebas", () => {
   ]);
 });
 
+test("baris Total / Grand Total / Jumlah di bawah data tidak dihitung", () => {
+  const rows = parseCSV(
+    [
+      "No HP,Nama,qty,trx value",
+      "0812345678,Dewi,2,100000",
+      ",#tnt4y16o,1,160000",
+      ",Total,0,260000",
+      "Grand Total,,,260000",
+      "Jumlah,,3,260000",
+      "0812999888,Total Fashion,1,50000",
+    ].join("\n"),
+  );
+  assert.deepEqual(
+    rowsToRecords(rows).map((r) => [r.baris, r.name, r.value]),
+    [
+      [2, "Dewi", "100000"],
+      [3, "#tnt4y16o", "160000"],
+      // nomor HP sah: pembeli bernama "Total ..." tetap dihitung
+      [7, "Total Fashion", "50000"],
+    ],
+  );
+});
+
 const FILES = [
   {
     brand: "Klamby",

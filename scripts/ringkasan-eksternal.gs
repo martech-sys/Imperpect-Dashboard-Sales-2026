@@ -42,6 +42,9 @@ function ringkasanEksternal() {
       for (var i = idx.mulai; i < nilai.length; i++) {
         var b = nilai[i];
         if (b.join('').trim() === '') continue; // baris kosong
+        // baris ringkasan ("Total", "Grand Total", "Jumlah") bukan transaksi
+        var teks = [b[idx.p], idx.n >= 0 ? b[idx.n] : '', b[0]];
+        if (!normHp(b[idx.p]) && teks.some(function (x) { return /^(grand\s*|sub\s*)?total\b|^jumlah\b/i.test(String(x).trim()); })) continue;
         var v = toNum(b[idx.v]);
         if (!(v > 0)) { r.dilewati.push(i + 1); continue; }
         var q = idx.q >= 0 ? toNum(b[idx.q]) : 0;
@@ -88,7 +91,7 @@ function ringkasanEksternal() {
 
 /** Posisi kolom dari baris judul (No HP, Nama, qty, trx value); tanpa judul: HP, Nama, qty, nilai. */
 function kolom(judul) {
-  var idx = { p: 0, q: 2, v: 3, mulai: 0 };
+  var idx = { p: 0, n: 1, q: 2, v: 3, mulai: 0 };
   if (isNaN(toNum(judul[2])) && isNaN(toNum(judul[3]))) {
     idx.mulai = 1;
     var m = {};
@@ -99,7 +102,9 @@ function kolom(judul) {
       else if (m.q == null && /qty|jumlah|pcs/.test(h)) m.q = i;
       else if (m.v == null && /value|nilai|total|trx|omzet|sales/.test(h)) m.v = i;
     });
-    if (m.p != null && m.v != null) { idx.p = m.p; idx.q = m.q != null ? m.q : -1; idx.v = m.v; }
+    if (m.p != null && m.v != null) {
+      idx.p = m.p; idx.n = m.n != null ? m.n : -1; idx.q = m.q != null ? m.q : -1; idx.v = m.v;
+    }
   }
   return idx;
 }

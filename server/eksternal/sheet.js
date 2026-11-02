@@ -86,15 +86,29 @@ function parseCSV(text) {
 }
 
 /**
- * Baris ringkasan yang ditulis tim di bawah data (mis. "Total", "Grand
- * Total", "Jumlah") bukan transaksi: nilainya jumlah semua baris di atasnya,
- * jadi bila ikut dihitung GMV menjadi dua kali lipat.
+ * Baris ringkasan yang ditulis tim di bawah data bukan transaksi: nilainya
+ * jumlah baris di atasnya, jadi bila ikut dihitung GMV menjadi dua kali lipat.
+ * Dikenali bila tidak punya No HP sah dan
+ *   - salah satu selnya berawalan "Total", "Grand Total", "Subtotal" atau
+ *     "Jumlah" (di kolom mana pun), atau
+ *   - tanpa nama, dan nilainya persis sama dengan jumlah semua baris
+ *     bernilai di atasnya (baris =SUM tanpa label).
  */
 const POLA_TOTAL = /^(grand\s*|sub\s*)?total\b|^jumlah\b/i;
-function barisTotal(c, idx) {
+function barisTotal(c, idx, jumlahSebelum = null, banyakSebelum = 0) {
   if (normPhone(c[idx.p])) return false;
-  return [c[idx.p], idx.n >= 0 ? c[idx.n] : "", c[0]].some((x) =>
-    POLA_TOTAL.test(String(x == null ? "" : x).trim()),
+  const berlabel = c.some(
+    (x, i) => i !== idx.v && POLA_TOTAL.test(String(x == null ? "" : x).trim()),
+  );
+  if (berlabel) return true;
+  const nama = idx.n >= 0 ? String(c[idx.n] ?? "").trim() : "";
+  const nilai = toNum(c[idx.v]);
+  return (
+    !nama &&
+    banyakSebelum >= 2 &&
+    nilai > 0 &&
+    jumlahSebelum !== null &&
+    nilai === jumlahSebelum
   );
 }
 
@@ -125,9 +139,16 @@ function rowsToRecords(rows) {
     }
   }
   const out = [];
+  let jumlah = 0;
+  let banyak = 0;
   for (let i = start; i < rows.length; i += 1) {
     const c = rows[i];
-    if (barisTotal(c, idx)) continue;
+    if (barisTotal(c, idx, jumlah, banyak)) continue;
+    const v = toNum(c[idx.v]);
+    if (v > 0) {
+      jumlah += v;
+      banyak += 1;
+    }
     out.push({
       baris: i + 1,
       phone: c[idx.p],

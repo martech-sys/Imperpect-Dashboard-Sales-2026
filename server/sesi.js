@@ -13,7 +13,8 @@
  * jadwal tiket, tetapi transaksi dipotong per sesi dari jam MULAI sesi itu
  * sampai jam mulai sesi berikutnya (sesi terakhir: sampai akhir hari), karena
  * antrean kasir masih berjalan sesudah jam selesai sesi. Transaksi sebelum
- * sesi pertama hari itu masuk "Di luar sesi" milik harinya, supaya total
+ * sesi pertama hari itu ikut Sesi 1 hari itu. "Di luar sesi" hanya tersisa
+ * untuk transaksi tanpa jam atau di hari tanpa jadwal sesi, supaya total
  * tabel tetap sama dengan total penjualan event.
  */
 
@@ -214,7 +215,13 @@ function createPenentuSesi(sesi, tanggalMulai) {
             const [dari, sampai] = potongan(daftar, n);
             return menit >= dari && menit < sampai;
           });
-    const kena = i >= 0 ? daftar[i] : null;
+    // Sebelum sesi pertama (mis. kasir buka lebih awal) → ikut Sesi 1
+    const sebelumSesi1 =
+      i < 0 &&
+      menit !== null &&
+      daftar.length > 0 &&
+      menit < potongan(daftar, 0)[0];
+    const kena = i >= 0 ? daftar[i] : sebelumSesi1 ? daftar[0] : null;
     return {
       hari,
       menit,

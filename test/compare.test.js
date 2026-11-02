@@ -78,7 +78,6 @@ test("compare: Jumat 2026 dipasangkan dengan Jumat 2025, per jam sesi", () => {
   assert.deepEqual(
     jumat.map((s) => [s.jam, s.sesi2025, s.sesi2026, s.status]),
     [
-      ["Di luar sesi", null, null, "selesai"],
       ["09.00-10.00", "Sesi 1", "Sesi 1", "selesai"],
       ["13.00-14.00", "Sesi 3", "Sesi 2", "berjalan"],
       ["15.00-16.00", "Sesi 4", "Sesi 3", "belum"],
@@ -86,10 +85,10 @@ test("compare: Jumat 2026 dipasangkan dengan Jumat 2025, per jam sesi", () => {
       ["19.00-20.00", "Sesi 6", "Sesi 5", "belum"],
     ],
   );
-  // Sesi 1 2026 menampung 09.00–12.59: invoice A (500rb) + B (100rb)
-  assert.deepEqual(jumat[1].v26, { unit: 4, trx: 2, gmv: 600000 });
-  assert.deepEqual(jumat[1].v25, { unit: 2768, trx: 245, gmv: 411451800 });
-  assert.deepEqual(jumat[0].v26, { unit: 1, trx: 1, gmv: 10000 });
+  // Sesi 1 2026 menampung 00.00–12.59: invoice A (500rb) + B (100rb) + D
+  // (08.00, sebelum sesi pertama → ikut Sesi 1); 2025 juga ditambah "luar"
+  assert.deepEqual(jumat[0].v26, { unit: 5, trx: 3, gmv: 610000 });
+  assert.deepEqual(jumat[0].v25, { unit: 2770, trx: 247, gmv: 411530800 });
 
   // Pembanding "sampai kini" hanya memakai potongan yang sudah selesai
   assert.equal(r.sampaiKini.sesi, 1);
@@ -152,10 +151,11 @@ test("target: dibagi rata & proporsional porsi 2025, aktual per brand dari harga
   assert.equal(t.jumlahSesi, 17);
   const jumlahBobot = t.sesi.reduce((a, s) => a + s.bobot, 0);
   assert.ok(Math.abs(jumlahBobot - 1) < 1e-9);
-  // bobot Jumat 09.00 = GMV 2025 Jumat Sesi 1 / GMV 2025 semua sesi pasangan
+  // bobot Jumat 09.00 = GMV 2025 Jumat Sesi 1 (+ transaksi sebelum sesi
+  // pertama) / GMV 2025 semua sesi pasangan
   const s1 = t.sesi[0];
   assert.equal(s1.jam, "09.00-10.00");
-  assert.ok(Math.abs(s1.bobot - 411451800 / (5700899671 - 79000)) < 1e-12);
+  assert.ok(Math.abs(s1.bobot - 411530800 / 5700899671) < 1e-12);
   assert.deepEqual(s1.aktual, { heymale: 200000, heylocal: 100000 });
   assert.equal(t.brands.find((b) => b.kunci === "heymale").aktual, 200000);
   assert.deepEqual(t.luarTarget, [{ brand: "LAINNYA", gmv: 100000 }]);

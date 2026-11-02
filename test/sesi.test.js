@@ -46,7 +46,9 @@ test("potongan sesi: dari jam mulai sampai jam mulai sesi berikutnya (antrean ka
     parseSesi("Day 1: 09.00-10.00, 13.00-14.00"),
     "2026-10-30",
   );
-  assert.equal(tentukan("2026-10-30", "08:59:59").sesi, "1-0");
+  // sebelum sesi pertama ikut Sesi 1
+  assert.equal(tentukan("2026-10-30", "08:59:59").sesi, "1-1");
+  assert.equal(tentukan("2026-10-30", "00:05:00").sesi, "1-1");
   assert.equal(tentukan("2026-10-30", "09:00:00").sesi, "1-1");
   assert.equal(tentukan("2026-10-30", "10:00:00").sesi, "1-1");
   assert.equal(tentukan("2026-10-30", "12:59:59").sesi, "1-1");
@@ -76,7 +78,7 @@ test("buffer per hari: batas antar sesi Day 2 digeser 15 menit", () => {
   const t = createPenentuSesi(sesi, "2026-10-30");
   const di = (tgl, w) => t(tgl, w).sesi;
   // Day 2: Sesi 1 09.00–11.14, Sesi 2 11.15–13.14, Sesi 6 19.15–23.59
-  assert.equal(di("2026-10-31", "08:59"), "2-0");
+  assert.equal(di("2026-10-31", "08:59"), "2-1");
   assert.equal(di("2026-10-31", "09:00"), "2-1");
   assert.equal(di("2026-10-31", "11:14"), "2-1");
   assert.equal(di("2026-10-31", "11:15"), "2-2");

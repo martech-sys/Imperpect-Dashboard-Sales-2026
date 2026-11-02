@@ -21,7 +21,7 @@
  *   bayar). Pesanan dengan status cancel/batal tidak dihitung.
  *   Sesi = aturan yang sama dengan dashboard: jam mulai sesi s/d jam mulai
  *   sesi berikutnya (+ buffer per hari), sesi terakhir s/d akhir hari,
- *   sebelum sesi pertama = "Di luar sesi".
+ *   sebelum sesi pertama ikut Sesi 1.
  *
  * Cara pakai:
  *   1. Di project Apps Script yang sudah ada: klik + → Script, beri nama
@@ -414,6 +414,9 @@ function jbKunciSesi_(waktu, sesi) {
     var s = sesi[i];
     if (s.hari === hari && m >= s.dari && m < s.sampai) return s.key;
   }
+  // sebelum sesi pertama hari itu → ikut Sesi 1 (sama dengan dashboard)
+  var pertama = sesi.filter(function (s) { return s.hari === hari; })[0];
+  if (pertama && m < pertama.dari) return pertama.key;
   return hari >= 1 ? hari + '-0' : null;
 }
 

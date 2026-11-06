@@ -150,6 +150,10 @@ function loadConfig(env) {
     stock: {
       tabel: stockTabel,
       tabelKelas: stockKelas,
+      // Kode tag yang tidak ikut dashboard stok (pisah koma). Bawaan: TEST.
+      excludeTag: daftar(
+        env.STOCK_EXCLUDE_TAG === undefined ? "TEST" : env.STOCK_EXCLUDE_TAG,
+      ),
       schema: stockSchema,
       cacheSeconds: Math.max(
         10,

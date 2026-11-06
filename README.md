@@ -282,11 +282,15 @@ baris per SKU per gudang), paling sering sekali per `STOCK_CACHE_SECONDS`
   dan **ATP = (jumlah SKU yang stoknya > 0 ÷ total SKU di kode tag) × 100%**.
   Stok satu SKU = jumlah stoknya di gudang yang dipilih (semua gudang bila
   tidak difilter); stok 0 atau minus dihitung kosong.
-- **Stock value** = Σ stok SKU × `price` (harga jual), dan Stock value HPP =
-  Σ stok SKU × `hpp`. Stok minus tidak mengurangi nilai (dihitung 0).
+- **Stock value** = Σ stok SKU × `price` (harga jual); stok minus dihitung 0.
+  HPP tidak dibaca dan tidak ditampilkan.
+- **Kelas** dari tabel `article_class` (join lewat `kode_tag`, tanpa
+  memedulikan spasi & huruf besar/kecil). Bila satu kode tag punya beberapa
+  baris, dipakai yang `is_active`, lalu `start_date` terbaru. Tabel lain:
+  `STOCK_CLASS_TABLE`. Kelas ikut jadi filter, kolom tabel, dan CSV.
 - Klik satu kode tag: metrik per `sku_product` (produk, warna/size, harga,
   stock per gudang, status Tersedia/Kosong).
-- Filter gudang, brand (`principal_brand`), status, kelompok ATP, pencarian;
+- Filter gudang, brand (`principal_brand`), kelas, status, kelompok ATP, pencarian;
   Export CSV satu baris per SKU.
 
 Login: username dari env `STOCK_USERNAME` (bawaan `stockwh`), password dari

@@ -7,9 +7,9 @@
  * Metrik per kode tag:
  *   Stock = jumlah stok seluruh SKU di kode tag itu (gudang yang dipilih).
  *   ATP   = (jumlah SKU yang stoknya > 0 / jumlah SKU di kode tag) × 100%.
- *   Stock value     = Σ stok SKU × price (harga jual).
- *   Stock value HPP = Σ stok SKU × hpp (nilai modal).
- *   Stok minus tidak mengurangi nilai (dihitung 0).
+ *   Stock value = Σ stok SKU × price (harga jual); stok minus dihitung 0.
+ *   Kelas dari tabel article_class (join lewat kode_tag).
+ * HPP tidak dibaca.
  * Stok satu SKU = jumlah stoknya di semua gudang yang dipilih, jadi SKU yang
  * kosong di satu gudang tetapi ada di gudang lain tetap dihitung tersedia.
  *
@@ -28,22 +28,42 @@ const TANPA_SKU = "(tanpa SKU)";
 const angkaSql = (kolom) =>
   `CASE WHEN btrim(${kolom}::text) ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN btrim(${kolom}::text)::numeric END`;
 
+const TANPA_KELAS = "(tanpa kelas)";
+
+/**
+ * Kelas tiap kode tag dari tabel article_class (satu kode tag bisa punya
+ * beberapa baris periode): dipilih baris yang aktif (is_active), lalu yang
+ * start_date-nya paling baru. Kode tag dicocokkan tanpa memedulikan spasi di
+ * tepi dan huruf besar/kecil.
+ */
 function buildStockQuery(cfg) {
-  const tabel = cfg.schema ? `"${cfg.schema}".${cfg.tabel}` : cfg.tabel;
-  return `SELECT COALESCE(NULLIF(btrim(kode_tag), ''), '${TANPA_TAG}') AS kode_tag,
-       MAX(name_tag) AS name_tag,
-       COALESCE(NULLIF(btrim(sku_product), ''), '${TANPA_SKU}') AS sku_product,
-       MAX(product_name) AS product_name,
-       MAX(color) AS color,
-       MAX("size") AS size,
-       MAX(${angkaSql("price")}) AS price,
-       MAX(${angkaSql("hpp")}) AS hpp,
-       COALESCE(MAX(NULLIF(btrim(principal_brand), '')), MAX(brand)) AS brand,
-       MAX(kategori) AS kategori,
-       COALESCE(NULLIF(btrim(warehouse), ''), '(tanpa gudang)') AS warehouse,
-       MAX(status) AS status,
-       SUM(COALESCE(${angkaSql("stock")}, 0)) AS stock
-  FROM ${tabel}
+  const nama = (t) => (cfg.schema ? `"${cfg.schema}".${t}` : t);
+  const kunci = (k) => `upper(btrim(${k}))`;
+  return `WITH kelas AS (
+  SELECT DISTINCT ON (${kunci("kode_tag")})
+         ${kunci("kode_tag")} AS kunci,
+         NULLIF(btrim(kelas::text), '') AS kelas
+    FROM ${nama(cfg.tabelKelas || "article_class")}
+   WHERE NULLIF(btrim(kode_tag), '') IS NOT NULL
+   ORDER BY ${kunci("kode_tag")},
+         (lower(btrim(is_active::text)) IN ('true', 't', '1', 'y', 'yes', 'aktif', 'active')) DESC,
+         start_date DESC NULLS LAST
+)
+SELECT COALESCE(NULLIF(btrim(s.kode_tag), ''), '${TANPA_TAG}') AS kode_tag,
+       MAX(s.name_tag) AS name_tag,
+       COALESCE(NULLIF(btrim(s.sku_product), ''), '${TANPA_SKU}') AS sku_product,
+       MAX(s.product_name) AS product_name,
+       MAX(s.color) AS color,
+       MAX(s."size") AS size,
+       MAX(${angkaSql("s.price")}) AS price,
+       COALESCE(MAX(NULLIF(btrim(s.principal_brand), '')), MAX(s.brand)) AS brand,
+       MAX(s.kategori) AS kategori,
+       MAX(k.kelas) AS kelas,
+       COALESCE(NULLIF(btrim(s.warehouse), ''), '(tanpa gudang)') AS warehouse,
+       MAX(s.status) AS status,
+       SUM(COALESCE(${angkaSql("s.stock")}, 0)) AS stock
+  FROM ${nama(cfg.tabel)} s
+  LEFT JOIN kelas k ON k.kunci = ${kunci("s.kode_tag")}
  GROUP BY 1, 3, 11`;
 }
 
@@ -103,7 +123,7 @@ function createDemoStockSource() {
           color: warna,
           size: u,
           price: String(99000 + (t % 5) * 50000),
-          hpp: String(Math.round((99000 + (t % 5) * 50000) * 0.45)),
+          kelas: ["A", "B", "C", null][t % 4],
           brand: b,
           kategori: t % 2 ? "APPAREL" : "ACCESSORIES",
           warehouse: g,
@@ -142,7 +162,7 @@ function siapkanStok(raw) {
     warna: teks(r.color),
     ukuran: teks(r.size),
     harga: angka(r.price),
-    hpp: angka(r.hpp),
+    kelas: teks(r.kelas) || TANPA_KELAS,
     brand: teks(r.brand) || "(tanpa brand)",
     kategori: teks(r.kategori) || "(tanpa kategori)",
     warehouse: teks(r.warehouse) || "(tanpa gudang)",
@@ -161,6 +181,7 @@ function bacaFilterStok(query) {
     warehouse: ambil("warehouse"),
     brand: ambil("brand"),
     kategori: ambil("kategori"),
+    kelas: ambil("kelas"),
     status: ambil("status"),
     atp: ambil("atp"), // "", "habis" (0%), "sebagian", "penuh" (100%)
     q: ambil("q").toLowerCase().slice(0, 100),
@@ -173,6 +194,7 @@ function saringStok(rows, f) {
       (!f.warehouse || r.warehouse === f.warehouse) &&
       (!f.brand || r.brand === f.brand) &&
       (!f.kategori || r.kategori === f.kategori) &&
+      (!f.kelas || r.kelas === f.kelas) &&
       (!f.status || r.status === f.status),
   );
 }
@@ -190,6 +212,7 @@ function kelompokTag(rows) {
         name_tag: r.name_tag,
         brand: r.brand,
         kategori: r.kategori,
+        kelas: r.kelas,
         sku: new Map(),
       };
       tags.set(r.kode_tag, t);
@@ -203,7 +226,6 @@ function kelompokTag(rows) {
         warna: r.warna,
         ukuran: r.ukuran,
         harga: r.harga,
-        hpp: r.hpp,
         status: r.status,
         stock: 0,
         gudang: [],
@@ -217,7 +239,7 @@ function kelompokTag(rows) {
 }
 
 /** Nilai stok satu SKU: stok (minus = 0) × harga. */
-const nilaiSku = (s, kolom) => Math.max(s.stock, 0) * (s[kolom] || 0);
+const nilaiSku = (s) => Math.max(s.stock, 0) * (s.harga || 0);
 
 function ringkasTag(t) {
   const daftar = [...t.sku.values()];
@@ -228,9 +250,9 @@ function ringkasTag(t) {
     name_tag: t.name_tag || "",
     brand: t.brand,
     kategori: t.kategori,
+    kelas: t.kelas,
     stock: Math.round(daftar.reduce((a, s) => a + s.stock, 0)),
-    nilai: Math.round(daftar.reduce((a, s) => a + nilaiSku(s, "harga"), 0)),
-    nilai_hpp: Math.round(daftar.reduce((a, s) => a + nilaiSku(s, "hpp"), 0)),
+    nilai: Math.round(daftar.reduce((a, s) => a + nilaiSku(s), 0)),
     total_sku: totalSku,
     sku_ada: skuAda,
     atp: persen(skuAda, totalSku),
@@ -242,7 +264,7 @@ const URUT_STOK = new Set([
   "name_tag",
   "stock",
   "nilai",
-  "nilai_hpp",
+  "kelas",
   "atp",
   "total_sku",
 ]);
@@ -283,7 +305,6 @@ function daftarTag(rows, query) {
     sku_ada: skuAda,
     stock: list.reduce((a, t) => a + t.stock, 0),
     nilai: list.reduce((a, t) => a + t.nilai, 0),
-    nilai_hpp: list.reduce((a, t) => a + t.nilai_hpp, 0),
     atp: persen(skuAda, totalSku),
     tag_penuh: list.filter((t) => t.total_sku && t.sku_ada === t.total_sku)
       .length,
@@ -331,8 +352,7 @@ function detailTag(rows, kodeTag, query) {
     .map((s) => ({
       ...s,
       stock: Math.round(s.stock),
-      nilai: Math.round(nilaiSku(s, "harga")),
-      nilai_hpp: Math.round(nilaiSku(s, "hpp")),
+      nilai: Math.round(nilaiSku(s)),
       tersedia: s.stock > 0,
       gudang: s.gudang
         .slice()
@@ -351,6 +371,7 @@ function opsiStok(rows) {
     warehouses: ambil("warehouse"),
     brands: ambil("brand"),
     kategori: ambil("kategori"),
+    kelas: ambil("kelas"),
     status: ambil("status"),
   };
 }
@@ -368,16 +389,15 @@ function stokCsv(rows, query) {
   const kepala = [
     "kode_tag",
     "name_tag",
+    "kelas",
     "atp_kode_tag_persen",
     "sku_product",
     "product_name",
     "color",
     "size",
     "price",
-    "hpp",
     "stock",
     "stock_value",
-    "stock_value_hpp",
   ];
   const baris = [kepala.join(";")];
   semua.forEach((t) => {
@@ -388,16 +408,15 @@ function stokCsv(rows, query) {
           [
             t.kode_tag,
             t.name_tag,
+            t.kelas,
             t.atp.toFixed(1),
             s.sku,
             s.nama,
             s.warna,
             s.ukuran,
             s.harga,
-            s.hpp,
             Math.round(s.stock),
-            Math.round(nilaiSku(s, "harga")),
-            Math.round(nilaiSku(s, "hpp")),
+            Math.round(nilaiSku(s)),
           ]
             .map(csvSel)
             .join(";"),
@@ -409,6 +428,7 @@ function stokCsv(rows, query) {
 
 module.exports = {
   TANPA_TAG,
+  TANPA_KELAS,
   buildStockQuery,
   createStockSource,
   createDemoStockSource,

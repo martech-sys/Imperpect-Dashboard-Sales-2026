@@ -1,3 +1,11 @@
 {
-  "users": []
+  "users": [
+    {
+      "username": "dodi",
+      "role": "user",
+      "hash": "scrypt:AUw1-GZ5J8CIZKaHTUJNnQ:VvSfFjW65QDDkvsRluSaC_TtU2mABxDGpmxhm9CWt1E",
+      "dibuat": "2026-11-06T09:38:49.888Z",
+      "oleh": "stockwh"
+    }
+  ]
 }

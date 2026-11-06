@@ -68,6 +68,19 @@ export function stockPage() {
     showPassword: false,
     loginError: "",
     loginLoading: false,
+    /** User yang sedang masuk: { username, role, utama } */
+    user: null,
+
+    // kelola user (admin)
+    kelola: {
+      buka: false,
+      loading: false,
+      error: "",
+      pesan: "",
+      users: [],
+      bisaUbah: false,
+      form: { username: "", password: "", role: "user" },
+    },
 
     // data
     loading: false,
@@ -130,6 +143,7 @@ export function stockPage() {
         const app = await minta("/api/stock/app");
         this.mode = app.mode;
         this.masuk = app.auth.masuk;
+        this.user = app.auth.user || null;
         if (!app.auth.aktif) {
           this.loginError =
             "Login dashboard stok belum diaktifkan: isi STOCK_PASSWORD di environment variable Vercel.";
@@ -157,6 +171,11 @@ export function stockPage() {
         });
         this.masuk = true;
         this.password = "";
+        try {
+          this.user = (await minta("/api/stock/app")).auth.user;
+        } catch {
+          this.user = null;
+        }
         this.muat();
       } catch (err) {
         this.loginError = err.message;
@@ -164,6 +183,95 @@ export function stockPage() {
       } finally {
         this.loginLoading = false;
       }
+    },
+
+    get isAdmin() {
+      return this.user?.role === "admin";
+    },
+
+    // ---- Kelola user (admin) ----
+    async bukaKelola() {
+      this.kelola.buka = true;
+      this.kelola.error = "";
+      this.kelola.pesan = "";
+      await this.aksiUser(null);
+    },
+
+    /** Kirim aksi ke /api/stock/users (null = hanya muat daftar). */
+    async aksiUser(body, pesanSukses = "") {
+      this.kelola.loading = true;
+      this.kelola.error = "";
+      this.kelola.pesan = "";
+      try {
+        const d = await minta(
+          "/api/stock/users",
+          body ? { method: "POST", body } : {},
+        );
+        this.kelola.users = d.users;
+        this.kelola.bisaUbah = d.bisaUbah;
+        this.kelola.pesan = pesanSukses;
+        return true;
+      } catch (err) {
+        if (err.status === 401) {
+          this.masuk = false;
+          this.kelola.buka = false;
+        } else this.kelola.error = err.message;
+        return false;
+      } finally {
+        this.kelola.loading = false;
+      }
+    },
+
+    async tambahUser() {
+      const f = this.kelola.form;
+      const ok = await this.aksiUser(
+        { aksi: "tambah", ...f },
+        `User ${f.username.trim().toLowerCase()} ditambahkan dan sudah bisa login.`,
+      );
+      if (ok) this.kelola.form = { username: "", password: "", role: "user" };
+    },
+
+    async hapusUser(u) {
+      if (
+        !window.confirm(
+          `Hapus user ${u.username}? User ini langsung tidak bisa login.`,
+        )
+      )
+        return;
+      await this.aksiUser(
+        { aksi: "hapus", username: u.username },
+        `User ${u.username} dihapus.`,
+      );
+    },
+
+    async resetPassword(u) {
+      const pw = window.prompt(
+        `Password baru untuk ${u.username} (minimal 8 karakter):`,
+      );
+      if (!pw) return;
+      await this.aksiUser(
+        { aksi: "password", username: u.username, password: pw },
+        `Password ${u.username} diganti. Sesi lamanya otomatis keluar.`,
+      );
+    },
+
+    async ubahRole(u, role) {
+      if (role === u.role) return;
+      await this.aksiUser(
+        { aksi: "role", username: u.username, role },
+        `${u.username} sekarang ${role === "admin" ? "admin" : "user biasa"}.`,
+      );
+    },
+
+    formatWaktu(iso) {
+      if (!iso) return "–";
+      return new Date(iso).toLocaleString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     },
 
     async logout() {
@@ -174,6 +282,8 @@ export function stockPage() {
       }
       this.masuk = false;
       this.detail = null;
+      this.user = null;
+      this.kelola.buka = false;
       this.username = "";
     },
 

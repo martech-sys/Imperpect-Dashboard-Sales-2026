@@ -154,7 +154,26 @@
               </p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              x-show="user"
+              class="text-theme-sm hidden items-center gap-1.5 text-gray-600 sm:inline-flex dark:text-gray-400"
+            >
+              <span x-text="user?.username"></span>
+              <span
+                class="text-theme-xs rounded-full px-2 py-0.5 font-medium"
+                :class="isAdmin ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' : 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'"
+                x-text="isAdmin ? 'Admin' : 'User'"
+              ></span>
+            </span>
+            <button
+              type="button"
+              x-show="isAdmin"
+              @click="bukaKelola()"
+              class="text-theme-sm shadow-theme-xs border-brand-300 text-brand-600 dark:border-brand-700 dark:text-brand-400 rounded-lg border bg-white px-3 py-2 font-medium hover:bg-gray-50 dark:bg-gray-800"
+            >
+              Kelola user
+            </button>
             <button
               type="button"
               @click="muat(true)"
@@ -505,6 +524,197 @@
           </div>
         </div>
       </main>
+
+      <!-- Kelola user (admin) -->
+      <div
+        x-show="kelola.buka"
+        x-cloak
+        @keydown.escape.window="kelola.buka = false"
+        @click.self="kelola.buka = false"
+        class="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 sm:items-center sm:p-4"
+      >
+        <div
+          class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl dark:bg-gray-900"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            class="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800"
+          >
+            <div>
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-white/90"
+              >
+                Kelola user
+              </h3>
+              <p class="text-theme-sm text-gray-500 dark:text-gray-400">
+                User baru langsung bisa login ke dashboard stok. Admin bisa
+                mengelola user, user biasa hanya melihat data.
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="kelola.buka = false"
+              class="rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
+            >
+              Tutup
+            </button>
+          </div>
+          <div class="overflow-auto px-5 py-4">
+            <div
+              x-show="!kelola.bisaUbah && !kelola.loading"
+              class="bg-warning-50 border-warning-200 text-theme-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-400 mb-4 rounded-xl border p-3"
+            >
+              Menambah/mengubah user belum aktif: isi
+              <b>STOCK_USERS_GITHUB_TOKEN</b> di Vercel (token GitHub dengan
+              izin Contents read & write untuk repo ini), lalu redeploy.
+            </div>
+            <div
+              x-show="kelola.error"
+              class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-4 rounded-xl border p-3"
+              x-text="kelola.error"
+            ></div>
+            <div
+              x-show="kelola.pesan"
+              class="bg-success-50 border-success-200 dark:border-success-500/30 dark:bg-success-500/10 text-theme-sm text-success-700 dark:text-success-400 mb-4 rounded-xl border p-3"
+              x-text="kelola.pesan"
+            ></div>
+
+            <!-- Tambah user -->
+            <form
+              @submit.prevent="tambahUser()"
+              class="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 sm:grid-cols-4 dark:border-gray-800"
+            >
+              <p
+                class="text-theme-sm font-semibold text-gray-800 sm:col-span-4 dark:text-white/90"
+              >
+                Tambah user
+              </p>
+              <input
+                type="text"
+                x-model="kelola.form.username"
+                placeholder="Username"
+                autocapitalize="none"
+                autocomplete="off"
+                :disabled="!kelola.bisaUbah"
+                class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              />
+              <input
+                type="password"
+                x-model="kelola.form.password"
+                placeholder="Password (min. 8)"
+                autocomplete="new-password"
+                :disabled="!kelola.bisaUbah"
+                class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              />
+              <select
+                x-model="kelola.form.role"
+                :disabled="!kelola.bisaUbah"
+                class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              >
+                <option value="user">User biasa</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button
+                type="submit"
+                :disabled="!kelola.bisaUbah || kelola.loading"
+                class="bg-brand-500 hover:bg-brand-600 h-10 rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50"
+                x-text="kelola.loading ? 'Menyimpan…' : 'Tambah'"
+              ></button>
+            </form>
+
+            <!-- Daftar user -->
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-140 text-left">
+                <thead>
+                  <tr
+                    class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                  >
+                    <th class="px-3 py-2.5 font-medium">Username</th>
+                    <th class="px-3 py-2.5 font-medium">Role</th>
+                    <th class="px-3 py-2.5 font-medium">Dibuat</th>
+                    <th class="px-3 py-2.5 text-right font-medium">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="text-theme-sm">
+                  <template x-for="u in kelola.users" :key="u.username">
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                      <td
+                        class="px-3 py-2.5 font-medium text-gray-800 dark:text-white/90"
+                      >
+                        <span x-text="u.username"></span>
+                        <span
+                          x-show="u.username === user?.username"
+                          class="text-theme-xs text-gray-400"
+                          >(Anda)</span
+                        >
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <template x-if="u.utama">
+                          <span
+                            class="text-theme-xs bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400 rounded-full px-2 py-0.5 font-medium"
+                            >Admin utama</span
+                          >
+                        </template>
+                        <template x-if="!u.utama">
+                          <select
+                            :value="u.role"
+                            @change="ubahRole(u, $event.target.value)"
+                            :disabled="!kelola.bisaUbah || u.username === user?.username"
+                            class="h-8 min-w-32 rounded-lg border border-gray-300 bg-white py-0 pr-8 pl-2 text-sm text-gray-800 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                          >
+                            <option value="user" :selected="u.role === 'user'">
+                              User biasa
+                            </option>
+                            <option
+                              value="admin"
+                              :selected="u.role === 'admin'"
+                            >
+                              Admin
+                            </option>
+                          </select>
+                        </template>
+                      </td>
+                      <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400">
+                        <span
+                          x-text="u.utama ? 'env Vercel' : formatWaktu(u.dibuat)"
+                        ></span>
+                        <span
+                          x-show="u.oleh"
+                          class="text-theme-xs block text-gray-400"
+                          x-text="'oleh ' + u.oleh"
+                        ></span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                        <template x-if="!u.utama">
+                          <span class="inline-flex gap-2">
+                            <button
+                              type="button"
+                              @click="resetPassword(u)"
+                              :disabled="!kelola.bisaUbah"
+                              class="text-theme-xs rounded-lg border border-gray-300 px-2.5 py-1 font-medium text-gray-700 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+                            >
+                              Ganti password
+                            </button>
+                            <button
+                              type="button"
+                              @click="hapusUser(u)"
+                              :disabled="!kelola.bisaUbah || u.username === user?.username"
+                              class="text-theme-xs border-error-300 text-error-600 dark:border-error-500/40 dark:text-error-400 rounded-lg border px-2.5 py-1 font-medium disabled:opacity-50"
+                            >
+                              Hapus
+                            </button>
+                          </span>
+                        </template>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Rincian per SKU -->
       <div

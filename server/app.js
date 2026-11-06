@@ -11,6 +11,7 @@ const { ringkasanAll } = require("./ringkasan");
 const { compare } = require("./compare");
 const { laporanTarget } = require("./target");
 const stok = require("./stock");
+const { createStockUsers } = require("./stock-users");
 
 /**
  * Seluruh endpoint /api/*, dipakai bersama server Node (server/index.js) dan
@@ -88,7 +89,14 @@ function createApp(env, deps = {}) {
     waitUntil: deps.waitUntil,
   });
   const auth = createAuth(config.auth);
-  const stockAuth = createAuth(config.stock.auth);
+  const stockUsers = createStockUsers(
+    {
+      admin: config.stock.auth,
+      secret: config.stock.auth.secret,
+      github: config.stock.github,
+    },
+    deps,
+  );
   const stockStore = createStore(
     config.demo
       ? stok.createDemoStockSource()
@@ -157,15 +165,15 @@ function createApp(env, deps = {}) {
     Boolean(req.socket?.encrypted);
 
   async function handleStock(req, res, path, query, segar) {
-    const masukStok = stockAuth.masuk(req.headers.cookie);
+    const user = await stockUsers.masuk(req.headers.cookie);
     if (path === "/api/stock/app" && req.method === "GET") {
       return json(res, 200, {
         mode: config.demo ? "demo" : "postgres",
         tabel: config.stock.tabel,
-        auth: { aktif: stockAuth.aktif, masuk: masukStok },
+        auth: { aktif: stockUsers.aktif, masuk: Boolean(user), user },
       });
     }
-    if (!stockAuth.aktif && path !== "/api/stock/logout") {
+    if (!stockUsers.aktif && path !== "/api/stock/logout") {
       // Tanpa password di env, data stok tidak dibuka untuk siapa pun.
       return json(res, 503, {
         error: "auth_not_configured",
@@ -175,10 +183,11 @@ function createApp(env, deps = {}) {
     }
     if (path === "/api/stock/login" && req.method === "POST") {
       const body = await bacaBody(req).catch(() => ({}));
-      const gagal = stockAuth.cobaMasuk(
+      const username = typeof body.username === "string" ? body.username : "";
+      const gagal = await stockUsers.cobaMasuk(
         ipDari(req),
+        username,
         typeof body.password === "string" ? body.password : "",
-        typeof body.username === "string" ? body.username : "",
       );
       if (gagal)
         return json(res, 401, { error: "login_failed", message: gagal });
@@ -186,7 +195,12 @@ function createApp(env, deps = {}) {
         res,
         200,
         { ok: true },
-        { "Set-Cookie": stockAuth.cookieMasuk(koneksiAman(req)) },
+        {
+          "Set-Cookie": await stockUsers.cookieMasuk(
+            username,
+            koneksiAman(req),
+          ),
+        },
       );
     }
     if (path === "/api/stock/logout" && req.method === "POST") {
@@ -194,15 +208,58 @@ function createApp(env, deps = {}) {
         res,
         200,
         { ok: true },
-        { "Set-Cookie": stockAuth.cookieKeluar() },
+        { "Set-Cookie": stockUsers.cookieKeluar() },
       );
     }
-    if (!masukStok) {
+    if (!user) {
       return json(res, 401, {
         error: "unauthorized",
         message: "Silakan masuk ke dashboard stok terlebih dahulu.",
       });
     }
+
+    // ---- Kelola user: khusus admin ----
+    if (path === "/api/stock/users") {
+      if (user.role !== "admin")
+        return json(res, 403, {
+          error: "forbidden",
+          message: "Hanya admin yang bisa mengelola user.",
+        });
+      try {
+        if (req.method === "POST") {
+          const body = await bacaBody(req).catch(() => ({}));
+          const aksi = body.aksi;
+          if (aksi === "tambah") await stockUsers.tambah(body, user.username);
+          else if (aksi === "hapus")
+            await stockUsers.hapus(body.username, user.username);
+          else if (aksi === "password")
+            await stockUsers.gantiPassword(
+              body.username,
+              body.password,
+              user.username,
+            );
+          else if (aksi === "role")
+            await stockUsers.gantiRole(body.username, body.role, user.username);
+          else
+            return json(res, 400, {
+              error: "bad_request",
+              message: "Aksi tidak dikenal.",
+            });
+        } else if (req.method !== "GET") {
+          return json(res, 405, {
+            error: "method_not_allowed",
+            message: "Method tidak didukung.",
+          });
+        }
+        return json(res, 200, await stockUsers.daftar());
+      } catch (e) {
+        return json(res, e.status || 500, {
+          error: "user_error",
+          message: e.message,
+        });
+      }
+    }
+
     if (req.method !== "GET")
       return json(res, 405, {
         error: "method_not_allowed",

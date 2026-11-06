@@ -305,6 +305,23 @@ kosong, login stok mati dan datanya tertutup.
 Tabel lain: `STOCK_TABLE`, schema: `STOCK_SCHEMA` (bawaan sama dengan
 `DB_SCHEMA`).
 
+### User dashboard stok
+
+- **Admin utama**: `STOCK_USERNAME` (bawaan `stockwh`) + `STOCK_PASSWORD` di
+  Vercel. Tidak bisa dihapus dari dashboard.
+- Admin melihat tombol **Kelola user**: tambah user (username, password,
+  role Admin/User biasa), ganti password, ubah role, hapus. User biasa hanya
+  melihat data; admin tambahan juga bisa mengelola user.
+- Daftar user disimpan di repo ini, file `data/stock-users.json` (hanya
+  username, role, hash scrypt password, kapan & oleh siapa dibuat; password
+  asli tidak pernah disimpan). Server meng-commit file itu lewat GitHub API,
+  jadi perlu env **`STOCK_USERS_GITHUB_TOKEN`**: fine-grained token untuk
+  repo ini dengan izin *Contents: Read and write*. Daftar dibaca langsung dari
+  GitHub (cache 30 detik), jadi user baru bisa login seketika; tiap perubahan
+  juga memicu deploy Vercel biasa.
+- Ganti password / hapus user langsung mengeluarkan sesi user itu.
+- Opsional: `STOCK_USERS_REPO`, `STOCK_USERS_PATH`, `STOCK_USERS_BRANCH`.
+
 ## Akses
 
 | `DASHBOARD_PASSWORD` | Akses data                                |

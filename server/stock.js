@@ -66,6 +66,8 @@ SELECT COALESCE(NULLIF(btrim(s.kode_tag), ''), '${TANPA_TAG}') AS kode_tag,
   LEFT JOIN kelas k ON k.kunci = ${kunci("s.kode_tag")}
  -- kode tag yang dikecualikan (mis. TEST), huruf besar/kecil & spasi diabaikan
  WHERE COALESCE(${kunci("s.kode_tag")}, '') <> ALL($1::text[])
+   -- name tag yang mengandung kata terlarang (mis. PAPER BAG / PAPERBAG)
+   AND NOT (COALESCE(s.name_tag, '') ~* ANY($2::text[]))
  GROUP BY 1, 3, 11`;
 }
 
@@ -73,13 +75,35 @@ SELECT COALESCE(NULLIF(btrim(s.kode_tag), ''), '${TANPA_TAG}') AS kode_tag,
 const kecualiTag = (daftar) =>
   (daftar || []).map((t) => String(t).trim().toUpperCase()).filter(Boolean);
 
+/**
+ * Kata di name tag → pola regex Postgres (tanpa beda huruf besar/kecil):
+ * tanda baca di-escape dan spasi boleh banyak atau tidak ada, jadi
+ * "PAPER BAG" juga cocok dengan "Paper  Bag" dan "PAPERBAG". Daftar kosong
+ * → pola yang tidak pernah cocok.
+ */
+const polaNama = (daftar) => {
+  const pola = (daftar || [])
+    .map((t) => String(t).trim())
+    .filter(Boolean)
+    .map((t) =>
+      t
+        .split(/\s+/)
+        .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("\\s*"),
+    );
+  return pola.length ? pola : ["(?!)"];
+};
+
 function createStockSource(cfg, deps = {}) {
   const pool = createPool(cfg.pg, { ...deps, maxConnections: 1 });
   const sql = buildStockQuery(cfg);
   return {
     name: "postgres",
     async fetch() {
-      const res = await pool.query(sql, [kecualiTag(cfg.excludeTag)]);
+      const res = await pool.query(sql, [
+        kecualiTag(cfg.excludeTag),
+        polaNama(cfg.excludeName),
+      ]);
       return res.rows;
     },
     close: () => pool.end(),
@@ -434,6 +458,7 @@ function stokCsv(rows, query) {
 
 module.exports = {
   kecualiTag,
+  polaNama,
   TANPA_TAG,
   TANPA_KELAS,
   buildStockQuery,

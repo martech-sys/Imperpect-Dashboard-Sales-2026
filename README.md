@@ -290,6 +290,8 @@ baris per SKU per gudang), paling sering sekali per `STOCK_CACHE_SECONDS`
   `STOCK_CLASS_TABLE`. Kelas ikut jadi filter, kolom tabel, dan CSV.
 - Kode tag `TEST` tidak ikut dihitung (huruf besar/kecil & spasi diabaikan).
   Ubah daftarnya lewat `STOCK_EXCLUDE_TAG` (pisah koma).
+- Baris yang name tag-nya mengandung "PAPER BAG" (termasuk "Paper Bag",
+  "PAPERBAG") juga tidak ikut. Ubah daftarnya lewat `STOCK_EXCLUDE_NAME`.
 - Klik satu kode tag: metrik per `sku_product` (produk, warna/size, harga,
   stock per gudang, status Tersedia/Kosong).
 - Filter gudang, brand (`principal_brand`), kelas, status, kelompok ATP, pencarian;

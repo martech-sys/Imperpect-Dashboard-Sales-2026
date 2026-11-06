@@ -172,6 +172,15 @@ function loadConfig(env) {
         passwordHash: env.STOCK_PASSWORD ? "" : env.STOCK_PASSWORD_HASH || "",
         secret: env.SESSION_SECRET || "",
       },
+      // Daftar user tambahan disimpan di file repo GitHub (lihat stock-users.js)
+      github: {
+        token: (env.STOCK_USERS_GITHUB_TOKEN || "").trim(),
+        repo: (
+          env.STOCK_USERS_REPO || "martech-sys/Imperpect-Dashboard-Sales-2026"
+        ).trim(),
+        path: (env.STOCK_USERS_PATH || "data/stock-users.json").trim(),
+        branch: (env.STOCK_USERS_BRANCH || "main").trim(),
+      },
     },
     // Mode demo hanya dipakai bila memang diminta atau database belum diisi
     // sama sekali; database yang gagal dibaca TIDAK diganti data contoh.

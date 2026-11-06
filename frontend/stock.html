@@ -585,63 +585,77 @@
                 <tr
                   class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
                 >
-                  <th class="px-5 py-3 font-medium">SKU produk</th>
+                  <th class="px-5 py-3 font-medium">
+                    <button
+                      type="button"
+                      @click="toggleSemuaSku()"
+                      class="uppercase"
+                      :title="semuaTerbuka ? 'Tutup semua' : 'Buka semua'"
+                    >
+                      <span x-text="semuaTerbuka ? '▾' : '▸'"></span> SKU produk
+                    </button>
+                  </th>
                   <th class="px-3 py-3 font-medium">Produk</th>
-                  <th class="px-3 py-3 font-medium">Warna / Size</th>
+                  <th class="px-3 py-3 font-medium whitespace-nowrap">
+                    Warna / Size
+                  </th>
                   <th class="px-3 py-3 text-right font-medium">Harga</th>
                   <th class="px-3 py-3 text-right font-medium">Stock</th>
+                  <th class="px-3 py-3 font-medium">Gudang</th>
                   <th class="px-3 py-3 text-right font-medium">Stock value</th>
                   <th class="px-5 py-3 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody class="text-theme-sm">
-                <template x-for="s in detail?.sku || []" :key="s.sku">
-                  <tr class="border-b border-gray-100 dark:border-gray-800">
+              <template x-for="s in detail?.sku || []" :key="s.sku">
+                <tbody class="text-theme-sm">
+                  <tr
+                    @click="toggleSku(s.sku)"
+                    class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                    :class="skuTerbuka(s.sku) ? 'bg-gray-50 dark:bg-white/3' : ''"
+                    :title="skuTerbuka(s.sku) ? 'Klik untuk menutup' : 'Klik untuk melihat stok per gudang'"
+                  >
                     <td
-                      class="px-5 py-2.5 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
-                      x-text="s.sku"
-                    ></td>
+                      class="px-5 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                    >
+                      <span
+                        class="inline-block w-4 text-gray-400"
+                        x-text="skuTerbuka(s.sku) ? '▾' : '▸'"
+                      ></span>
+                      <span x-text="s.sku"></span>
+                    </td>
                     <td
-                      class="px-3 py-2.5 text-gray-700 dark:text-gray-300"
+                      class="px-3 py-3 text-gray-700 dark:text-gray-300"
                       x-text="s.nama || '–'"
                     ></td>
                     <td
-                      class="px-3 py-2.5 whitespace-nowrap text-gray-500 dark:text-gray-400"
+                      class="px-3 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400"
                       x-text="[s.warna, s.ukuran].filter(Boolean).join(' / ') || '–'"
                     ></td>
                     <td
-                      class="px-3 py-2.5 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
-                    >
+                      class="px-3 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                      x-text="s.harga === null ? '–' : formatRupiah(s.harga)"
+                    ></td>
+                    <td
+                      class="px-3 py-3 text-right font-semibold tabular-nums"
+                      :class="s.tersedia ? 'text-gray-800 dark:text-white/90' : 'text-error-600 dark:text-error-500'"
+                      x-text="formatAngka(s.stock)"
+                    ></td>
+                    <td class="px-3 py-3 whitespace-nowrap">
                       <span
-                        x-text="s.harga === null ? '–' : formatRupiah(s.harga)"
+                        class="text-theme-xs text-gray-600 dark:text-gray-400"
+                        x-text="infoGudang(s).ada + ' gudang ada stok'"
                       ></span>
-                    </td>
-                    <td class="px-3 py-2.5 text-right tabular-nums">
                       <span
-                        class="font-semibold"
-                        :class="s.tersedia ? 'text-gray-800 dark:text-white/90' : 'text-error-600 dark:text-error-500'"
-                        x-text="formatAngka(s.stock)"
+                        x-show="infoGudang(s).minus"
+                        class="text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 ml-1 rounded-full px-2 py-0.5 font-medium"
+                        x-text="infoGudang(s).minus + ' minus'"
                       ></span>
-                      <template x-if="banyakGudang">
-                        <span class="text-theme-xs block text-gray-400">
-                          <template x-for="g in s.gudang" :key="g.warehouse">
-                            <span
-                              class="block whitespace-nowrap"
-                              x-text="g.warehouse + ': ' + formatAngka(g.stock)"
-                            ></span>
-                          </template>
-                        </span>
-                      </template>
                     </td>
                     <td
-                      class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums"
-                    >
-                      <span
-                        class="font-medium text-gray-800 dark:text-white/90"
-                        x-text="formatRupiah(s.nilai)"
-                      ></span>
-                    </td>
-                    <td class="px-5 py-2.5">
+                      class="px-3 py-3 text-right font-medium whitespace-nowrap text-gray-800 tabular-nums dark:text-white/90"
+                      x-text="formatRupiah(s.nilai)"
+                    ></td>
+                    <td class="px-5 py-3">
                       <span
                         class="text-theme-xs rounded-full px-2 py-0.5 font-medium"
                         :class="s.tersedia ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500' : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'"
@@ -649,8 +663,64 @@
                       ></span>
                     </td>
                   </tr>
-                </template>
-              </tbody>
+                  <tr
+                    x-show="skuTerbuka(s.sku)"
+                    class="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-white/3"
+                  >
+                    <td colspan="8" class="px-5 pt-3 pb-4 sm:pl-12">
+                      <div
+                        class="sticky left-5 max-w-[calc(100vw-2.5rem)] sm:max-w-none"
+                      >
+                        <div
+                          class="text-theme-xs mb-2 flex flex-wrap items-center gap-2 text-gray-500 dark:text-gray-400"
+                        >
+                          <span>Stok per gudang · terbanyak dulu</span>
+                          <span
+                            x-show="!tampilNol && infoGudang(s).nol"
+                            x-text="'· ' + infoGudang(s).nol + ' gudang stok 0 disembunyikan'"
+                          ></span>
+                          <button
+                            type="button"
+                            x-show="infoGudang(s).nol"
+                            @click.stop="tampilNol = !tampilNol"
+                            class="rounded-md border border-gray-300 bg-white px-2 py-0.5 font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            x-text="tampilNol ? 'Sembunyikan stok 0' : 'Tampilkan stok 0'"
+                          ></button>
+                        </div>
+                        <div
+                          class="grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-3"
+                        >
+                          <template
+                            x-for="g in gudangTampil(s)"
+                            :key="g.warehouse"
+                          >
+                            <div
+                              class="text-theme-sm flex justify-between gap-3 border-b border-dashed border-gray-200 py-1.5 dark:border-gray-700"
+                            >
+                              <span
+                                class="truncate text-gray-700 dark:text-gray-300"
+                                :title="g.warehouse"
+                                x-text="g.warehouse"
+                              ></span>
+                              <span
+                                class="shrink-0 font-semibold tabular-nums"
+                                :class="g.stock < 0 ? 'text-error-600 dark:text-error-500' : g.stock === 0 ? 'text-gray-400' : 'text-gray-800 dark:text-white/90'"
+                                x-text="formatAngka(g.stock)"
+                              ></span>
+                            </div>
+                          </template>
+                        </div>
+                        <p
+                          x-show="!gudangTampil(s).length"
+                          class="text-theme-xs py-2 text-gray-400"
+                        >
+                          Tidak ada stok di gudang mana pun.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </template>
             </table>
           </div>
         </div>

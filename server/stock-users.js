@@ -119,6 +119,14 @@ function createStockUsers(cfg, deps = {}) {
     }
   }
 
+  function saranGithub(status) {
+    if (status === 401)
+      return "Token STOCK_USERS_GITHUB_TOKEN salah atau kedaluwarsa.";
+    if (status === 403 || status === 404)
+      return "Pastikan token fine-grained milik org martech-sys (Resource owner), sudah disetujui admin org, punya akses ke repo ini, dan izin Contents = Read and write.";
+    return "Periksa STOCK_USERS_GITHUB_TOKEN.";
+  }
+
   async function simpan(users, pesan, shaLama) {
     const isi = `${JSON.stringify({ users }, null, 2)}\n`;
     const res = await ambil(urlFile(), {
@@ -139,8 +147,16 @@ function createStockUsers(cfg, deps = {}) {
       throw err;
     }
     if (!res.ok) {
+      // Alasan dari GitHub ikut ditampilkan (mis. token belum disetujui org,
+      // izin Contents hanya Read, atau branch main diproteksi).
+      let alasan = "";
+      try {
+        alasan = (await res.json()).message || "";
+      } catch {
+        // tanpa body JSON
+      }
       const err = new Error(
-        `Gagal menyimpan ke GitHub (HTTP ${res.status}). Periksa STOCK_USERS_GITHUB_TOKEN.`,
+        `Gagal menyimpan ke GitHub (HTTP ${res.status}${alasan ? `: ${alasan}` : ""}). ${saranGithub(res.status)}`,
       );
       err.status = 502;
       throw err;

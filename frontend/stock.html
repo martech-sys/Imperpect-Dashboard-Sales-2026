@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Dashboard stok: stock dan ATP per kode tag, rincian per SKU."
+    />
+    <title>Stok & ATP | Warehouse</title>
+  </head>
+  <body
+    x-data="stockPage"
+    x-init="initPage()"
+    :class="{ 'dark bg-gray-900': darkMode === true }"
+  >
+    <include src="./partials/preloader.html"></include>
+
+    <!-- ===================== LOGIN ===================== -->
+    <div
+      x-show="!cekLogin && !masuk"
+      x-cloak
+      class="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-900"
+    >
+      <div
+        class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 dark:border-gray-800 dark:bg-white/3"
+      >
+        <div class="mb-6 flex items-center gap-3">
+          <span
+            class="bg-brand-500 flex size-10 items-center justify-center rounded-xl text-white"
+            aria-hidden="true"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              class="fill-current"
+            >
+              <path
+                d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2Zm0 2.24 6.53 3.26L12 10.76 5.47 7.5 12 4.24ZM5 9.1l6 3v7.66l-6-3V9.1Zm8 10.66V12.1l6-3v7.66l-6 3Z"
+              />
+            </svg>
+          </span>
+          <div>
+            <h1 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Dashboard Stok
+            </h1>
+            <p class="text-theme-sm text-gray-500 dark:text-gray-400">
+              Stock & ATP per kode tag
+            </p>
+          </div>
+        </div>
+
+        <div
+          x-show="loginError"
+          x-cloak
+          role="alert"
+          class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-5 rounded-xl border p-4"
+          x-text="loginError"
+        ></div>
+
+        <form @submit.prevent="login()" novalidate class="space-y-5">
+          <div>
+            <label
+              for="username"
+              class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+              >Username</label
+            >
+            <input
+              id="username"
+              type="text"
+              x-model="username"
+              autocomplete="username"
+              autocapitalize="none"
+              placeholder="Masukkan username"
+              class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+            />
+          </div>
+          <div>
+            <label
+              for="password"
+              class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+              >Password</label
+            >
+            <div class="relative">
+              <input
+                id="password"
+                :type="showPassword ? 'text' : 'password'"
+                x-model="password"
+                autocomplete="current-password"
+                placeholder="Masukkan password"
+                class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 ps-4 pe-16 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="text-theme-xs absolute top-1/2 right-3 -translate-y-1/2 font-medium text-gray-500 dark:text-gray-400"
+                x-text="showPassword ? 'Sembunyi' : 'Lihat'"
+              ></button>
+            </div>
+          </div>
+          <button
+            type="submit"
+            :disabled="loginLoading"
+            class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+            x-text="loginLoading ? 'Memeriksa…' : 'Masuk'"
+          ></button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div
+      x-show="masuk"
+      x-cloak
+      class="min-h-screen bg-gray-50 dark:bg-gray-900"
+    >
+      <header
+        class="sticky top-0 z-30 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+      >
+        <div
+          class="mx-auto flex max-w-(--breakpoint-2xl) flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="bg-brand-500 flex size-9 items-center justify-center rounded-lg text-white"
+              aria-hidden="true"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                class="fill-current"
+              >
+                <path
+                  d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2Zm0 2.24 6.53 3.26L12 10.76 5.47 7.5 12 4.24ZM5 9.1l6 3v7.66l-6-3V9.1Zm8 10.66V12.1l6-3v7.66l-6 3Z"
+                />
+              </svg>
+            </span>
+            <div>
+              <h1
+                class="text-base font-semibold text-gray-800 dark:text-white/90"
+              >
+                Dashboard Stok
+              </h1>
+              <p
+                class="text-theme-xs flex items-center gap-1.5 text-gray-500 dark:text-gray-400"
+              >
+                <span
+                  class="inline-block size-2 rounded-full"
+                  :class="statusData.warna"
+                ></span>
+                <span x-text="statusData.teks"></span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="muat(true)"
+              :disabled="loading"
+              class="text-theme-sm shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              x-text="loading ? 'Memuat…' : 'Refresh'"
+            ></button>
+            <a
+              :href="csvUrl"
+              class="text-theme-sm shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              >Export CSV</a
+            >
+            <button
+              type="button"
+              @click="darkMode = !darkMode"
+              class="text-theme-sm shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              :aria-label="darkMode ? 'Mode terang' : 'Mode gelap'"
+              x-text="darkMode ? 'Terang' : 'Gelap'"
+            ></button>
+            <button
+              type="button"
+              @click="logout()"
+              class="text-theme-sm text-error-600 dark:text-error-400 rounded-lg px-3 py-2 font-medium hover:bg-gray-100 dark:hover:bg-white/5"
+            >
+              Keluar
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6">
+        <div
+          x-show="error"
+          x-cloak
+          role="alert"
+          class="bg-error-50 border-error-200 dark:border-error-500/30 dark:bg-error-500/10 text-theme-sm text-error-600 dark:text-error-400 mb-6 rounded-xl border p-4"
+          x-text="error"
+        ></div>
+
+        <!-- KPI -->
+        <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <template x-for="k in kpi" :key="k.label">
+            <div
+              class="rounded-2xl border border-gray-200 bg-white p-4 md:p-5 dark:border-gray-800 dark:bg-white/3"
+            >
+              <p
+                class="text-theme-sm text-gray-500 dark:text-gray-400"
+                x-text="k.label"
+              ></p>
+              <p
+                class="mt-2 text-xl font-bold text-gray-800 md:text-2xl dark:text-white/90"
+                x-text="k.nilai"
+              ></p>
+              <div
+                x-show="k.progres !== undefined"
+                class="mt-2 h-1.5 w-full rounded-full bg-gray-100 dark:bg-white/5"
+              >
+                <div
+                  class="h-1.5 rounded-full"
+                  :class="warnaAtp(k.progres || 0)"
+                  :style="'width:' + Math.min(100, k.progres || 0) + '%'"
+                ></div>
+              </div>
+              <p
+                class="text-theme-xs mt-2 text-gray-500 dark:text-gray-400"
+                x-text="k.sub"
+              ></p>
+            </div>
+          </template>
+        </div>
+
+        <!-- Filter -->
+        <div
+          class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/3"
+        >
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <input
+              type="search"
+              x-model="filter.q"
+              @input.debounce.400ms="ubahFilter()"
+              placeholder="Cari kode tag, name tag, SKU…"
+              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 lg:col-span-2 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            />
+            <select
+              x-model="filter.warehouse"
+              @change="ubahFilter()"
+              aria-label="Gudang"
+              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">Semua gudang</option>
+              <template x-for="o in data.options.warehouses" :key="o">
+                <option
+                  :value="o"
+                  x-text="o"
+                  :selected="o === filter.warehouse"
+                ></option>
+              </template>
+            </select>
+            <select
+              x-model="filter.brand"
+              @change="ubahFilter()"
+              aria-label="Brand"
+              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">Semua brand</option>
+              <template x-for="o in data.options.brands" :key="o">
+                <option
+                  :value="o"
+                  x-text="o"
+                  :selected="o === filter.brand"
+                ></option>
+              </template>
+            </select>
+            <select
+              x-model="filter.status"
+              @change="ubahFilter()"
+              aria-label="Status"
+              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">Semua status</option>
+              <template x-for="o in data.options.status" :key="o">
+                <option
+                  :value="o"
+                  x-text="o"
+                  :selected="o === filter.status"
+                ></option>
+              </template>
+            </select>
+            <select
+              x-model="filter.atp"
+              @change="ubahFilter()"
+              aria-label="ATP"
+              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">Semua ATP</option>
+              <option value="penuh">ATP 100%</option>
+              <option value="sebagian">ATP 1–99%</option>
+              <option value="habis">ATP 0%</option>
+            </select>
+          </div>
+          <div
+            class="text-theme-xs mt-3 flex flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400"
+          >
+            <span>
+              ATP = SKU dengan stock &gt; 0 ÷ total SKU di kode tag × 100%.
+              Stock SKU = jumlah di gudang yang dipilih.
+            </span>
+            <button
+              type="button"
+              x-show="adaFilter"
+              @click="resetFilter()"
+              class="text-brand-500 font-medium"
+            >
+              Hapus filter
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabel kode tag -->
+        <div
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-5 py-4 dark:border-gray-800"
+          >
+            <h2
+              class="text-base font-semibold text-gray-800 dark:text-white/90"
+            >
+              Kode tag
+              <span
+                class="text-theme-sm font-normal text-gray-500 dark:text-gray-400"
+                x-text="'(' + rentangBaris + ')'"
+              ></span>
+            </h2>
+            <p class="text-theme-xs text-gray-500 dark:text-gray-400">
+              Klik baris untuk melihat metrik per SKU
+            </p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-180 text-left">
+              <thead>
+                <tr
+                  class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                >
+                  <th class="px-5 py-3 font-medium">
+                    <button type="button" @click="urut('kode_tag')">
+                      Kode tag <span x-text="panah('kode_tag')"></span>
+                    </button>
+                  </th>
+                  <th class="px-3 py-3 font-medium">
+                    <button type="button" @click="urut('name_tag')">
+                      Name tag <span x-text="panah('name_tag')"></span>
+                    </button>
+                  </th>
+                  <th class="px-3 py-3 text-right font-medium">
+                    <button type="button" @click="urut('stock')">
+                      Stock <span x-text="panah('stock')"></span>
+                    </button>
+                  </th>
+                  <th class="px-3 py-3 text-right font-medium">
+                    <button type="button" @click="urut('total_sku')">
+                      SKU ada / total
+                      <span x-text="panah('total_sku')"></span>
+                    </button>
+                  </th>
+                  <th class="w-56 px-5 py-3 font-medium">
+                    <button type="button" @click="urut('atp')">
+                      ATP <span x-text="panah('atp')"></span>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="text-theme-sm">
+                <template x-for="t in data.rows" :key="t.kode_tag">
+                  <tr
+                    @click="bukaTag(t.kode_tag)"
+                    class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                  >
+                    <td
+                      class="px-5 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                      x-text="t.kode_tag"
+                    ></td>
+                    <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
+                      <span x-text="t.name_tag || '–'"></span>
+                      <span
+                        class="text-theme-xs block text-gray-400"
+                        x-text="t.brand"
+                      ></span>
+                    </td>
+                    <td
+                      class="px-3 py-3 text-right font-medium text-gray-800 tabular-nums dark:text-white/90"
+                      x-text="formatAngka(t.stock)"
+                    ></td>
+                    <td
+                      class="px-3 py-3 text-right text-gray-600 tabular-nums dark:text-gray-400"
+                      x-text="formatAngka(t.sku_ada) + ' / ' + formatAngka(t.total_sku)"
+                    ></td>
+                    <td class="px-5 py-3">
+                      <div class="flex items-center gap-3">
+                        <div
+                          class="h-2 w-full rounded-full bg-gray-100 dark:bg-white/5"
+                        >
+                          <div
+                            class="h-2 rounded-full"
+                            :class="warnaAtp(t.atp)"
+                            :style="'width:' + t.atp + '%'"
+                          ></div>
+                        </div>
+                        <span
+                          class="w-14 shrink-0 text-right font-semibold tabular-nums"
+                          :class="teksAtp(t.atp)"
+                          x-text="formatPersen(t.atp)"
+                        ></span>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="!loading && !data.rows.length">
+                  <td
+                    colspan="5"
+                    class="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    Tidak ada kode tag untuk filter ini.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div
+            class="text-theme-sm flex items-center justify-between gap-3 border-t border-gray-200 px-5 py-3 dark:border-gray-800"
+          >
+            <span
+              class="text-gray-500 dark:text-gray-400"
+              x-text="'Halaman ' + page + ' dari ' + jumlahHalaman"
+            ></span>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                @click="keHalaman(page - 1)"
+                :disabled="page <= 1"
+                class="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300"
+              >
+                Sebelumnya
+              </button>
+              <button
+                type="button"
+                @click="keHalaman(page + 1)"
+                :disabled="page >= jumlahHalaman"
+                class="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Rincian per SKU -->
+      <div
+        x-show="detail"
+        x-cloak
+        @keydown.escape.window="tutupTag()"
+        class="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 sm:items-center sm:p-4"
+        @click.self="tutupTag()"
+      >
+        <div
+          class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl dark:bg-gray-900"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            class="flex items-start justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800"
+          >
+            <div>
+              <p
+                class="text-theme-xs text-gray-500 dark:text-gray-400"
+                x-text="detail?.brand || 'Kode tag'"
+              ></p>
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                x-text="(detail?.kode_tag || '') + (detail?.name_tag ? ' · ' + detail.name_tag : '')"
+              ></h3>
+              <p
+                x-show="detail && detail.total_sku !== undefined"
+                class="text-theme-sm mt-1 text-gray-500 dark:text-gray-400"
+              >
+                Stock
+                <span
+                  class="font-semibold text-gray-800 dark:text-white/90"
+                  x-text="formatAngka(detail?.stock)"
+                ></span>
+                · ATP
+                <span
+                  class="font-semibold"
+                  :class="teksAtp(detail?.atp || 0)"
+                  x-text="formatPersen(detail?.atp || 0)"
+                ></span>
+                (<span
+                  x-text="formatAngka(detail?.sku_ada) + ' dari ' + formatAngka(detail?.total_sku) + ' SKU ada stok'"
+                ></span
+                >)
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="tutupTag()"
+              class="rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
+            >
+              Tutup
+            </button>
+          </div>
+          <div class="overflow-auto">
+            <p
+              x-show="detailLoading"
+              class="text-theme-sm px-5 py-8 text-center text-gray-500"
+            >
+              Memuat SKU…
+            </p>
+            <p
+              x-show="detailError"
+              class="text-theme-sm text-error-600 px-5 py-8 text-center"
+              x-text="detailError"
+            ></p>
+            <table
+              x-show="!detailLoading && !detailError"
+              class="w-full min-w-160 text-left"
+            >
+              <thead>
+                <tr
+                  class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
+                >
+                  <th class="px-5 py-3 font-medium">SKU produk</th>
+                  <th class="px-3 py-3 font-medium">Produk</th>
+                  <th class="px-3 py-3 font-medium">Warna / Size</th>
+                  <th class="px-3 py-3 text-right font-medium">Harga</th>
+                  <th class="px-3 py-3 text-right font-medium">Stock</th>
+                  <th class="px-5 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody class="text-theme-sm">
+                <template x-for="s in detail?.sku || []" :key="s.sku">
+                  <tr class="border-b border-gray-100 dark:border-gray-800">
+                    <td
+                      class="px-5 py-2.5 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                      x-text="s.sku"
+                    ></td>
+                    <td
+                      class="px-3 py-2.5 text-gray-700 dark:text-gray-300"
+                      x-text="s.nama || '–'"
+                    ></td>
+                    <td
+                      class="px-3 py-2.5 whitespace-nowrap text-gray-500 dark:text-gray-400"
+                      x-text="[s.warna, s.ukuran].filter(Boolean).join(' / ') || '–'"
+                    ></td>
+                    <td
+                      class="px-3 py-2.5 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                      x-text="s.harga === null ? '–' : formatRupiah(s.harga)"
+                    ></td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">
+                      <span
+                        class="font-semibold"
+                        :class="s.tersedia ? 'text-gray-800 dark:text-white/90' : 'text-error-600 dark:text-error-500'"
+                        x-text="formatAngka(s.stock)"
+                      ></span>
+                      <template x-if="banyakGudang">
+                        <span class="text-theme-xs block text-gray-400">
+                          <template x-for="g in s.gudang" :key="g.warehouse">
+                            <span
+                              class="block whitespace-nowrap"
+                              x-text="g.warehouse + ': ' + formatAngka(g.stock)"
+                            ></span>
+                          </template>
+                        </span>
+                      </template>
+                    </td>
+                    <td class="px-5 py-2.5">
+                      <span
+                        class="text-theme-xs rounded-full px-2 py-0.5 font-medium"
+                        :class="s.tersedia ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500' : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'"
+                        x-text="s.tersedia ? 'Tersedia' : 'Kosong'"
+                      ></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

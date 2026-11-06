@@ -120,7 +120,11 @@ function createStore(source, event, opts = {}) {
       // event yang dipakai menghitung hari/sesi berbeda (mode uji).
       const raw = Array.isArray(hasil) ? { rows: hasil, event } : hasil;
       data = {
-        ...siapkan(raw.rows, raw.event || event),
+        // `opts.olah` dipakai sumber lain (mis. stok) yang barisnya bukan
+        // transaksi penjualan.
+        ...(opts.olah
+          ? opts.olah(raw.rows)
+          : siapkan(raw.rows, raw.event || event)),
         event: raw.event || event,
         uji: raw.uji || null,
       };

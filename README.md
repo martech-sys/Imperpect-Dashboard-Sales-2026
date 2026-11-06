@@ -282,6 +282,8 @@ baris per SKU per gudang), paling sering sekali per `STOCK_CACHE_SECONDS`
   dan **ATP = (jumlah SKU yang stoknya > 0 ÷ total SKU di kode tag) × 100%**.
   Stok satu SKU = jumlah stoknya di gudang yang dipilih (semua gudang bila
   tidak difilter); stok 0 atau minus dihitung kosong.
+- **Stock value** = Σ stok SKU × `price` (harga jual), dan Stock value HPP =
+  Σ stok SKU × `hpp`. Stok minus tidak mengurangi nilai (dihitung 0).
 - Klik satu kode tag: metrik per `sku_product` (produk, warna/size, harga,
   stock per gudang, status Tersedia/Kosong).
 - Filter gudang, brand (`principal_brand`), status, kelompok ATP, pencarian;

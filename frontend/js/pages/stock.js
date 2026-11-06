@@ -4,6 +4,7 @@ import {
   formatJam,
   formatPersen,
   formatRupiah,
+  formatRupiahRingkas,
 } from "../format.js";
 
 /**
@@ -91,6 +92,7 @@ export function stockPage() {
     formatAngka,
     formatPersen,
     formatRupiah,
+    formatRupiahRingkas,
 
     async initPage() {
       this.darkMode = document.documentElement.classList.contains("dark");
@@ -246,6 +248,12 @@ export function stockPage() {
           label: "Total stock",
           nilai: formatAngka(s.stock),
           sub: `${formatAngka(s.total_sku)} SKU`,
+        },
+        {
+          label: "Stock value",
+          nilai: formatRupiahRingkas(s.nilai || 0),
+          penuh: formatRupiah(s.nilai || 0),
+          sub: `HPP ${formatRupiahRingkas(s.nilai_hpp || 0)}`,
         },
         {
           label: "Kode tag",

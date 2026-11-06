@@ -433,9 +433,26 @@ function csvSel(v) {
   return /[";\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 }
 
-/** Ekspor: satu baris per SKU, lengkap dengan kode tag & ATP kode tag-nya. */
+/**
+ * Ekspor: satu baris per SKU. `kode_tag` (satu atau array) = hanya kode tag
+ * yang dicentang; filter gudang/brand/kelas/status tetap berlaku, sedangkan
+ * pencarian & kelompok ATP diabaikan supaya yang dicentang pasti ikut.
+ */
 function stokCsv(rows, query) {
-  const { semua } = daftarTag(rows, { ...query, page: 1, pageSize: 1 });
+  const v = query.kode_tag;
+  const pilih = new Set(
+    (Array.isArray(v) ? v : v === undefined || v === "" ? [] : [v])
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .slice(0, 20000),
+  );
+  let { semua } = daftarTag(rows, {
+    ...query,
+    ...(pilih.size ? { q: "", atp: [] } : {}),
+    page: 1,
+    pageSize: 1,
+  });
+  if (pilih.size) semua = semua.filter((t) => pilih.has(t.kode_tag));
   const f = bacaFilterStok(query);
   const tags = kelompokTag(saringStok(rows, f));
   const kepala = [

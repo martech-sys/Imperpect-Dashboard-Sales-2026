@@ -296,6 +296,10 @@ baris per SKU per gudang), paling sering sekali per `STOCK_CACHE_SECONDS`
   stock per gudang, status Tersedia/Kosong).
 - Filter checklist (bisa pilih beberapa sekaligus): gudang, brand
   (`principal_brand`), kelas, status, kelompok ATP; plus pencarian;
+- Kotak centang di kiri kode tag: centang beberapa (atau semua di satu
+  halaman), lalu **Export yang dipilih** — CSV hanya berisi kode tag itu
+  (filter gudang/brand/kelas/status tetap berlaku). Tanpa centang, Export CSV
+  berisi semua kode tag sesuai filter.
   Export CSV satu baris per SKU.
 
 Login: username dari env `STOCK_USERNAME` (bawaan `stockwh`), password dari

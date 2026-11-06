@@ -119,6 +119,9 @@ export function stockPage() {
 
     // rincian satu kode tag
     detail: null,
+    /** Kode tag yang dicentang untuk export (tetap saat pindah halaman). */
+    dipilihTag: [],
+    exportLoading: false,
     skuBuka: [],
     tampilNol: false,
     detailLoading: false,
@@ -284,6 +287,7 @@ export function stockPage() {
       this.detail = null;
       this.user = null;
       this.kelola.buka = false;
+      this.dipilihTag = [];
       this.username = "";
     },
 
@@ -567,6 +571,82 @@ export function stockPage() {
 
     get csvUrl() {
       return `/api/stock.csv?${toQuery(this.queryFilter)}`;
+    },
+
+    // ---- Pilih kode tag untuk export ----
+    tagDipilih(kode) {
+      return this.dipilihTag.includes(kode);
+    },
+
+    centangTag(kode) {
+      this.dipilihTag = this.tagDipilih(kode)
+        ? this.dipilihTag.filter((k) => k !== kode)
+        : [...this.dipilihTag, kode];
+    },
+
+    get semuaHalamanDipilih() {
+      const r = this.data.rows;
+      return r.length > 0 && r.every((t) => this.tagDipilih(t.kode_tag));
+    },
+
+    get sebagianHalamanDipilih() {
+      const r = this.data.rows;
+      return (
+        !this.semuaHalamanDipilih && r.some((t) => this.tagDipilih(t.kode_tag))
+      );
+    },
+
+    toggleHalaman() {
+      const halaman = this.data.rows.map((t) => t.kode_tag);
+      this.dipilihTag = this.semuaHalamanDipilih
+        ? this.dipilihTag.filter((k) => !halaman.includes(k))
+        : [...new Set([...this.dipilihTag, ...halaman])];
+    },
+
+    batalPilih() {
+      this.dipilihTag = [];
+    },
+
+    /**
+     * Export CSV: kode tag yang dicentang saja (POST, daftarnya bisa
+     * panjang), atau semua kode tag sesuai filter bila tidak ada yang
+     * dicentang.
+     */
+    async exportCsv() {
+      if (!this.dipilihTag.length) {
+        window.location.href = this.csvUrl;
+        return;
+      }
+      this.exportLoading = true;
+      try {
+        const res = await fetch("/api/stock.csv", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            warehouse: this.filter.warehouse,
+            brand: this.filter.brand,
+            kelas: this.filter.kelas,
+            status: this.filter.status,
+            kode_tag: this.dipilihTag,
+          }),
+        });
+        if (res.status === 401) {
+          this.masuk = false;
+          return;
+        }
+        if (!res.ok) throw new Error(`Export gagal (HTTP ${res.status}).`);
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `stok-atp-dipilih-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } catch (err) {
+        this.error = err.message;
+      } finally {
+        this.exportLoading = false;
+      }
     },
   };
 }

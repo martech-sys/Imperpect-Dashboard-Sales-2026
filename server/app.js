@@ -46,7 +46,7 @@ function json(res, status, body, headers = {}) {
   res.end(JSON.stringify(body));
 }
 
-async function bacaBody(req) {
+async function bacaBody(req, maks = 10000) {
   // Runtime Vercel sudah mengurai body JSON; server Node biasa belum.
   if (req.body !== undefined) {
     return typeof req.body === "string"
@@ -56,7 +56,7 @@ async function bacaBody(req) {
   let teks = "";
   for await (const potong of req) {
     teks += potong;
-    if (teks.length > 10000) throw new Error("Body terlalu besar");
+    if (teks.length > maks) throw new Error("Body terlalu besar");
   }
   return teks ? JSON.parse(teks) : {};
 }
@@ -164,7 +164,8 @@ function createApp(env, deps = {}) {
     req.headers["x-forwarded-proto"] === "https" ||
     Boolean(req.socket?.encrypted);
 
-  async function handleStock(req, res, path, query, segar) {
+  async function handleStock(req, res, path, queryAwal, segar) {
+    let query = queryAwal;
     const user = await stockUsers.masuk(req.headers.cookie);
     if (path === "/api/stock/app" && req.method === "GET") {
       return json(res, 200, {
@@ -260,11 +261,22 @@ function createApp(env, deps = {}) {
       }
     }
 
-    if (req.method !== "GET")
+    // Export kode tag terpilih memakai POST (daftar kode tag bisa panjang).
+    const exportPost = path === "/api/stock.csv" && req.method === "POST";
+    if (req.method !== "GET" && !exportPost)
       return json(res, 405, {
         error: "method_not_allowed",
         message: "Method tidak didukung.",
       });
+    if (exportPost) {
+      const body = await bacaBody(req, 1_000_000).catch(() => null);
+      if (!body || typeof body !== "object")
+        return json(res, 400, {
+          error: "bad_request",
+          message: "Isi permintaan export tidak terbaca.",
+        });
+      query = { ...query, ...body };
+    }
 
     const d = await stockStore.get({ segar });
     if (!d.rows) {

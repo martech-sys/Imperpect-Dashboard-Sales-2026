@@ -120,6 +120,25 @@ test("kelas: ikut di baris kode tag, opsi filter, dan bisa disaring", () => {
   );
 });
 
+test("export: hanya kode tag yang dipilih, pencarian & ATP diabaikan", () => {
+  const semua = stok.stokCsv(rows, {});
+  assert.equal(semua.trim().split("\n").length, 1 + 7);
+  const pilih = stok.stokCsv(rows, {
+    kode_tag: ["T2", "T3"],
+    q: "zzz",
+    atp: ["penuh"],
+  });
+  const baris = pilih.trim().split("\n").slice(1);
+  assert.deepEqual([...new Set(baris.map((b) => b.split(";")[0]))].sort(), [
+    "T2",
+    "T3",
+  ]);
+  assert.equal(baris.length, 3);
+  // filter gudang tetap berlaku
+  const gudangB = stok.stokCsv(rows, { kode_tag: "T1", warehouse: ["B"] });
+  assert.equal(gudangB.trim().split("\n").length, 2);
+});
+
 test("detail kode tag: metrik per SKU dengan stok per gudang", () => {
   const d = stok.detailTag(rows, "T1", {});
   assert.equal(d.atp, 50);
@@ -234,6 +253,16 @@ test("login stok: username + password sendiri, terpisah dari dashboard penjualan
     );
     assert.match(csv.body, /stock;stock_value$/m);
     assert.doesNotMatch(csv.body, /hpp/);
+    // export kode tag terpilih lewat POST
+    const pilih = await panggil(app, "/api/stock.csv", {
+      method: "POST",
+      cookie,
+      body: { kode_tag: [kode] },
+    });
+    assert.equal(pilih.status, 200);
+    const barisPilih = pilih.body.trim().split("\n").slice(1);
+    assert.equal(barisPilih.length, list.body.rows[0].total_sku);
+    assert.ok(barisPilih.every((b) => b.startsWith(`${kode};`)));
 
     // cookie stok tidak membuka dashboard penjualan, dan sebaliknya
     assert.equal((await panggil(app, "/api/pivot", { cookie })).status, 401);

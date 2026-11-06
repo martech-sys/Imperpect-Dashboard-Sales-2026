@@ -181,11 +181,15 @@
               class="text-theme-sm shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
               x-text="loading ? 'Memuat…' : 'Refresh'"
             ></button>
-            <a
-              :href="csvUrl"
-              class="text-theme-sm shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-              >Export CSV</a
-            >
+            <button
+              type="button"
+              @click="exportCsv()"
+              :disabled="exportLoading"
+              class="text-theme-sm shadow-theme-xs rounded-lg border bg-white px-3 py-2 font-medium hover:bg-gray-50 disabled:opacity-60 dark:bg-gray-800"
+              :class="dipilihTag.length ? 'border-brand-300 text-brand-600 dark:border-brand-700 dark:text-brand-400' : 'border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300'"
+              :title="dipilihTag.length ? 'Export hanya kode tag yang dicentang' : 'Export semua kode tag sesuai filter'"
+              x-text="exportLoading ? 'Menyiapkan…' : dipilihTag.length ? 'Export ' + formatAngka(dipilihTag.length) + ' dipilih' : 'Export CSV'"
+            ></button>
             <button
               type="button"
               @click="darkMode = !darkMode"
@@ -378,8 +382,35 @@
               ></span>
             </h2>
             <p class="text-theme-xs text-gray-500 dark:text-gray-400">
-              Klik baris untuk melihat metrik per SKU
+              Centang kode tag untuk export · klik baris untuk metrik per SKU
             </p>
+          </div>
+          <div
+            x-show="dipilihTag.length"
+            x-cloak
+            class="bg-brand-50 dark:bg-brand-500/10 text-theme-sm flex flex-wrap items-center gap-3 border-b border-gray-200 px-5 py-2.5 dark:border-gray-800"
+          >
+            <span class="text-brand-700 dark:text-brand-300 font-medium">
+              <span x-text="formatAngka(dipilihTag.length)"></span> kode tag
+              dipilih
+            </span>
+            <button
+              type="button"
+              @click="exportCsv()"
+              :disabled="exportLoading"
+              class="bg-brand-500 hover:bg-brand-600 rounded-lg px-3 py-1.5 font-medium text-white disabled:opacity-60"
+              x-text="exportLoading ? 'Menyiapkan…' : 'Export yang dipilih'"
+            ></button>
+            <button
+              type="button"
+              @click="batalPilih()"
+              class="font-medium text-gray-600 dark:text-gray-300"
+            >
+              Batal pilih
+            </button>
+            <span class="text-theme-xs text-gray-500 dark:text-gray-400"
+              >Pilihan tetap tersimpan saat pindah halaman / ganti filter.</span
+            >
           </div>
           <div class="overflow-x-auto">
             <table class="w-full min-w-220 text-left">
@@ -387,7 +418,18 @@
                 <tr
                   class="text-theme-xs border-b border-gray-200 bg-gray-50 tracking-wide text-gray-500 uppercase dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
                 >
-                  <th class="px-5 py-3 font-medium">
+                  <th class="w-10 py-3 pr-1 pl-5">
+                    <input
+                      type="checkbox"
+                      class="accent-brand-500 size-4 cursor-pointer align-middle"
+                      :checked="semuaHalamanDipilih"
+                      x-effect="$el.indeterminate = sebagianHalamanDipilih"
+                      @change="toggleHalaman()"
+                      aria-label="Pilih semua kode tag di halaman ini"
+                      title="Pilih semua di halaman ini"
+                    />
+                  </th>
+                  <th class="px-3 py-3 font-medium">
                     <button type="button" @click="urut('kode_tag')">
                       Kode tag <span x-text="panah('kode_tag')"></span>
                     </button>
@@ -430,9 +472,19 @@
                   <tr
                     @click="bukaTag(t.kode_tag)"
                     class="cursor-pointer border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/3"
+                    :class="tagDipilih(t.kode_tag) ? 'bg-brand-50/60 dark:bg-brand-500/10' : ''"
                   >
+                    <td class="w-10 py-3 pr-1 pl-5" @click.stop>
+                      <input
+                        type="checkbox"
+                        class="accent-brand-500 size-4 cursor-pointer align-middle"
+                        :checked="tagDipilih(t.kode_tag)"
+                        @change="centangTag(t.kode_tag)"
+                        :aria-label="'Pilih ' + t.kode_tag + ' untuk export'"
+                      />
+                    </td>
                     <td
-                      class="px-5 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
+                      class="px-3 py-3 font-medium whitespace-nowrap text-gray-800 dark:text-white/90"
                       x-text="t.kode_tag"
                     ></td>
                     <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
@@ -487,7 +539,7 @@
                 </template>
                 <tr x-show="!loading && !data.rows.length">
                   <td
-                    colspan="7"
+                    colspan="8"
                     class="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
                   >
                     Tidak ada kode tag untuk filter ini.

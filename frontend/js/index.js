@@ -7,6 +7,7 @@ import { eksternalPage } from "./pages/eksternal.js";
 import { pivotPage } from "./pages/pivot.js";
 import { ringkasanPage } from "./pages/ringkasan.js";
 import { signinPage } from "./pages/signin.js";
+import { stockPage } from "./pages/stock.js";
 import { targetPage } from "./pages/target.js";
 import { transactionsPage } from "./pages/transactions.js";
 
@@ -28,6 +29,7 @@ Alpine.data("ringkasanPage", ringkasanPage);
 Alpine.data("comparePage", comparePage);
 Alpine.data("targetPage", targetPage);
 Alpine.data("signinPage", signinPage);
+Alpine.data("stockPage", stockPage);
 
 window.Alpine = Alpine;
 Alpine.start();

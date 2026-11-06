@@ -64,7 +64,8 @@ function eventUji(event, uji, rows) {
   };
 }
 
-function createPostgresSource(cfg, event, deps = {}, uji = null) {
+/** Pool koneksi ke database warehouse (dipakai juga dashboard stok). */
+function createPool(cfg, deps = {}) {
   // Vercel Function mengirim Pool yang di-import statis supaya pg ikut dibundel.
   const Pool = deps.Pool || require("pg").Pool;
   // DATABASE_URL didahulukan; selain itu variabel terpisah, supaya password
@@ -92,6 +93,11 @@ function createPostgresSource(cfg, event, deps = {}, uji = null) {
   pool.on("error", (e) =>
     console.error("[postgres] idle client error:", e.message),
   );
+  return pool;
+}
+
+function createPostgresSource(cfg, event, deps = {}, uji = null) {
+  const pool = createPool(cfg, deps);
 
   // PG_QUERY mengganti seluruh query (tanpa parameter). Kolom keluarannya harus
   // sama dengan query bawaan.
@@ -120,4 +126,9 @@ function createPostgresSource(cfg, event, deps = {}, uji = null) {
   };
 }
 
-module.exports = { createPostgresSource, buildQuery, buildQueryUji };
+module.exports = {
+  createPool,
+  createPostgresSource,
+  buildQuery,
+  buildQueryUji,
+};

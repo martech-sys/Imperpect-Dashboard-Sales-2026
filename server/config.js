@@ -47,6 +47,14 @@ const DATA_DARI_BAWAAN = "";
  */
 const BUFFER_SESI_BAWAAN = "2:15";
 
+/**
+ * Login dashboard stok (/stock), terpisah dari dashboard penjualan. Password
+ * TIDAK ditulis di kode: isi STOCK_PASSWORD (atau STOCK_PASSWORD_HASH
+ * berformat "scrypt:<salt>:<hash>") di Vercel. Tanpa itu login stok mati dan
+ * datanya tertutup.
+ */
+const STOCK_USERNAME_BAWAAN = "stockwh";
+
 /** Kolom yang menjadi kolom "channel" di tabel pivot. */
 const KOLOM_CHANNEL = new Set(["warehouse", "channel"]);
 
@@ -75,6 +83,12 @@ function loadConfig(env) {
   const schema = (env.DB_SCHEMA || "").trim();
   if (schema && !IDENTIFIER.test(schema))
     throw new Error("DB_SCHEMA bukan nama schema yang sah");
+  const stockTabel = (env.STOCK_TABLE || "stock_sum_new").trim();
+  if (!IDENTIFIER.test(stockTabel))
+    throw new Error("STOCK_TABLE bukan nama tabel yang sah");
+  const stockSchema = (env.STOCK_SCHEMA ?? schema).trim();
+  if (stockSchema && !IDENTIFIER.test(stockSchema))
+    throw new Error("STOCK_SCHEMA bukan nama schema yang sah");
 
   return {
     port: parseInt(env.PORT || "3000", 10),
@@ -129,6 +143,21 @@ function loadConfig(env) {
     auth: {
       password: env.DASHBOARD_PASSWORD || "",
       secret: env.SESSION_SECRET || "",
+    },
+    stock: {
+      tabel: stockTabel,
+      schema: stockSchema,
+      cacheSeconds: Math.max(
+        10,
+        parseInt(env.STOCK_CACHE_SECONDS || "120", 10) || 120,
+      ),
+      auth: {
+        cookie: "isd_stok",
+        username: (env.STOCK_USERNAME || STOCK_USERNAME_BAWAAN).trim(),
+        password: env.STOCK_PASSWORD || "",
+        passwordHash: env.STOCK_PASSWORD ? "" : env.STOCK_PASSWORD_HASH || "",
+        secret: env.SESSION_SECRET || "",
+      },
     },
     // Mode demo hanya dipakai bila memang diminta atau database belum diisi
     // sama sekali; database yang gagal dibaca TIDAK diganti data contoh.

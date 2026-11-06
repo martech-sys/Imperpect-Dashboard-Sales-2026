@@ -10,6 +10,7 @@ const eksternal = require("./eksternal");
 const { ringkasanAll } = require("./ringkasan");
 const { compare } = require("./compare");
 const { laporanTarget } = require("./target");
+const stok = require("./stock");
 
 /**
  * Seluruh endpoint /api/*, dipakai bersama server Node (server/index.js) dan
@@ -24,6 +25,14 @@ const { laporanTarget } = require("./target");
  *   GET  /api/health            kesegaran data, tanpa isi transaksi
  *   POST /api/auth/login        { password }
  *   POST /api/auth/logout
+ *
+ * Dashboard stok (/stock), dengan login sendiri:
+ *   GET  /api/stock/app         status login stok
+ *   POST /api/stock/login       { username, password }
+ *   POST /api/stock/logout
+ *   GET  /api/stock             kode tag: stock & ATP (+ KPI, filter)
+ *   GET  /api/stock/tag         metrik per SKU satu kode tag
+ *   GET  /api/stock.csv         ekspor per SKU
  */
 
 function json(res, status, body, headers = {}) {
@@ -79,6 +88,18 @@ function createApp(env, deps = {}) {
     waitUntil: deps.waitUntil,
   });
   const auth = createAuth(config.auth);
+  const stockAuth = createAuth(config.stock.auth);
+  const stockStore = createStore(
+    config.demo
+      ? stok.createDemoStockSource()
+      : stok.createStockSource({ ...config.stock, pg: config.pg }, deps),
+    event,
+    {
+      cacheSeconds: config.stock.cacheSeconds,
+      waitUntil: deps.waitUntil,
+      olah: (raw) => ({ rows: stok.siapkanStok(raw), dibuang: 0 }),
+    },
+  );
   const brandEksternal = eksternal.createEksternal(config.drive, {
     cacheSeconds: config.cacheSeconds,
     waitUntil: deps.waitUntil,
@@ -127,6 +148,108 @@ function createApp(env, deps = {}) {
     return d;
   }
 
+  const ipDari = (req) =>
+    String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "")
+      .split(",")[0]
+      .trim();
+  const koneksiAman = (req) =>
+    req.headers["x-forwarded-proto"] === "https" ||
+    Boolean(req.socket?.encrypted);
+
+  async function handleStock(req, res, path, query, segar) {
+    const masukStok = stockAuth.masuk(req.headers.cookie);
+    if (path === "/api/stock/app" && req.method === "GET") {
+      return json(res, 200, {
+        mode: config.demo ? "demo" : "postgres",
+        tabel: config.stock.tabel,
+        auth: { aktif: stockAuth.aktif, masuk: masukStok },
+      });
+    }
+    if (!stockAuth.aktif && path !== "/api/stock/logout") {
+      // Tanpa password di env, data stok tidak dibuka untuk siapa pun.
+      return json(res, 503, {
+        error: "auth_not_configured",
+        message:
+          "Login dashboard stok belum diaktifkan: isi STOCK_PASSWORD di environment variable Vercel.",
+      });
+    }
+    if (path === "/api/stock/login" && req.method === "POST") {
+      const body = await bacaBody(req).catch(() => ({}));
+      const gagal = stockAuth.cobaMasuk(
+        ipDari(req),
+        typeof body.password === "string" ? body.password : "",
+        typeof body.username === "string" ? body.username : "",
+      );
+      if (gagal)
+        return json(res, 401, { error: "login_failed", message: gagal });
+      return json(
+        res,
+        200,
+        { ok: true },
+        { "Set-Cookie": stockAuth.cookieMasuk(koneksiAman(req)) },
+      );
+    }
+    if (path === "/api/stock/logout" && req.method === "POST") {
+      return json(
+        res,
+        200,
+        { ok: true },
+        { "Set-Cookie": stockAuth.cookieKeluar() },
+      );
+    }
+    if (!masukStok) {
+      return json(res, 401, {
+        error: "unauthorized",
+        message: "Silakan masuk ke dashboard stok terlebih dahulu.",
+      });
+    }
+    if (req.method !== "GET")
+      return json(res, 405, {
+        error: "method_not_allowed",
+        message: "Method tidak didukung.",
+      });
+
+    const d = await stockStore.get({ segar });
+    if (!d.rows) {
+      return json(res, 503, {
+        error: "data_unavailable",
+        message: `Data stok belum bisa dibaca dari ${config.stock.tabel}: ${d.kesegaran.error}`,
+        kesegaran: d.kesegaran,
+      });
+    }
+    if (path === "/api/stock") {
+      const { semua, ...hasil } = stok.daftarTag(d.rows, query);
+      return json(res, 200, {
+        ...hasil,
+        options: stok.opsiStok(d.rows),
+        kesegaran: d.kesegaran,
+      });
+    }
+    if (path === "/api/stock/tag") {
+      const detail = stok.detailTag(d.rows, query.kode_tag || "", query);
+      if (!detail)
+        return json(res, 404, {
+          error: "not_found",
+          message: `Kode tag "${query.kode_tag || ""}" tidak ditemukan.`,
+        });
+      return json(res, 200, { ...detail, kesegaran: d.kesegaran });
+    }
+    if (path === "/api/stock.csv") {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="stok-atp-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
+      return res.end(stok.stokCsv(d.rows, query));
+    }
+    return json(res, 404, {
+      error: "not_found",
+      message: "Endpoint tidak ditemukan.",
+    });
+  }
+
   async function handle(req, res) {
     const url = new URL(req.url, "http://x");
     const path = url.pathname.replace(/\/+$/, "");
@@ -151,6 +274,11 @@ function createApp(env, deps = {}) {
           refreshSeconds: Math.max(30, config.cacheSeconds),
           auth: { aktif: auth.aktif, masuk: sudahMasuk },
         });
+      }
+
+      // ---- Dashboard stok: login sendiri, tidak memakai gerbang penjualan ----
+      if (path.startsWith("/api/stock")) {
+        return await handleStock(req, res, path, query, segar);
       }
 
       if (path === "/api/auth/login" && req.method === "POST") {
@@ -367,7 +495,11 @@ function createApp(env, deps = {}) {
     }
   }
 
-  return { config, handle, close: () => store.close() };
+  return {
+    config,
+    handle,
+    close: () => Promise.all([store.close(), stockStore.close()]),
+  };
 }
 
 module.exports = { createApp };

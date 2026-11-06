@@ -271,6 +271,29 @@ Setup di Vercel (isi yang sama dengan project papan TV kalau sudah ada):
 | `GOOGLE_SERVICE_ACCOUNT_JSON bukan JSON …`    | Tempel ulang seluruh isi file, dari `{` sampai `}`.             |
 | Brand tidak muncul                            | File harus Google Sheets (bukan `.xlsx`) dan langsung di folder itu. |
 
+## Dashboard Stok (`/stock`)
+
+Dashboard terpisah dengan login sendiri (username + password), tidak memakai
+password dashboard penjualan. Data dibaca dari tabel `stock_sum_new` (satu
+baris per SKU per gudang), paling sering sekali per `STOCK_CACHE_SECONDS`
+(bawaan 120 detik); tombol Refresh membaca ulang.
+
+- **Kode tag**: name tag, Stock (jumlah stok semua SKU-nya), SKU ada / total,
+  dan **ATP = (jumlah SKU yang stoknya > 0 ÷ total SKU di kode tag) × 100%**.
+  Stok satu SKU = jumlah stoknya di gudang yang dipilih (semua gudang bila
+  tidak difilter); stok 0 atau minus dihitung kosong.
+- Klik satu kode tag: metrik per `sku_product` (produk, warna/size, harga,
+  stock per gudang, status Tersedia/Kosong).
+- Filter gudang, brand (`principal_brand`), status, kelompok ATP, pencarian;
+  Export CSV satu baris per SKU.
+
+Login: username dari env `STOCK_USERNAME` (bawaan `stockwh`), password dari
+env `STOCK_PASSWORD` (atau `STOCK_PASSWORD_HASH` berformat
+`scrypt:<salt>:<hash>`). Password tidak ditulis di kode; selama env-nya
+kosong, login stok mati dan datanya tertutup.
+Tabel lain: `STOCK_TABLE`, schema: `STOCK_SCHEMA` (bawaan sama dengan
+`DB_SCHEMA`).
+
 ## Akses
 
 | `DASHBOARD_PASSWORD` | Akses data                                |

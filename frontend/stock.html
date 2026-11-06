@@ -241,77 +241,88 @@
               placeholder="Cari kode tag, name tag, SKU…"
               class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 lg:col-span-2 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             />
-            <select
-              x-model="filter.warehouse"
-              @change="ubahFilter()"
-              aria-label="Gudang"
-              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="">Semua gudang</option>
-              <template x-for="o in data.options.warehouses" :key="o">
-                <option
-                  :value="o"
-                  x-text="o"
-                  :selected="o === filter.warehouse"
-                ></option>
-              </template>
-            </select>
-            <select
-              x-model="filter.brand"
-              @change="ubahFilter()"
-              aria-label="Brand"
-              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="">Semua brand</option>
-              <template x-for="o in data.options.brands" :key="o">
-                <option
-                  :value="o"
-                  x-text="o"
-                  :selected="o === filter.brand"
-                ></option>
-              </template>
-            </select>
-            <select
-              x-model="filter.kelas"
-              @change="ubahFilter()"
-              aria-label="Kelas"
-              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="">Semua kelas</option>
-              <template x-for="o in data.options.kelas" :key="o">
-                <option
-                  :value="o"
-                  x-text="o"
-                  :selected="o === filter.kelas"
-                ></option>
-              </template>
-            </select>
-            <select
-              x-model="filter.status"
-              @change="ubahFilter()"
-              aria-label="Status"
-              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="">Semua status</option>
-              <template x-for="o in data.options.status" :key="o">
-                <option
-                  :value="o"
-                  x-text="o"
-                  :selected="o === filter.status"
-                ></option>
-              </template>
-            </select>
-            <select
-              x-model="filter.atp"
-              @change="ubahFilter()"
-              aria-label="ATP"
-              class="shadow-theme-xs h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="">Semua ATP</option>
-              <option value="penuh">ATP 100%</option>
-              <option value="sebagian">ATP 1–99%</option>
-              <option value="habis">ATP 0%</option>
-            </select>
+            <template x-for="f in daftarFilter" :key="f.k">
+              <div
+                class="relative"
+                @click.outside="dropdown === f.k && (dropdown = '')"
+                @keydown.escape.window="dropdown === f.k && (dropdown = '')"
+              >
+                <button
+                  type="button"
+                  @click="bukaDropdown(f.k)"
+                  :aria-expanded="dropdown === f.k"
+                  class="shadow-theme-xs flex h-11 w-full items-center justify-between gap-2 rounded-lg border bg-white px-3 text-left text-sm dark:bg-gray-900"
+                  :class="filter[f.k].length ? 'border-brand-300 text-brand-600 dark:border-brand-700 dark:text-brand-400' : 'border-gray-300 text-gray-800 dark:border-gray-700 dark:text-white/90'"
+                >
+                  <span class="truncate" x-text="labelFilter(f)"></span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 20 20"
+                    class="shrink-0 fill-current text-gray-500 transition"
+                    :class="dropdown === f.k ? 'rotate-180' : ''"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z"
+                    />
+                  </svg>
+                </button>
+                <div
+                  x-show="dropdown === f.k"
+                  x-cloak
+                  x-transition.opacity
+                  class="shadow-theme-lg absolute z-40 mt-1 w-full min-w-60 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-800 dark:bg-gray-900"
+                >
+                  <input
+                    x-show="f.opsi.length > 8"
+                    type="search"
+                    x-model="cariOpsi"
+                    :placeholder="'Cari ' + f.nama + '…'"
+                    class="mb-2 h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  />
+                  <div class="max-h-64 overflow-y-auto">
+                    <template x-for="o in opsiTampil(f)" :key="o.value">
+                      <label
+                        class="text-theme-sm flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+                      >
+                        <input
+                          type="checkbox"
+                          class="accent-brand-500 size-4 shrink-0 rounded border-gray-300"
+                          :checked="dipilih(f.k, o.value)"
+                          @change="centang(f.k, o.value)"
+                        />
+                        <span class="truncate" x-text="o.label"></span>
+                      </label>
+                    </template>
+                    <p
+                      x-show="!opsiTampil(f).length"
+                      class="text-theme-xs px-2 py-3 text-center text-gray-400"
+                    >
+                      Tidak ada pilihan
+                    </p>
+                  </div>
+                  <div
+                    class="text-theme-xs mt-2 flex items-center justify-between border-t border-gray-100 pt-2 dark:border-gray-800"
+                  >
+                    <button
+                      type="button"
+                      @click="pilihSemua(f)"
+                      class="text-brand-500 font-medium"
+                    >
+                      Pilih semua
+                    </button>
+                    <button
+                      type="button"
+                      @click="kosongkan(f.k)"
+                      class="font-medium text-gray-500 dark:text-gray-400"
+                    >
+                      Kosongkan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
           <div
             class="text-theme-xs mt-3 flex flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400"

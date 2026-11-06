@@ -201,33 +201,53 @@ function siapkanStok(raw) {
   }));
 }
 
+/**
+ * Filter boleh berisi beberapa nilai (checklist): parameter diulang
+ * (?brand=A&brand=B) atau array. Kosong = semua.
+ */
 function bacaFilterStok(query) {
-  const ambil = (k) => {
+  const satu = (k) => {
     const v = query[k];
     const t = Array.isArray(v) ? v[0] : v;
     return typeof t === "string" ? t.trim() : "";
   };
+  const banyak = (k) => {
+    const v = query[k];
+    return [
+      ...new Set(
+        (Array.isArray(v) ? v : v === undefined ? [] : [v])
+          .map((x) => String(x).trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, 500);
+  };
   return {
-    warehouse: ambil("warehouse"),
-    brand: ambil("brand"),
-    kategori: ambil("kategori"),
-    kelas: ambil("kelas"),
-    status: ambil("status"),
-    atp: ambil("atp"), // "", "habis" (0%), "sebagian", "penuh" (100%)
-    q: ambil("q").toLowerCase().slice(0, 100),
+    warehouse: banyak("warehouse"),
+    brand: banyak("brand"),
+    kategori: banyak("kategori"),
+    kelas: banyak("kelas"),
+    status: banyak("status"),
+    atp: banyak("atp"), // "habis" (0%), "sebagian", "penuh" (100%)
+    q: satu("q").toLowerCase().slice(0, 100),
   };
 }
+
+const lolos = (pilihan, nilai) => !pilihan.length || pilihan.includes(nilai);
 
 function saringStok(rows, f) {
   return rows.filter(
     (r) =>
-      (!f.warehouse || r.warehouse === f.warehouse) &&
-      (!f.brand || r.brand === f.brand) &&
-      (!f.kategori || r.kategori === f.kategori) &&
-      (!f.kelas || r.kelas === f.kelas) &&
-      (!f.status || r.status === f.status),
+      lolos(f.warehouse, r.warehouse) &&
+      lolos(f.brand, r.brand) &&
+      lolos(f.kategori, r.kategori) &&
+      lolos(f.kelas, r.kelas) &&
+      lolos(f.status, r.status),
   );
 }
+
+/** Kelompok ATP satu kode tag: habis (0%), sebagian, penuh (100%). */
+const kelompokAtp = (t) =>
+  t.sku_ada === 0 ? "habis" : t.sku_ada === t.total_sku ? "penuh" : "sebagian";
 
 const persen = (ada, total) => (total ? (ada / total) * 100 : 0);
 
@@ -321,11 +341,7 @@ function daftarTag(rows, query) {
     return r;
   });
   list = list.filter(Boolean);
-  if (f.atp === "habis") list = list.filter((t) => t.sku_ada === 0);
-  if (f.atp === "sebagian")
-    list = list.filter((t) => t.sku_ada > 0 && t.sku_ada < t.total_sku);
-  if (f.atp === "penuh")
-    list = list.filter((t) => t.total_sku > 0 && t.sku_ada === t.total_sku);
+  if (f.atp.length) list = list.filter((t) => f.atp.includes(kelompokAtp(t)));
 
   const totalSku = list.reduce((a, t) => a + t.total_sku, 0);
   const skuAda = list.reduce((a, t) => a + t.sku_ada, 0);

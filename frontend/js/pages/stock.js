@@ -1,4 +1,12 @@
-import { toQuery } from "../api.js";
+/** Query string; nilai array ditulis sebagai parameter berulang (?a=1&a=2). */
+function toQuery(params) {
+  const s = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (Array.isArray(v)) v.forEach((x) => s.append(k, x));
+    else if (v !== undefined && v !== null && v !== "") s.append(k, v);
+  });
+  return s.toString();
+}
 import {
   formatAngka,
   formatJam,
@@ -35,15 +43,17 @@ async function minta(path, options = {}) {
   return json;
 }
 
-const FILTER_KOSONG = {
+const KOLOM_FILTER = ["warehouse", "brand", "kelas", "status", "atp"];
+const filterKosong = () => ({
   q: "",
-  warehouse: "",
-  brand: "",
-  kategori: "",
-  kelas: "",
-  status: "",
-  atp: "",
-};
+  ...Object.fromEntries(KOLOM_FILTER.map((k) => [k, []])),
+});
+
+const OPSI_ATP = [
+  { value: "penuh", label: "ATP 100%" },
+  { value: "sebagian", label: "ATP 1–99%" },
+  { value: "habis", label: "ATP 0%" },
+];
 
 export function stockPage() {
   return {
@@ -63,7 +73,10 @@ export function stockPage() {
     loading: false,
     error: "",
     mode: "",
-    filter: { ...FILTER_KOSONG },
+    filter: filterKosong(),
+    /** Dropdown checklist yang sedang terbuka & teks cari di dalamnya. */
+    dropdown: "",
+    cariOpsi: "",
     sortBy: "stock",
     sortDir: "desc",
     page: 1,
@@ -199,12 +212,74 @@ export function stockPage() {
     },
 
     resetFilter() {
-      this.filter = { ...FILTER_KOSONG };
+      this.filter = filterKosong();
       this.ubahFilter();
     },
 
     get adaFilter() {
-      return Object.values(this.filter).some(Boolean);
+      return (
+        Boolean(this.filter.q) ||
+        KOLOM_FILTER.some((k) => this.filter[k].length)
+      );
+    },
+
+    /** Daftar dropdown checklist beserta pilihannya. */
+    get daftarFilter() {
+      const o = this.data.options || {};
+      const biasa = (list) => (list || []).map((v) => ({ value: v, label: v }));
+      return [
+        { k: "warehouse", nama: "gudang", opsi: biasa(o.warehouses) },
+        { k: "brand", nama: "brand", opsi: biasa(o.brands) },
+        { k: "kelas", nama: "kelas", opsi: biasa(o.kelas) },
+        { k: "status", nama: "status", opsi: biasa(o.status) },
+        { k: "atp", nama: "ATP", opsi: OPSI_ATP },
+      ];
+    },
+
+    labelFilter(f) {
+      const dipilih = this.filter[f.k];
+      if (!dipilih.length) return `Semua ${f.nama}`;
+      if (dipilih.length === 1) {
+        const o = f.opsi.find((x) => x.value === dipilih[0]);
+        return o ? o.label : dipilih[0];
+      }
+      return `${dipilih.length} ${f.nama} dipilih`;
+    },
+
+    opsiTampil(f) {
+      const q = this.cariOpsi.trim().toLowerCase();
+      return q
+        ? f.opsi.filter((o) => o.label.toLowerCase().includes(q))
+        : f.opsi;
+    },
+
+    bukaDropdown(k) {
+      this.dropdown = this.dropdown === k ? "" : k;
+      this.cariOpsi = "";
+    },
+
+    dipilih(k, v) {
+      return this.filter[k].includes(v);
+    },
+
+    centang(k, v) {
+      const ada = this.filter[k];
+      this.filter[k] = ada.includes(v)
+        ? ada.filter((x) => x !== v)
+        : [...ada, v];
+      this.ubahFilter();
+    },
+
+    pilihSemua(f) {
+      const terlihat = this.opsiTampil(f).map((o) => o.value);
+      this.filter[f.k] = [...new Set([...this.filter[f.k], ...terlihat])];
+      this.ubahFilter();
+    },
+
+    kosongkan(k) {
+      if (!this.filter[k].length) return;
+      this.filter[k] = [];
+      this.ubahFilter();
     },
 
     urut(kolom) {
@@ -314,7 +389,6 @@ export function stockPage() {
           kode_tag: kode,
           warehouse: this.filter.warehouse,
           brand: this.filter.brand,
-          kategori: this.filter.kategori,
           kelas: this.filter.kelas,
           status: this.filter.status,
         });

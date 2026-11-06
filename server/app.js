@@ -278,7 +278,20 @@ function createApp(env, deps = {}) {
 
       // ---- Dashboard stok: login sendiri, tidak memakai gerbang penjualan ----
       if (path.startsWith("/api/stock")) {
-        return await handleStock(req, res, path, query, segar);
+        // Filter checklist: parameter yang diulang dibaca semua nilainya.
+        const multi = [
+          "warehouse",
+          "brand",
+          "kategori",
+          "kelas",
+          "status",
+          "atp",
+        ];
+        const qStok = { ...query };
+        multi.forEach((k) => {
+          if (url.searchParams.has(k)) qStok[k] = url.searchParams.getAll(k);
+        });
+        return await handleStock(req, res, path, qStok, segar);
       }
 
       if (path === "/api/auth/login" && req.method === "POST") {

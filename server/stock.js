@@ -129,7 +129,13 @@ function createDemoStockSource() {
   const acak = mulberry32(2026);
   const brand = ["HEYMALE", "HEYLOCAL", "BOONABOO", "PREPPSTUDIO"];
   const nama = ["BASIC TEE", "CHINO PANTS", "SCARF", "TOTEBAG", "JACKET"];
-  const gudang = ["GUDANG PUSAT", "TOKO KEMANG"];
+  const gudang = [
+    "GUDANG PUSAT",
+    "TOKO KEMANG",
+    "TOKO PADANG",
+    "TOKO MEDAN",
+    "TOKO SEMARANG",
+  ];
   const ukuran = ["S", "M", "L", "XL"];
   const rows = [];
   for (let t = 1; t <= 36; t += 1) {

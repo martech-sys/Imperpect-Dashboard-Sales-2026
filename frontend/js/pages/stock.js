@@ -106,6 +106,8 @@ export function stockPage() {
 
     // rincian satu kode tag
     detail: null,
+    skuBuka: [],
+    tampilNol: false,
     detailLoading: false,
     detailError: "",
 
@@ -381,6 +383,8 @@ export function stockPage() {
     },
 
     async bukaTag(kode) {
+      this.skuBuka = [];
+      this.tampilNol = false;
       this.detail = { kode_tag: kode, name_tag: "", sku: [] };
       this.detailLoading = true;
       this.detailError = "";
@@ -408,8 +412,47 @@ export function stockPage() {
       this.detail = null;
     },
 
-    get banyakGudang() {
-      return (this.detail?.sku || []).some((s) => s.gudang.length > 1);
+    // ---- Rincian SKU: baris ringkas, klik untuk buka stok per gudang ----
+    toggleSku(sku) {
+      this.skuBuka = this.skuBuka.includes(sku)
+        ? this.skuBuka.filter((x) => x !== sku)
+        : [...this.skuBuka, sku];
+    },
+
+    skuTerbuka(sku) {
+      return this.skuBuka.includes(sku);
+    },
+
+    get semuaTerbuka() {
+      const n = (this.detail?.sku || []).length;
+      return n > 0 && this.skuBuka.length === n;
+    },
+
+    toggleSemuaSku() {
+      this.skuBuka = this.semuaTerbuka
+        ? []
+        : (this.detail?.sku || []).map((s) => s.sku);
+    },
+
+    /** Ringkasan gudang satu SKU: berapa yang ada stok / minus / nol. */
+    infoGudang(s) {
+      const g = s.gudang || [];
+      return {
+        ada: g.filter((x) => x.stock > 0).length,
+        minus: g.filter((x) => x.stock < 0).length,
+        nol: g.filter((x) => x.stock === 0).length,
+      };
+    },
+
+    /** Gudang satu SKU, stok terbanyak dulu; stok 0 disembunyikan kecuali diminta. */
+    gudangTampil(s) {
+      return (s.gudang || [])
+        .filter((g) => this.tampilNol || g.stock !== 0)
+        .slice()
+        .sort(
+          (a, b) =>
+            b.stock - a.stock || a.warehouse.localeCompare(b.warehouse, "id"),
+        );
     },
 
     get csvUrl() {

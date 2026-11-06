@@ -40,6 +40,7 @@ const FILTER_KOSONG = {
   warehouse: "",
   brand: "",
   kategori: "",
+  kelas: "",
   status: "",
   atp: "",
 };
@@ -79,7 +80,13 @@ export function stockPage() {
       },
       rows: [],
       total: 0,
-      options: { warehouses: [], brands: [], kategori: [], status: [] },
+      options: {
+        warehouses: [],
+        brands: [],
+        kategori: [],
+        kelas: [],
+        status: [],
+      },
       kesegaran: null,
     },
     muatanKe: 0,
@@ -253,7 +260,7 @@ export function stockPage() {
           label: "Stock value",
           nilai: formatRupiahRingkas(s.nilai || 0),
           penuh: formatRupiah(s.nilai || 0),
-          sub: `HPP ${formatRupiahRingkas(s.nilai_hpp || 0)}`,
+          sub: "stok × harga jual",
         },
         {
           label: "Kode tag",
@@ -308,6 +315,7 @@ export function stockPage() {
           warehouse: this.filter.warehouse,
           brand: this.filter.brand,
           kategori: this.filter.kategori,
+          kelas: this.filter.kelas,
           status: this.filter.status,
         });
         const d = await minta(`/api/stock/tag?${q}`);

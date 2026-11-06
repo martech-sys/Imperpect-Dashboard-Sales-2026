@@ -86,6 +86,9 @@ function loadConfig(env) {
   const stockTabel = (env.STOCK_TABLE || "stock_sum_new").trim();
   if (!IDENTIFIER.test(stockTabel))
     throw new Error("STOCK_TABLE bukan nama tabel yang sah");
+  const stockKelas = (env.STOCK_CLASS_TABLE || "article_class").trim();
+  if (!IDENTIFIER.test(stockKelas))
+    throw new Error("STOCK_CLASS_TABLE bukan nama tabel yang sah");
   const stockSchema = (env.STOCK_SCHEMA ?? schema).trim();
   if (stockSchema && !IDENTIFIER.test(stockSchema))
     throw new Error("STOCK_SCHEMA bukan nama schema yang sah");
@@ -146,6 +149,7 @@ function loadConfig(env) {
     },
     stock: {
       tabel: stockTabel,
+      tabelKelas: stockKelas,
       schema: stockSchema,
       cacheSeconds: Math.max(
         10,

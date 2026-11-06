@@ -13,7 +13,7 @@ const baris = (o) => ({
   color: "BLACK",
   size: "S",
   price: "99000",
-  hpp: "40000",
+  kelas: "A",
   brand: "HEYMALE",
   kategori: "APPAREL",
   warehouse: "A",
@@ -33,7 +33,13 @@ const RAW = [
   baris({ kode_tag: "T2", name_tag: "SCARF", sku_product: "X1", stock: "5" }),
   baris({ kode_tag: "T2", name_tag: "SCARF", sku_product: "X2", stock: "1" }),
   // T3: semua habis
-  baris({ kode_tag: "T3", name_tag: "BAG", sku_product: "Y1", stock: "0" }),
+  baris({
+    kode_tag: "T3",
+    name_tag: "BAG",
+    sku_product: "Y1",
+    stock: "0",
+    kelas: null,
+  }),
 ];
 const rows = stok.siapkanStok(RAW);
 
@@ -54,7 +60,6 @@ test("ATP = SKU stok > 0 / total SKU kode tag × 100%", () => {
   assert.equal(r.summary.tag_habis, 1);
   // stock value = Σ stok × price; T1 6 pcs, T2 6 pcs (stok minus = 0)
   assert.equal(r.summary.nilai, 12 * 99000);
-  assert.equal(r.summary.nilai_hpp, 12 * 40000);
   assert.equal(
     stok.daftarTag(rows, { sortBy: "nilai", sortDir: "desc" }).rows[0].nilai,
     6 * 99000,
@@ -72,10 +77,10 @@ test("filter gudang: stok & ATP hanya dari gudang itu", () => {
     name_tag: "TEE",
     brand: "HEYMALE",
     kategori: "APPAREL",
+    kelas: "A",
     stock: 1,
     // stok minus (S4) tidak mengurangi nilai: 2 × harga
     nilai: 198000,
-    nilai_hpp: 80000,
     total_sku: 4,
     sku_ada: 1,
     atp: 25,
@@ -83,6 +88,26 @@ test("filter gudang: stok & ATP hanya dari gudang itu", () => {
   assert.equal(stok.daftarTag(rows, { atp: "habis" }).total, 1);
   assert.equal(stok.daftarTag(rows, { atp: "penuh" }).total, 1);
   assert.equal(stok.daftarTag(rows, { q: "x2" }).rows[0].kode_tag, "T2");
+});
+
+test("kelas: ikut di baris kode tag, opsi filter, dan bisa disaring", () => {
+  const r = stok.daftarTag(rows, { sortBy: "kode_tag", sortDir: "asc" });
+  assert.deepEqual(
+    r.rows.map((t) => [t.kode_tag, t.kelas]),
+    [
+      ["T1", "A"],
+      ["T2", "A"],
+      ["T3", stok.TANPA_KELAS],
+    ],
+  );
+  assert.deepEqual(stok.opsiStok(rows).kelas, ["(tanpa kelas)", "A"]);
+  assert.deepEqual(
+    stok
+      .daftarTag(rows, { kelas: "A" })
+      .rows.map((t) => t.kode_tag)
+      .sort(),
+    ["T1", "T2"],
+  );
 });
 
 test("detail kode tag: metrik per SKU dengan stok per gudang", () => {
@@ -104,7 +129,14 @@ test("query stok: per kode tag × SKU × gudang dari stock_sum_new", () => {
   const sql = stok.buildStockQuery({ tabel: "stock_sum_new", schema: "" });
   assert.match(sql, /FROM stock_sum_new/);
   assert.match(sql, /GROUP BY 1, 3, 11/);
-  assert.match(sql, /AS hpp/);
+  assert.doesNotMatch(sql, /hpp/);
+  // kelas dari article_class, join lewat kode_tag (baris aktif & terbaru)
+  assert.match(sql, /FROM article_class/);
+  assert.match(
+    sql,
+    /LEFT JOIN kelas k ON k\.kunci = upper\(btrim\(s\.kode_tag\)\)/,
+  );
+  assert.match(sql, /is_active/);
   assert.match(sql, /sku_product/);
 });
 
@@ -170,8 +202,9 @@ test("login stok: username + password sendiri, terpisah dari dashboard penjualan
     assert.equal(detail.status, 200);
     assert.equal(detail.body.sku.length, list.body.rows[0].total_sku);
     const csv = await panggil(app, "/api/stock.csv", { cookie });
-    assert.match(csv.body, /kode_tag;name_tag;atp_kode_tag_persen;sku_product/);
-    assert.match(csv.body, /stock;stock_value;stock_value_hpp/);
+    assert.match(csv.body, /kode_tag;name_tag;kelas;atp_kode_tag_persen;sku_product/);
+    assert.match(csv.body, /stock;stock_value$/m);
+    assert.doesNotMatch(csv.body, /hpp/);
 
     // cookie stok tidak membuka dashboard penjualan, dan sebaliknya
     assert.equal((await panggil(app, "/api/pivot", { cookie })).status, 401);

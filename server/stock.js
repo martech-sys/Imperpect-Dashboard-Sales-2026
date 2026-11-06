@@ -7,6 +7,9 @@
  * Metrik per kode tag:
  *   Stock = jumlah stok seluruh SKU di kode tag itu (gudang yang dipilih).
  *   ATP   = (jumlah SKU yang stoknya > 0 / jumlah SKU di kode tag) × 100%.
+ *   Stock value     = Σ stok SKU × price (harga jual).
+ *   Stock value HPP = Σ stok SKU × hpp (nilai modal).
+ *   Stok minus tidak mengurangi nilai (dihitung 0).
  * Stok satu SKU = jumlah stoknya di semua gudang yang dipilih, jadi SKU yang
  * kosong di satu gudang tetapi ada di gudang lain tetap dihitung tersedia.
  *
@@ -34,13 +37,14 @@ function buildStockQuery(cfg) {
        MAX(color) AS color,
        MAX("size") AS size,
        MAX(${angkaSql("price")}) AS price,
+       MAX(${angkaSql("hpp")}) AS hpp,
        COALESCE(MAX(NULLIF(btrim(principal_brand), '')), MAX(brand)) AS brand,
        MAX(kategori) AS kategori,
        COALESCE(NULLIF(btrim(warehouse), ''), '(tanpa gudang)') AS warehouse,
        MAX(status) AS status,
        SUM(COALESCE(${angkaSql("stock")}, 0)) AS stock
   FROM ${tabel}
- GROUP BY 1, 3, 10`;
+ GROUP BY 1, 3, 11`;
 }
 
 function createStockSource(cfg, deps = {}) {
@@ -99,6 +103,7 @@ function createDemoStockSource() {
           color: warna,
           size: u,
           price: String(99000 + (t % 5) * 50000),
+          hpp: String(Math.round((99000 + (t % 5) * 50000) * 0.45)),
           brand: b,
           kategori: t % 2 ? "APPAREL" : "ACCESSORIES",
           warehouse: g,
@@ -137,6 +142,7 @@ function siapkanStok(raw) {
     warna: teks(r.color),
     ukuran: teks(r.size),
     harga: angka(r.price),
+    hpp: angka(r.hpp),
     brand: teks(r.brand) || "(tanpa brand)",
     kategori: teks(r.kategori) || "(tanpa kategori)",
     warehouse: teks(r.warehouse) || "(tanpa gudang)",
@@ -197,6 +203,7 @@ function kelompokTag(rows) {
         warna: r.warna,
         ukuran: r.ukuran,
         harga: r.harga,
+        hpp: r.hpp,
         status: r.status,
         stock: 0,
         gudang: [],
@@ -209,6 +216,9 @@ function kelompokTag(rows) {
   return tags;
 }
 
+/** Nilai stok satu SKU: stok (minus = 0) × harga. */
+const nilaiSku = (s, kolom) => Math.max(s.stock, 0) * (s[kolom] || 0);
+
 function ringkasTag(t) {
   const daftar = [...t.sku.values()];
   const totalSku = daftar.length;
@@ -219,6 +229,8 @@ function ringkasTag(t) {
     brand: t.brand,
     kategori: t.kategori,
     stock: Math.round(daftar.reduce((a, s) => a + s.stock, 0)),
+    nilai: Math.round(daftar.reduce((a, s) => a + nilaiSku(s, "harga"), 0)),
+    nilai_hpp: Math.round(daftar.reduce((a, s) => a + nilaiSku(s, "hpp"), 0)),
     total_sku: totalSku,
     sku_ada: skuAda,
     atp: persen(skuAda, totalSku),
@@ -229,6 +241,8 @@ const URUT_STOK = new Set([
   "kode_tag",
   "name_tag",
   "stock",
+  "nilai",
+  "nilai_hpp",
   "atp",
   "total_sku",
 ]);
@@ -268,6 +282,8 @@ function daftarTag(rows, query) {
     total_sku: totalSku,
     sku_ada: skuAda,
     stock: list.reduce((a, t) => a + t.stock, 0),
+    nilai: list.reduce((a, t) => a + t.nilai, 0),
+    nilai_hpp: list.reduce((a, t) => a + t.nilai_hpp, 0),
     atp: persen(skuAda, totalSku),
     tag_penuh: list.filter((t) => t.total_sku && t.sku_ada === t.total_sku)
       .length,
@@ -315,6 +331,8 @@ function detailTag(rows, kodeTag, query) {
     .map((s) => ({
       ...s,
       stock: Math.round(s.stock),
+      nilai: Math.round(nilaiSku(s, "harga")),
+      nilai_hpp: Math.round(nilaiSku(s, "hpp")),
       tersedia: s.stock > 0,
       gudang: s.gudang
         .slice()
@@ -356,7 +374,10 @@ function stokCsv(rows, query) {
     "color",
     "size",
     "price",
+    "hpp",
     "stock",
+    "stock_value",
+    "stock_value_hpp",
   ];
   const baris = [kepala.join(";")];
   semua.forEach((t) => {
@@ -373,7 +394,10 @@ function stokCsv(rows, query) {
             s.warna,
             s.ukuran,
             s.harga,
+            s.hpp,
             Math.round(s.stock),
+            Math.round(nilaiSku(s, "harga")),
+            Math.round(nilaiSku(s, "hpp")),
           ]
             .map(csvSel)
             .join(";"),

@@ -64,8 +64,14 @@ SELECT COALESCE(NULLIF(btrim(s.kode_tag), ''), '${TANPA_TAG}') AS kode_tag,
        SUM(COALESCE(${angkaSql("s.stock")}, 0)) AS stock
   FROM ${nama(cfg.tabel)} s
   LEFT JOIN kelas k ON k.kunci = ${kunci("s.kode_tag")}
+ -- kode tag yang dikecualikan (mis. TEST), huruf besar/kecil & spasi diabaikan
+ WHERE COALESCE(${kunci("s.kode_tag")}, '') <> ALL($1::text[])
  GROUP BY 1, 3, 11`;
 }
+
+/** Daftar kode tag yang dikecualikan → huruf besar tanpa spasi tepi. */
+const kecualiTag = (daftar) =>
+  (daftar || []).map((t) => String(t).trim().toUpperCase()).filter(Boolean);
 
 function createStockSource(cfg, deps = {}) {
   const pool = createPool(cfg.pg, { ...deps, maxConnections: 1 });
@@ -73,7 +79,7 @@ function createStockSource(cfg, deps = {}) {
   return {
     name: "postgres",
     async fetch() {
-      const res = await pool.query(sql);
+      const res = await pool.query(sql, [kecualiTag(cfg.excludeTag)]);
       return res.rows;
     },
     close: () => pool.end(),
@@ -427,6 +433,7 @@ function stokCsv(rows, query) {
 }
 
 module.exports = {
+  kecualiTag,
   TANPA_TAG,
   TANPA_KELAS,
   buildStockQuery,

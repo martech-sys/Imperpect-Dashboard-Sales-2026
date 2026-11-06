@@ -130,6 +130,8 @@ test("query stok: per kode tag × SKU × gudang dari stock_sum_new", () => {
   assert.match(sql, /FROM stock_sum_new/);
   assert.match(sql, /GROUP BY 1, 3, 11/);
   assert.doesNotMatch(sql, /hpp/);
+  assert.match(sql, /<> ALL\(\$1::text\[\]\)/);
+  assert.deepEqual(stok.kecualiTag([" test ", "", "Uji"]), ["TEST", "UJI"]);
   // kelas dari article_class, join lewat kode_tag (baris aktif & terbaru)
   assert.match(sql, /FROM article_class/);
   assert.match(
@@ -202,7 +204,10 @@ test("login stok: username + password sendiri, terpisah dari dashboard penjualan
     assert.equal(detail.status, 200);
     assert.equal(detail.body.sku.length, list.body.rows[0].total_sku);
     const csv = await panggil(app, "/api/stock.csv", { cookie });
-    assert.match(csv.body, /kode_tag;name_tag;kelas;atp_kode_tag_persen;sku_product/);
+    assert.match(
+      csv.body,
+      /kode_tag;name_tag;kelas;atp_kode_tag_persen;sku_product/,
+    );
     assert.match(csv.body, /stock;stock_value$/m);
     assert.doesNotMatch(csv.body, /hpp/);
 

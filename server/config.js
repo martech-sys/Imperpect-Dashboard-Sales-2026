@@ -154,6 +154,12 @@ function loadConfig(env) {
       excludeTag: daftar(
         env.STOCK_EXCLUDE_TAG === undefined ? "TEST" : env.STOCK_EXCLUDE_TAG,
       ),
+      // Name tag yang mengandung kata ini tidak ikut (pisah koma). Bawaan: PAPER BAG.
+      excludeName: daftar(
+        env.STOCK_EXCLUDE_NAME === undefined
+          ? "PAPER BAG"
+          : env.STOCK_EXCLUDE_NAME,
+      ),
       schema: stockSchema,
       cacheSeconds: Math.max(
         10,

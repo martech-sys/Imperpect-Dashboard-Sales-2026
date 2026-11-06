@@ -132,6 +132,12 @@ test("query stok: per kode tag × SKU × gudang dari stock_sum_new", () => {
   assert.doesNotMatch(sql, /hpp/);
   assert.match(sql, /<> ALL\(\$1::text\[\]\)/);
   assert.deepEqual(stok.kecualiTag([" test ", "", "Uji"]), ["TEST", "UJI"]);
+  assert.match(sql, /~\* ANY\(\$2::text\[\]\)/);
+  assert.deepEqual(stok.polaNama(["PAPER BAG", "a.b"]), [
+    "PAPER\\s*BAG",
+    "a\\.b",
+  ]);
+  assert.deepEqual(stok.polaNama([]), ["(?!)"]);
   // kelas dari article_class, join lewat kode_tag (baris aktif & terbaru)
   assert.match(sql, /FROM article_class/);
   assert.match(

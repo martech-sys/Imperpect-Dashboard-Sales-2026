@@ -86,6 +86,16 @@ test("filter gudang: stok & ATP hanya dari gudang itu", () => {
     atp: 25,
   });
   assert.equal(stok.daftarTag(rows, { atp: "habis" }).total, 1);
+  // checklist: beberapa nilai sekaligus
+  assert.equal(stok.daftarTag(rows, { atp: ["habis", "penuh"] }).total, 2);
+  assert.equal(
+    stok.daftarTag(rows, {
+      warehouse: ["A", "B"],
+      sortBy: "kode_tag",
+      sortDir: "asc",
+    }).rows[0].stock,
+    5,
+  );
   assert.equal(stok.daftarTag(rows, { atp: "penuh" }).total, 1);
   assert.equal(stok.daftarTag(rows, { q: "x2" }).rows[0].kode_tag, "T2");
 });
@@ -201,6 +211,14 @@ test("login stok: username + password sendiri, terpisah dari dashboard penjualan
     assert.equal(list.status, 200);
     assert.ok(list.body.rows.length > 0);
     assert.ok(list.body.options.warehouses.length > 0);
+    // filter checklist lewat parameter berulang
+    const [b1, b2] = list.body.options.brands;
+    const satu = await panggil(app, `/api/stock?brand=${b1}`, { cookie });
+    const dua = await panggil(app, `/api/stock?brand=${b1}&brand=${b2}`, {
+      cookie,
+    });
+    const hanyaB2 = await panggil(app, `/api/stock?brand=${b2}`, { cookie });
+    assert.equal(dua.body.total, satu.body.total + hanyaB2.body.total);
     const kode = list.body.rows[0].kode_tag;
     const detail = await panggil(
       app,

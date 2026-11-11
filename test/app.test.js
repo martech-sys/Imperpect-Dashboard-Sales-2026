@@ -63,6 +63,8 @@ const ENV_DB = {
   DATABASE_HOST: "db",
   DATABASE_NAME: "we_data_store",
   CACHE_SECONDS: "60",
+  // tes ini memakai database tiruan, bukan snapshot data terkunci di repo
+  DATA_LIVE: "1",
 };
 
 test("tanpa database: mode demo, data contoh terbaca", async () => {

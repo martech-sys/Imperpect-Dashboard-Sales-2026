@@ -114,7 +114,7 @@ function panggil(app, url) {
 
 test("/api/ringkasan: warehouse gagal, eksternal tetap tampil dan galat disebut", async () => {
   const app = createApp(
-    { DATABASE_HOST: "db", UJI_WAREHOUSE: "off" },
+    { DATABASE_HOST: "db", UJI_WAREHOUSE: "off", DATA_LIVE: "1" },
     { Pool: PoolGagal },
   );
   const r = await panggil(app, "/api/ringkasan");

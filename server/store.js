@@ -159,6 +159,8 @@ function createStore(source, event, opts = {}) {
         event: data ? data.event : event,
         kesegaran: {
           sumber: source.name,
+          // waktu data diambil dari database (sumber snapshot/terkunci)
+          diambil: source.diambil || null,
           uji: data ? data.uji : null,
           fetchedAt,
           error,

@@ -96,6 +96,22 @@ export function pageBase({ page, pageTitle, pageSubtitle }) {
           teks: "Database belum diisi — menampilkan data contoh",
         };
       }
+      if (k.sumber === "snapshot") {
+        const t = k.diambil ? new Date(k.diambil) : null;
+        const kapan = t
+          ? `${formatTanggalSedang(
+              [
+                t.getFullYear(),
+                String(t.getMonth() + 1).padStart(2, "0"),
+                String(t.getDate()).padStart(2, "0"),
+              ].join("-"),
+            )} ${formatJam(t)}`
+          : "";
+        return {
+          warna: "bg-brand-500",
+          teks: `Data dikunci${kapan ? ` · diambil ${kapan}` : ""} · tidak lagi membaca database`,
+        };
+      }
       return { warna: "bg-success-500", teks: `Live · ${this.usiaData}` };
     },
 

@@ -7,7 +7,7 @@
   "cleanUrls": true,
   "regions": ["sin1"],
   "functions": {
-    "api/index.js": { "maxDuration": 30 }
+    "api/index.js": { "maxDuration": 30, "includeFiles": "data/**" }
   },
   "rewrites": [{ "source": "/api/:path*", "destination": "/api" }],
   "headers": [

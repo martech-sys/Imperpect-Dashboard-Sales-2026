@@ -182,6 +182,9 @@ function loadConfig(env) {
         branch: (env.STOCK_USERS_BRANCH || "main").trim(),
       },
     },
+    // Data penjualan terkunci (data/snapshot-penjualan.json.gz) dipakai bila
+    // ada; DATA_LIVE=1 memaksa membaca database lagi.
+    dataLive: flag(env.DATA_LIVE, false),
     // Mode demo hanya dipakai bila memang diminta atau database belum diisi
     // sama sekali; database yang gagal dibaca TIDAK diganti data contoh.
     demo:

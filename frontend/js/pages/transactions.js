@@ -30,6 +30,11 @@ const KOLOM_TABEL = [
   { key: "total_harga_barang", label: "Harga", align: "right" },
   { key: "promo_value", label: "Promo", align: "right" },
   { key: "total_bayar", label: "Total bayar", align: "right" },
+  {
+    key: "total_bayar_alokasi",
+    label: "Total bayar alokasi",
+    align: "right",
+  },
   { key: "payment_note", label: "Metode bayar", align: "left" },
   { key: "status", label: "Status", align: "left" },
 ];

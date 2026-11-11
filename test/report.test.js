@@ -157,6 +157,7 @@ test("rincian: urutan kolom, total bayar hanya di baris pertama invoice", () => 
     "total_harga_barang",
     "promo_value",
     "total_bayar",
+    "total_bayar_alokasi",
     "payment_note",
     "status",
     // tampilan saja, tidak ikut CSV
@@ -222,6 +223,71 @@ test("rincian: total bayar invoice = MAX semua barisnya walau baris pertama koso
   assert.match(csv, /A1;.*;275000;/);
 });
 
+test("total_bayar_alokasi: total invoice dibagi per barang sesuai porsi harga", () => {
+  const { rows: r3 } = siapkan(
+    [
+      // invoice campuran: 298.000 dibayar untuk HEYLOCAL 129.000 + NOSTALGY 169.000
+      baris({
+        invoice: "M",
+        brand: "HEYLOCAL",
+        sku_produk: "L1",
+        total_harga_barang: "129000",
+        total_bayar: "298000",
+      }),
+      baris({
+        invoice: "M",
+        brand: "NOSTALGY",
+        sku_produk: "N1",
+        total_harga_barang: "169000",
+        total_bayar: "298000",
+      }),
+      // diskon 100.000 dibagi proporsional, pembulatan tetap pas
+      baris({
+        invoice: "D",
+        brand: "A",
+        sku_produk: "A1",
+        total_harga_barang: "100000",
+        total_bayar: "200000",
+      }),
+      baris({
+        invoice: "D",
+        brand: "B",
+        sku_produk: "B1",
+        total_harga_barang: "100000",
+        total_bayar: "200000",
+      }),
+      baris({
+        invoice: "D",
+        brand: "C",
+        sku_produk: "C1",
+        total_harga_barang: "100000",
+        total_bayar: "200000",
+      }),
+    ],
+    event,
+  );
+  const t = report.transactions(r3, {
+    sortBy: "invoice",
+    sortDir: "asc",
+    pageSize: 50,
+  });
+  const a = Object.fromEntries(
+    t.rows.map((x) => [x.sku_produk, x.total_bayar_alokasi]),
+  );
+  assert.equal(a.L1, 129000);
+  assert.equal(a.N1, 169000);
+  assert.equal(a.A1 + a.B1 + a.C1, 200000);
+  assert.ok([66666, 66667].includes(a.B1));
+  // filter brand: alokasi tetap milik brand itu saja
+  const n = report.transactions(r3, { brand: "NOSTALGY" });
+  assert.equal(n.rows[0].total_bayar_alokasi, 169000);
+  const csv = report.transactionsCsv(r3, {});
+  assert.match(
+    csv.split("\n")[0],
+    /total_bayar;total_bayar_alokasi;payment_method/,
+  );
+});
+
 test("rincian: pencarian dan urutan", () => {
   assert.equal(report.transactions(rows, { q: "d" }).total, 1);
   const asc = report.transactions(rows, { sortBy: "tanggal", sortDir: "asc" });
@@ -255,7 +321,7 @@ test("CSV memakai urutan kolom tabel, pemisah titik koma, dan BOM", () => {
   const csv = report.transactionsCsv(rows, {});
   assert.ok(
     csv.startsWith(
-      "\ufeffbrand;tanggal;waktu;invoice;sku_produk;nama_produk;kategori;channel;qty;harga;promo_value;total_bayar;payment_method;status\n",
+      "\ufeffbrand;tanggal;waktu;invoice;sku_produk;nama_produk;kategori;channel;qty;harga;promo_value;total_bayar;total_bayar_alokasi;payment_method;status\n",
     ),
   );
   assert.ok(!csv.includes("hpp"));

@@ -141,6 +141,7 @@ Logikanya mengikuti halaman Transaksi OFFLINE-STORE. Urutan kolom (tabel dan CSV
 | Harga        | `harga`          | `total_harga_barang`                         |
 | Promo        | `promo_value`    | `promo_value`                                |
 | Total bayar  | `total_bayar`    | `total_bayar`                                |
+| Total bayar alokasi | `total_bayar_alokasi` | total bayar invoice × harga baris ÷ harga invoice |
 | Metode bayar | `payment_method` | `payment_note`                               |
 | Status       | `status`         | `status`                                     |
 
@@ -148,7 +149,13 @@ HPP tidak dibaca dari warehouse dan tidak ditampilkan di mana pun.
 
 - Satu baris = satu produk. **Total bayar** dan **nilai promo** berlaku untuk satu invoice, jadi
   hanya ditulis di baris pertama invoice itu — dihitung sebelum paginasi, sehingga invoice yang
-  terpotong batas halaman tidak menulis totalnya dua kali.
+  terpotong batas halaman tidak menulis totalnya dua kali. Nilainya MAX `total_bayar` semua baris
+  invoice.
+- **Total bayar alokasi** terisi di setiap baris: total bayar invoice dibagi ke tiap barang sesuai
+  porsi harganya (pembulatan rupiah tetap pas per invoice). Pakai kolom ini untuk total bayar per
+  brand — filter brand di Excel lalu jumlahkan; jumlah semua baris = jumlah total bayar seluruh
+  invoice. Kolom `total_bayar` biasa tidak bisa dipecah per brand karena invoice campuran tercatat
+  di baris brand pertama.
 - Tanggal hanya ditulis saat berganti; jam, invoice, channel, promo, total bayar, dan metode bayar
   hanya di baris pertama invoice. Nomor invoice panjang dipendekkan dari tengah (utuhnya di tooltip
   dan CSV).

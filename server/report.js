@@ -342,6 +342,7 @@ const KOLOM_DETAIL = [
   ["total_harga_barang", "harga"],
   ["promo_value", "promo_value"],
   ["total_bayar", "total_bayar"],
+  ["total_bayar_alokasi", "total_bayar_alokasi"],
   ["payment_note", "payment_method"],
   ["status", "status"],
 ];
@@ -372,6 +373,59 @@ function maksPerInvoice(semuaRows, kolom) {
 }
 
 /**
+ * Total bayar invoice dibagi ke tiap baris (barang) sesuai porsi harganya:
+ * alokasi = total bayar invoice × harga baris / jumlah harga invoice. Jadi
+ * jumlah alokasi per brand = total bayar yang benar milik brand itu, dan
+ * jumlah semua alokasi = jumlah total bayar seluruh invoice. Pembulatan ke
+ * rupiah memakai sisa terbesar sehingga jumlah per invoice tetap persis.
+ * Invoice yang jumlah harganya 0 dibagi rata per baris; baris tanpa nomor
+ * invoice memakai total bayarnya sendiri. Dihitung sekali per data
+ * (cache per array baris).
+ */
+const cacheAlokasi = new WeakMap();
+function alokasiTotalBayar(semuaRows) {
+  if (cacheAlokasi.has(semuaRows)) return cacheAlokasi.get(semuaRows);
+  const hasil = new Map(); // baris → alokasi
+  const perInv = new Map();
+  semuaRows.forEach((r) => {
+    if (!r.invoice) {
+      hasil.set(r, r.total_bayar === null ? null : Math.round(r.total_bayar));
+      return;
+    }
+    if (!perInv.has(r.invoice)) perInv.set(r.invoice, []);
+    perInv.get(r.invoice).push(r);
+  });
+  perInv.forEach((daftar) => {
+    const nilai = daftar
+      .map((r) => r.total_bayar)
+      .filter((v) => v !== null && v !== undefined);
+    if (!nilai.length) {
+      daftar.forEach((r) => hasil.set(r, null));
+      return;
+    }
+    const total = Math.round(Math.max(...nilai));
+    const harga = daftar.map((r) => Math.max(r.total_harga_barang || 0, 0));
+    const jml = harga.reduce((a, b) => a + b, 0);
+    const porsi = harga.map((h) => (jml > 0 ? h / jml : 1 / daftar.length));
+    const mentah = porsi.map((p) => total * p);
+    const bulat = mentah.map((v) => Math.floor(v));
+    let sisa = total - bulat.reduce((a, b) => a + b, 0);
+    mentah
+      .map((v, i) => [v - Math.floor(v), i])
+      .sort((a, b) => b[0] - a[0])
+      .forEach(([, i]) => {
+        if (sisa > 0) {
+          bulat[i] += 1;
+          sisa -= 1;
+        }
+      });
+    daftar.forEach((r, i) => hasil.set(r, bulat[i]));
+  });
+  cacheAlokasi.set(semuaRows, hasil);
+  return hasil;
+}
+
+/**
  * Baris → objek kirim. `total_bayar` dan `promo_value` berlaku untuk satu
  * invoice, jadi hanya ditulis di baris pertama invoice itu (null di baris
  * lanjutannya), berisi nilai MAX invoice tersebut. Penandanya dihitung atas
@@ -383,6 +437,7 @@ function keluaran(rows, semuaRows = rows) {
   const sudah = new Set();
   const totalInv = maksPerInvoice(semuaRows, "total_bayar");
   const promoInv = maksPerInvoice(semuaRows, "promo_value");
+  const alokasi = alokasiTotalBayar(semuaRows);
   return rows.map((r) => {
     const pertama = !r.invoice || !sudah.has(r.invoice);
     if (r.invoice) sudah.add(r.invoice);
@@ -391,6 +446,8 @@ function keluaran(rows, semuaRows = rows) {
     // transaksi yang dikoreksi.
     o.no_order = r.no_order;
     o.tanggal_tercatat = r.tanggal_tercatat;
+    // ada di setiap baris (bukan hanya baris pertama invoice)
+    o.total_bayar_alokasi = alokasi.has(r) ? alokasi.get(r) : null;
     if (!pertama) {
       o.total_bayar = null;
       o.promo_value = null;

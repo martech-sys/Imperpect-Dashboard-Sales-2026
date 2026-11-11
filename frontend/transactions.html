@@ -349,6 +349,11 @@
                           x-text="rupiahAtauKosong(row.total_bayar)"
                         ></td>
                         <td
+                          class="text-theme-sm px-4 py-3 text-right whitespace-nowrap text-gray-600 tabular-nums dark:text-gray-400"
+                          title="Total bayar invoice dibagi ke barang ini sesuai porsi harganya"
+                          x-text="rupiahAtauStrip(row.total_bayar_alokasi)"
+                        ></td>
+                        <td
                           class="text-theme-sm px-4 py-3 whitespace-nowrap text-gray-600 dark:text-gray-400"
                           x-text="row.invoiceBaru ? teks(row.payment_note) : ''"
                         ></td>

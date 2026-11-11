@@ -271,6 +271,24 @@ Setup di Vercel (isi yang sama dengan project papan TV kalau sudah ada):
 | `GOOGLE_SERVICE_ACCOUNT_JSON bukan JSON …`    | Tempel ulang seluruh isi file, dari `{` sampai `}`.             |
 | Brand tidak muncul                            | File harus Google Sheets (bukan `.xlsx`) dan langsung di folder itu. |
 
+## Data penjualan dikunci (sesudah event)
+
+Event sudah selesai, jadi dashboard penjualan bisa dikunci ke data terakhir
+dan tidak lagi membaca database:
+
+1. Masuk ke `/stock` sebagai admin (mis. `stockwh`).
+2. Di browser yang sama buka `/api/kunci-data?ya=1`. Server membaca
+   `laporan_penjualan` sekali, lalu meng-commit
+   `data/snapshot-penjualan.json.gz` ke repo ini (memakai
+   `STOCK_USERS_GITHUB_TOKEN`).
+3. Vercel deploy ulang otomatis. Selama file itu ada, semua menu penjualan
+   (Sesi × Channel, Rincian, Ringkasan, Compare, Target) memakai isinya;
+   header menampilkan "Data dikunci · diambil …".
+
+`/api/kunci-data` (tanpa `?ya=1`) menampilkan status kunci. Untuk membaca
+database lagi: isi env `DATA_LIVE=1`, atau hapus file snapshot. Sheet brand
+eksternal dan dashboard stok tetap live.
+
 ## Dashboard Stok (`/stock`)
 
 Dashboard terpisah dengan login sendiri (username + password), tidak memakai

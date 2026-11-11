@@ -5,6 +5,7 @@ const { createAuth } = require("./auth");
 const { createStore } = require("./store");
 const { createPostgresSource } = require("./source-postgres");
 const { createDemoSource } = require("./demo-data");
+const snapshot = require("./snapshot");
 const report = require("./report");
 const eksternal = require("./eksternal");
 const { ringkasanAll } = require("./ringkasan");
@@ -81,9 +82,20 @@ function createApp(env, deps = {}) {
   }
 
   const { event } = config;
+  // Event selesai: bila ada snapshot di repo, database penjualan tidak dibaca.
+  let snap = null;
+  if (!config.demo && !config.dataLive) {
+    try {
+      snap = snapshot.bacaSnapshot(deps.snapshotFile);
+    } catch (e) {
+      console.error("[snapshot]", e.message);
+    }
+  }
   const source = config.demo
     ? createDemoSource(event)
-    : createPostgresSource(config.pg, event, deps, config.uji);
+    : snap
+      ? snapshot.createSnapshotSource(snap)
+      : createPostgresSource(config.pg, event, deps, config.uji);
   const store = createStore(source, event, {
     cacheSeconds: config.cacheSeconds,
     waitUntil: deps.waitUntil,
@@ -401,11 +413,71 @@ function createApp(env, deps = {}) {
         );
       }
 
+      // ---- Kunci data penjualan (snapshot ke repo), khusus admin stok ----
+      if (path === "/api/kunci-data" && req.method === "GET") {
+        const info = {
+          terkunci: Boolean(snap),
+          diambil: snap ? snap.diambil : null,
+          jumlah: snap ? snap.jumlah : null,
+        };
+        if (query.ya !== "1") return json(res, 200, info);
+        const admin = await stockUsers.masuk(req.headers.cookie);
+        if (!admin || admin.role !== "admin")
+          return json(res, 403, {
+            error: "forbidden",
+            message:
+              "Masuk dulu sebagai admin di /stock (mis. stockwh), lalu buka alamat ini lagi.",
+          });
+        if (config.demo)
+          return json(res, 400, {
+            error: "demo",
+            message: "Mode demo: tidak ada database untuk dikunci.",
+          });
+        if (!config.stock.github.token)
+          return json(res, 503, {
+            error: "no_token",
+            message:
+              "Isi STOCK_USERS_GITHUB_TOKEN di Vercel (izin Contents read & write ke repo ini).",
+          });
+        const pg = createPostgresSource(config.pg, event, deps, null);
+        try {
+          const hasil = await pg.fetch();
+          const rows = Array.isArray(hasil) ? hasil : hasil.rows;
+          const buf = snapshot.buatSnapshot(rows, {
+            warehouse: event.warehouse,
+            dari: event.dataDari || event.dari,
+            sampai: event.sampai,
+            oleh: admin.username,
+          });
+          const commit = await snapshot.simpanKeGithub(
+            config.stock.github,
+            buf,
+            `Kunci data penjualan: ${rows.length} baris (oleh ${admin.username})`,
+            deps.fetch,
+          );
+          return json(res, 200, {
+            ok: true,
+            jumlah: rows.length,
+            ukuranKB: Math.round(buf.length / 1024),
+            commit,
+            pesan:
+              "Snapshot tersimpan di repo. Vercel deploy ulang otomatis (±1–2 menit); setelah itu dashboard memakai data terkunci dan tidak membaca database lagi.",
+          });
+        } catch (e) {
+          return json(res, e.status || 500, {
+            error: "kunci_gagal",
+            message: e.message,
+          });
+        } finally {
+          await pg.close().catch(() => {});
+        }
+      }
+
       if (path === "/api/health" && req.method === "GET") {
         const d = await store.get();
         return json(res, d.rows ? 200 : 503, {
           ok: Boolean(d.rows),
-          mode: config.demo ? "demo" : "postgres",
+          mode: config.demo ? "demo" : snap ? "snapshot" : "postgres",
           baris: d.rows ? d.rows.length : 0,
           dibuang: d.dibuang,
           kesegaran: d.kesegaran,

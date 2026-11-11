@@ -356,17 +356,36 @@ function urutkan(semuaRows, query) {
 }
 
 /**
+ * Nilai per invoice = nilai terbesar di antara SEMUA baris invoice itu
+ * (MAX, sama dengan Compare 2025), dihitung dari seluruh data — bukan hanya
+ * baris yang lolos filter — supaya baris pertama yang kebetulan kosong di
+ * database tidak membuat total invoice ikut kosong.
+ */
+function maksPerInvoice(semuaRows, kolom) {
+  const peta = new Map();
+  semuaRows.forEach((r) => {
+    const v = r[kolom];
+    if (!r.invoice || v === null || v === undefined) return;
+    if (!peta.has(r.invoice) || v > peta.get(r.invoice)) peta.set(r.invoice, v);
+  });
+  return peta;
+}
+
+/**
  * Baris → objek kirim. `total_bayar` dan `promo_value` berlaku untuk satu
  * invoice, jadi hanya ditulis di baris pertama invoice itu (null di baris
- * lanjutannya). Penandanya dihitung atas seluruh hasil sebelum dipotong
- * halaman, sehingga invoice yang terpotong batas halaman tidak menulis
- * totalnya dua kali.
+ * lanjutannya), berisi nilai MAX invoice tersebut. Penandanya dihitung atas
+ * seluruh hasil sebelum dipotong halaman, sehingga invoice yang terpotong
+ * batas halaman tidak menulis totalnya dua kali. Baris tanpa nomor invoice
+ * berdiri sendiri.
  */
-function keluaran(rows) {
+function keluaran(rows, semuaRows = rows) {
   const sudah = new Set();
+  const totalInv = maksPerInvoice(semuaRows, "total_bayar");
+  const promoInv = maksPerInvoice(semuaRows, "promo_value");
   return rows.map((r) => {
-    const pertama = !sudah.has(r.invoice);
-    sudah.add(r.invoice);
+    const pertama = !r.invoice || !sudah.has(r.invoice);
+    if (r.invoice) sudah.add(r.invoice);
     const o = Object.fromEntries(KOLOM_DETAIL.map(([k]) => [k, r[k]]));
     // Untuk tampilan saja (tidak ikut CSV): nomor order kasir & tanggal asli
     // transaksi yang dikoreksi.
@@ -375,6 +394,13 @@ function keluaran(rows) {
     if (!pertama) {
       o.total_bayar = null;
       o.promo_value = null;
+    } else if (r.invoice) {
+      o.total_bayar = totalInv.has(r.invoice)
+        ? totalInv.get(r.invoice)
+        : r.total_bayar;
+      o.promo_value = promoInv.has(r.invoice)
+        ? promoInv.get(r.invoice)
+        : r.promo_value;
     }
     return o;
   });
@@ -387,7 +413,7 @@ function transactions(semuaRows, query) {
     Math.max(1, parseInt(query.pageSize, 10) || 25),
   );
   const { rows, sortBy, sortDir } = urutkan(semuaRows, query);
-  const semua = keluaran(rows);
+  const semua = keluaran(rows, semuaRows);
   const g = kelompokBaru();
   rows.forEach((r) => tambah(g, r));
   const mulai = (page - 1) * pageSize;
@@ -412,7 +438,7 @@ const BATAS_CSV = 200000;
 /** Ekspor CSV rincian, dipisah `;` dan diawali BOM supaya Excel membacanya rapi. */
 function transactionsCsv(semuaRows, query) {
   const { rows } = urutkan(semuaRows, query);
-  const isi = keluaran(rows.slice(0, BATAS_CSV));
+  const isi = keluaran(rows.slice(0, BATAS_CSV), semuaRows);
   const baris = [
     KOLOM_DETAIL.map(([, judul]) => judul).join(";"),
     ...isi.map((o) => KOLOM_DETAIL.map(([k]) => csvSel(o[k])).join(";")),

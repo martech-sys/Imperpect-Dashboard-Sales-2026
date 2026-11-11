@@ -180,6 +180,48 @@ test("rincian: total bayar tidak tertulis ulang saat invoice terpotong halaman",
   assert.equal(hal2.rows[0].total_bayar, null);
 });
 
+test("rincian: total bayar invoice = MAX semua barisnya walau baris pertama kosong", () => {
+  const { rows: r2 } = siapkan(
+    [
+      baris({
+        invoice: "K",
+        sku_produk: "A1",
+        total_bayar: null,
+        promo_value: null,
+      }),
+      baris({
+        invoice: "K",
+        sku_produk: "B2",
+        total_bayar: "275000.0000",
+        promo_value: "25000",
+      }),
+      // tanpa nomor invoice: masing-masing berdiri sendiri
+      baris({ invoice: null, sku_produk: "C3", total_bayar: "10000.0000" }),
+      baris({ invoice: null, sku_produk: "D4", total_bayar: "20000.0000" }),
+    ],
+    event,
+  );
+  const t = report.transactions(r2, { sortBy: "invoice", sortDir: "asc" });
+  const k = t.rows.filter((x) => x.invoice === "K");
+  assert.deepEqual(
+    k.map((x) => [x.sku_produk, x.total_bayar, x.promo_value]),
+    [
+      ["A1", 275000, 25000],
+      ["B2", null, null],
+    ],
+  );
+  assert.deepEqual(
+    t.rows
+      .filter((x) => !x.invoice)
+      .map((x) => x.total_bayar)
+      .sort(),
+    [10000, 20000],
+  );
+  // filter brand lain tetap memakai total seluruh invoice
+  const csv = report.transactionsCsv(r2, { q: "a1" });
+  assert.match(csv, /A1;.*;275000;/);
+});
+
 test("rincian: pencarian dan urutan", () => {
   assert.equal(report.transactions(rows, { q: "d" }).total, 1);
   const asc = report.transactions(rows, { sortBy: "tanggal", sortDir: "asc" });
